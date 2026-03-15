@@ -1,29 +1,58 @@
 import { Module } from '@nestjs/common';
-import { BackwardCompatibilityController } from './backwardcompatibility.controller';
-import { MatchManager } from './services/match.manager';
-import { StandingManager } from './services/standing.manager';
-import { SongRoller } from './services/song.roller';
-import { TournamentCache } from './services/tournament.cache';
-import { MatchGateway } from './gateways/match.gateway'
-import { ScoringSystemProvider } from './services/IScoringSystem';
-import { GameGateway } from './gateways/game.gateway';
-import { LiveScoreGateway } from './gateways/live.score.gateway'
-import { CrudModule } from './crud/crud.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+import { AuthModule } from '@auth/auth.module';
+
+import { PersistenceModule } from '@persistence/persistence.module';
+import { TournamentModule } from '@tournament/tournament.module';
+import { AccountModule } from '@user/user.module';
+
+import { Entities } from '@persistence/entities';
+
+import { AuthService } from '@auth/services';
+import { AuthController } from '@auth/controllers';
+
 
 @Module({
-  imports: [ CrudModule ],
+  imports: [
+  ConfigModule.forRoot({
+  isGlobal: true,
+    }),
+  TypeOrmModule.forRootAsync({
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => {
+      if (config.get('DB_TYPE') === 'sqlite') {
+        return {
+          type: 'sqlite',
+          database: config.get('SQLITE_PATH') ?? './tournament.db',
+          entities: Entities,
+          synchronize: true,
+        };
+      }
+      return {
+        type: 'mariadb',
+        host: config.getOrThrow('DATABASE_HOST'),
+        port: 3306,
+        username: config.getOrThrow('DATABASE_USER'),
+        password: config.getOrThrow('DATABASE_PASSWORD'),
+        database: config.getOrThrow('DATABASE_NAME'),
+        entities: Entities,
+        synchronize: true,
+      };
+    },
+  }),
+    PersistenceModule,
+    AuthModule,
+    AccountModule,
+    TournamentModule
+
+   ],
   controllers:[
-    BackwardCompatibilityController
+    AuthController
   ],
   providers: [
-    TournamentCache,
-    SongRoller,
-    MatchManager,
-    StandingManager,
-    MatchGateway,
-    ScoringSystemProvider,
-    GameGateway,
-    LiveScoreGateway
+    AuthService
   ],
 })
 export class AppModule { }

@@ -10,6 +10,14 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths" : {
+      "@auth/*" : ["./src/auth/*"],
+      "@backwards-compat/*" : ["./src/backwards-compat/*"],
+      "@match-manager/*" : ["./src/match-manager/*"],
+      "@persistence/*": ["./src/persistence/*"],
+      "@tournament/*" : ["./src/tournament/*"],
+      "@user/*" : ["./src/user/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,

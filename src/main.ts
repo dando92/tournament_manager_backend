@@ -1,11 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as cors from 'cors';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { AppLogger } from './logger/app-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: new AppLogger() });
 
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
@@ -14,13 +14,21 @@ async function bootstrap() {
     .addTag('api')
     .build();
 
+  /*
   app.enableCors({
-    origin: '*',
+    origin: 'http://manager.itgeurocup.com',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: false,
+    credentials: true,
   });
-  app.use(cors());
+  */
+  
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
 
   app.useWebSocketAdapter(new WsAdapter(app));
 
