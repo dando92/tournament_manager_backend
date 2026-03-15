@@ -35,7 +35,7 @@ export class UserController {
     @Patch(':id/profile')
     async updateProfile(
         @Param('id') id: string,
-        @Body() body: { playerName?: string; nationality?: string },
+        @Body() body: { playerName?: string; nationality?: string; grooveStatsApi?: string; profilePicture?: string },
         @Request() req,
     ) {
         if (req.user.id !== id) throw new ForbiddenException();

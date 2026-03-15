@@ -36,6 +36,9 @@ export class Account {
     @Column({ default: "" })
     nationality: string;
 
+    @Column({ type: 'text', default: "" })
+    profilePicture: string;
+
     @OneToOne(() => Player)
     @JoinColumn()
     player: Player
