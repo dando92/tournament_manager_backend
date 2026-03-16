@@ -26,7 +26,4 @@ export class UpdateTournamentDto {
     @ApiProperty({ example: 'UEFA Euro 2024', description: 'The name of the tournament.', required: false })
     name: string;
 
-    @IsOptional()
-    @IsString()
-    lobbyCode: string | null;
 }

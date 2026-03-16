@@ -1,51 +1,61 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { GetPublicTournamentsUseCase } from '../use-cases/tournaments/get-public-tournaments.use-case';
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { StandingManager } from './standing.manager';
 import { ItgOnlineProxyGateway } from '../gateways/itg-online-proxy.gateway';
 import { ItgOnlineSpectator } from './itg-online.spectator';
 
+interface LobbyEntry {
+    id: string;
+    name: string;
+    lobbyCode: string;
+    spectator: ItgOnlineSpectator;
+}
+
 @Injectable()
-export class ItgOnlineProxyService implements OnModuleInit {
-    private spectators = new Map<number, ItgOnlineSpectator>();
+export class ItgOnlineProxyService {
+    private lobbies = new Map<number, Map<string, LobbyEntry>>();
 
     constructor(
-        private readonly getPublicTournamentsUseCase: GetPublicTournamentsUseCase,
         private readonly standingManager: StandingManager,
         private readonly itgOnlineProxyGateway: ItgOnlineProxyGateway,
     ) {}
 
-    async onModuleInit(): Promise<void> {
-        const tournaments = await this.getPublicTournamentsUseCase.execute();
-        for (const tournament of tournaments) {
-            this.spectators.set(tournament.id, this._createSpectator(tournament.id));
+    async ConnectLobby(tournamentId: number, name: string, lobbyCode: string, password: string): Promise<string> {
+        if (!this.lobbies.has(tournamentId)) {
+            this.lobbies.set(tournamentId, new Map());
+        }
+        const lobbyId = randomUUID();
+        const spectator = this._createSpectator(tournamentId, lobbyId, name);
+        this.itgOnlineProxyGateway.RegisterLobby(lobbyId, lobbyCode);
+        await spectator.Connect(lobbyCode, password);
+        this.lobbies.get(tournamentId)!.set(lobbyId, { id: lobbyId, name, lobbyCode, spectator });
+        return lobbyId;
+    }
+
+    DisconnectLobby(tournamentId: number, lobbyId: string): void {
+        const tournamentLobbies = this.lobbies.get(tournamentId);
+        if (!tournamentLobbies) return;
+        const entry = tournamentLobbies.get(lobbyId);
+        if (entry) {
+            entry.spectator.Disconnect();
+            tournamentLobbies.delete(lobbyId);
+        }
+        this.itgOnlineProxyGateway.OnLobbyDisconnected(tournamentId, lobbyId);
+        if (tournamentLobbies.size === 0) {
+            this.lobbies.delete(tournamentId);
         }
     }
 
-    async Connect(tournamentId: number, lobbyCode: string, password: string): Promise<void> {
-        const spectator = this._getOrCreateSpectator(tournamentId);
-        await spectator.Connect(lobbyCode, password);
+    GetLobbies(tournamentId: number): { id: string; name: string; lobbyCode: string }[] {
+        const tournamentLobbies = this.lobbies.get(tournamentId);
+        if (!tournamentLobbies) return [];
+        return Array.from(tournamentLobbies.values()).map(({ id, name, lobbyCode }) => ({ id, name, lobbyCode }));
     }
 
-    Disconnect(tournamentId: number): void {
-        this.spectators.get(tournamentId)?.Disconnect();
-        this.itgOnlineProxyGateway.OnLobbyDisconnected(tournamentId);
-    }
-
-    IsConnected(tournamentId: number): boolean {
-        return this.spectators.get(tournamentId)?.IsConnected() ?? false;
-    }
-
-    private _createSpectator(tournamentId: number): ItgOnlineSpectator {
-        const spectator = new ItgOnlineSpectator(tournamentId);
+    private _createSpectator(tournamentId: number, lobbyId: string, lobbyName: string): ItgOnlineSpectator {
+        const spectator = new ItgOnlineSpectator(tournamentId, lobbyId, lobbyName);
         spectator.AddObserver(this.standingManager);
         spectator.AddObserver(this.itgOnlineProxyGateway);
         return spectator;
-    }
-
-    private _getOrCreateSpectator(tournamentId: number): ItgOnlineSpectator {
-        if (!this.spectators.has(tournamentId)) {
-            this.spectators.set(tournamentId, this._createSpectator(tournamentId));
-        }
-        return this.spectators.get(tournamentId)!;
     }
 }

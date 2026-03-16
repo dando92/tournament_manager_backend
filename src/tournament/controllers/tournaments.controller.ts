@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Tournament } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 import { JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
@@ -156,26 +156,30 @@ export class TournamentsController {
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Post(':id/lobby/connect')
-    async connectLobby(
-        @Param('id') id: number,
-        @Body() body: { password?: string },
-    ) {
-        const tournament = await this.getTournamentUseCase.execute(Number(id));
-        if (!tournament?.lobbyCode) throw new BadRequestException('No lobby code set for this tournament');
-        await this.itgOnlineProxyService.Connect(Number(id), tournament.lobbyCode, body.password ?? '');
-        return { connected: true };
+    @Get(':id/lobbies')
+    getLobbies(@Param('id') id: number) {
+        return this.itgOnlineProxyService.GetLobbies(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Delete(':id/lobby/disconnect')
-    disconnectLobby(@Param('id') id: number) {
-        this.itgOnlineProxyService.Disconnect(Number(id));
-        return { connected: false };
+    @Post(':id/lobbies/connect')
+    async connectLobby(
+        @Param('id') id: number,
+        @Body() body: { name?: string; lobbyCode: string; password?: string },
+    ) {
+        const lobbyId = await this.itgOnlineProxyService.ConnectLobby(
+            Number(id),
+            body.name || body.lobbyCode,
+            body.lobbyCode,
+            body.password ?? '',
+        );
+        return { id: lobbyId };
     }
 
-    @Get(':id/lobby/status')
-    getLobbyStatus(@Param('id') id: number) {
-        return { connected: this.itgOnlineProxyService.IsConnected(Number(id)) };
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Delete(':id/lobbies/:lobbyId/disconnect')
+    disconnectLobby(@Param('id') id: number, @Param('lobbyId') lobbyId: string) {
+        this.itgOnlineProxyService.DisconnectLobby(Number(id), lobbyId);
+        return { ok: true };
     }
 }

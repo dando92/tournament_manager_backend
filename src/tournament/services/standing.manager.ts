@@ -198,7 +198,7 @@ export class StandingManager implements ILobbyStateObserver {
         return match;
     }
 
-    async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload): Promise<void> {
+    async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, _lobbyId: string, _lobbyName: string): Promise<void> {
         const songPath = lobbyState.songInfo?.songPath ?? null;
 
         let state = this.tournamentSongState.get(tournamentId);

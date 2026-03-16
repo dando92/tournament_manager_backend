@@ -10,7 +10,11 @@ export class ItgOnlineSpectator {
     private lobbyCode = '';
     private password = '';
 
-    constructor(private readonly tournamentId: number) {}
+    constructor(
+        private readonly tournamentId: number,
+        private readonly lobbyId: string,
+        private readonly lobbyName: string,
+    ) {}
 
     async Connect(lobbyCode: string, password: string): Promise<void> {
         this.lobbyCode = lobbyCode;
@@ -128,7 +132,7 @@ export class ItgOnlineSpectator {
 
     private async _notifyObservers(lobbyState: LobbyStatePayload): Promise<void> {
         for (const observer of this.observers) {
-            await observer.OnLobbyStateChanged(this.tournamentId, lobbyState);
+            await observer.OnLobbyStateChanged(this.tournamentId, lobbyState, this.lobbyId, this.lobbyName);
         }
     }
 }

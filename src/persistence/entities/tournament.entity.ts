@@ -5,7 +5,8 @@ import {
   OneToMany,
   ManyToOne,
   ManyToMany,
-  JoinTable } from 'typeorm';
+  JoinTable,
+} from 'typeorm';
 
 import { Division } from './division.entity';
 import { Account } from './account.entity';
@@ -20,9 +21,6 @@ export class Tournament {
 
   @Column()
   name: string;
-
-  @Column({ nullable: true })
-  lobbyCode: string | null;
 
   @OneToMany(() => Division, (division) => division.tournament, { eager: true, cascade: true })
   divisions: Division[]

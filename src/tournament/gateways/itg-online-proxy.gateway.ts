@@ -10,6 +10,8 @@ import { LobbyStatePayload, LobbyStateDto, LobbyPlayerDto } from '../itg-online.
 
 export type { LobbyStateDto, LobbyPlayerDto };
 
+type CachedLobbyState = { tournamentId: number; lobbyId: string; lobbyName: string; lobbyCode: string; payload: LobbyStatePayload };
+
 @WebSocketGateway({
   path: '/scoreupdatehub',
   cors: {
@@ -20,25 +22,39 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
   @WebSocketServer()
   server: WsServer;
 
-  private lastLobbyStates = new Map<number, LobbyStatePayload>();
+  // keyed by lobbyId
+  private lastLobbyStates = new Map<string, CachedLobbyState>();
 
   afterInit() {}
 
+  RegisterLobby(lobbyId: string, lobbyCode: string): void {
+    const existing = this.lastLobbyStates.get(lobbyId);
+    if (existing) {
+      existing.lobbyCode = lobbyCode;
+    } else {
+      // store a placeholder so lobbyCode is available when first state arrives
+      this.lastLobbyStates.set(lobbyId, { tournamentId: 0, lobbyId, lobbyName: '', lobbyCode, payload: { players: [], code: lobbyCode, temporary: false } });
+    }
+  }
+
   handleConnection(client: WebSocket) {
     console.log(`[ItgOnlineProxyGateway] Frontend client connected (total: ${this.server.clients.size})`);
-    this.lastLobbyStates.forEach((state, tournamentId) => {
-      this.sendToClient(client, 'OnLobbyState', { tournamentId, ...this.toDto(state) });
+    this.lastLobbyStates.forEach(({ tournamentId, lobbyId, lobbyName, lobbyCode, payload }) => {
+      if (payload.players.length > 0) {
+        this.sendToClient(client, 'OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(payload) });
+      }
     });
   }
 
-  async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload): Promise<void> {
-    this.lastLobbyStates.set(tournamentId, lobbyState);
-    this.broadcast('OnLobbyState', { tournamentId, ...this.toDto(lobbyState) });
+  async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, lobbyId: string, lobbyName: string): Promise<void> {
+    const lobbyCode = this.lastLobbyStates.get(lobbyId)?.lobbyCode ?? '';
+    this.lastLobbyStates.set(lobbyId, { tournamentId, lobbyId, lobbyName, lobbyCode, payload: lobbyState });
+    this.broadcast('OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(lobbyState) });
   }
 
-  OnLobbyDisconnected(tournamentId: number): void {
-    this.lastLobbyStates.delete(tournamentId);
-    this.broadcast('OnLobbyDisconnected', { tournamentId });
+  OnLobbyDisconnected(tournamentId: number, lobbyId: string): void {
+    this.lastLobbyStates.delete(lobbyId);
+    this.broadcast('OnLobbyDisconnected', { tournamentId, lobbyId });
   }
 
   private toDto(lobby: LobbyStatePayload): LobbyStateDto {
