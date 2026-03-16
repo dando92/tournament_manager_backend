@@ -48,8 +48,8 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
       players: lobby.players.map((p) => ({
         name: p.name,
         playerId: p.playerId,
-        scorePercent: this.normalizePercent(p.score),
-        health: this.normalizePercent(p.health) / 100,
+        scorePercent: p.score,
+        health: p.health / 100,
         isFailed: p.failed ?? false,
         judgments: p.judgments
           ? {
@@ -67,12 +67,6 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
           : undefined,
       })),
     };
-  }
-
-  private normalizePercent(value: number | undefined): number {
-    if (value === undefined || !Number.isFinite(value)) return 0;
-    const scaled = value <= 1 ? value * 100 : value;
-    return Math.max(0, Math.min(100, scaled));
   }
 
   private sendToClient(client: WebSocket, event: string, data: unknown) {
