@@ -30,6 +30,19 @@ import { AuthController } from '@auth/controllers';
           synchronize: true,
         };
       }
+      if (config.get('DB_TYPE') === 'postgres') {
+        return {
+          type: 'postgres',
+          host: config.getOrThrow('DATABASE_HOST'),
+          port: parseInt(config.get('DATABASE_PORT') ?? '5432'),
+          username: config.getOrThrow('DATABASE_USER'),
+          password: config.getOrThrow('DATABASE_PASSWORD'),
+          database: config.getOrThrow('DATABASE_NAME'),
+          entities: Entities,
+          synchronize: true,
+          ssl: config.get('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+        };
+      }
       return {
         type: 'mariadb',
         host: config.getOrThrow('DATABASE_HOST'),
