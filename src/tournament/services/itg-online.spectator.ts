@@ -15,13 +15,14 @@ export class ItgOnlineSpectator {
         private readonly tournamentId: number,
         private readonly lobbyId: string,
         private readonly lobbyName: string,
+        private readonly syncstartUrl: string,
     ) {}
 
     async Connect(lobbyCode: string, password: string): Promise<void> {
         this.lobbyCode = lobbyCode;
         this.password = password;
         this.connectionStarted = true;
-        console.log(`[ItgOnlineSpectator] Connecting tournament=${this.tournamentId} lobbyCode=${lobbyCode} url=${process.env.ITG_ONLINE_WS_URL ?? '(not set)'}`);
+        console.log(`[ItgOnlineSpectator] Connecting tournament=${this.tournamentId} lobbyCode=${lobbyCode} url=${this.syncstartUrl}`);
         this._closeCurrentConnection();
         return this._connect();
     }
@@ -70,8 +71,7 @@ export class ItgOnlineSpectator {
     }
 
     private _connect(): Promise<void> {
-        const url = process.env.ITG_ONLINE_WS_URL;
-        if (!url) return Promise.reject(new Error('ITG_ONLINE_WS_URL not configured'));
+        const url = this.syncstartUrl;
 
         console.log(`[ItgOnlineSpectator] Opening WebSocket to ${url} (tournament=${this.tournamentId} lobbyCode=${this.lobbyCode})`);
 
@@ -82,7 +82,7 @@ export class ItgOnlineSpectator {
             const timeout = setTimeout(() => {
                 if (!settled) {
                     settled = true;
-                    console.warn(`[ItgOnlineSpectator] Connection timed out after 10s (tournament=${this.tournamentId} url=${url})`);
+                    console.warn(`[ItgOnlineSpectator] Connection timed out after 10s (tournament=${this.tournamentId} url=${this.syncstartUrl})`);
                     ws.close();
                     reject(new Error('Connection timeout'));
                 }
@@ -157,7 +157,7 @@ export class ItgOnlineSpectator {
             });
 
             ws.on('error', (err) => {
-                console.error(`[ItgOnlineSpectator] WebSocket error (tournament=${this.tournamentId} url=${url}): ${err?.message ?? err}`);
+                console.error(`[ItgOnlineSpectator] WebSocket error (tournament=${this.tournamentId} url=${this.syncstartUrl}): ${err?.message ?? err}`);
                 if (!settled) {
                     settled = true;
                     clearTimeout(timeout);
