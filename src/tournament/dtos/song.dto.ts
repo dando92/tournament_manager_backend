@@ -12,6 +12,11 @@ export class CreateSongDto {
   @Type(() => String)
   title: string;
 
+  @IsOptional()
+  @IsString()
+  @Type(() => String)
+  artist?: string;
+
   @ApiProperty({
     example: 'Song Group',
     description: 'Group of the song',
@@ -46,6 +51,11 @@ export class UpdateSongDto {
   @IsString()
   @Type(() => String)
   title: string;
+
+  @IsOptional()
+  @IsString()
+  @Type(() => String)
+  artist?: string;
 
   @ApiProperty({
     example: 'New Song Group',

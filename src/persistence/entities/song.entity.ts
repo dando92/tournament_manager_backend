@@ -18,6 +18,9 @@ export class Song {
   @Column()
   title: string;
 
+  @Column({ nullable: true })
+  artist: string;
+
   @Column()
   group: string;
 
