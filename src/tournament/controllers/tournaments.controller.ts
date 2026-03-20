@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards, 
 import { Tournament } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 import { JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
-import { ItgOnlineProxyService } from '../services/itg-online-proxy.service';
 import { CreateTournamentUseCase } from '../use-cases/tournaments/create-tournament.use-case';
 import { GetTournamentsUseCase } from '../use-cases/tournaments/get-tournaments.use-case';
 import { GetPublicTournamentsUseCase } from '../use-cases/tournaments/get-public-tournaments.use-case';
@@ -19,6 +18,9 @@ import { AddSongToTournamentUseCase } from '../use-cases/tournaments/add-song-to
 import { RemoveSongFromTournamentUseCase } from '../use-cases/tournaments/remove-song-from-tournament.use-case';
 import { GetPlayerTournamentsUseCase } from '../use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from '../use-cases/tournaments/is-helper-of-any.use-case';
+import { GetLobbiesUseCase } from '../use-cases/tournaments/get-lobbies.use-case';
+import { ConnectLobbyUseCase } from '../use-cases/tournaments/connect-lobby.use-case';
+import { DisconnectLobbyUseCase } from '../use-cases/tournaments/disconnect-lobby.use-case';
 
 @Controller('tournaments')
 export class TournamentsController {
@@ -39,7 +41,9 @@ export class TournamentsController {
         private readonly removeSongFromTournamentUseCase: RemoveSongFromTournamentUseCase,
         private readonly getPlayerTournamentsUseCase: GetPlayerTournamentsUseCase,
         private readonly isHelperOfAnyUseCase: IsHelperOfAnyUseCase,
-        private readonly itgOnlineProxyService: ItgOnlineProxyService,
+        private readonly getLobbiesUseCase: GetLobbiesUseCase,
+        private readonly connectLobbyUseCase: ConnectLobbyUseCase,
+        private readonly disconnectLobbyUseCase: DisconnectLobbyUseCase,
     ) {}
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
@@ -79,8 +83,8 @@ export class TournamentsController {
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Patch(':id')
-    update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateTournamentDto): Promise<Tournament> {
-        return this.updateTournamentUseCase.execute(id, dto);
+    async update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateTournamentDto): Promise<Tournament> {
+        return this.updateTournamentUseCase.execute(Number(id), dto);
     }
 
     @UseGuards(JwtAuthGuard, AdminGuard)
@@ -158,7 +162,12 @@ export class TournamentsController {
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Get(':id/lobbies')
     getLobbies(@Param('id') id: number) {
-        return this.itgOnlineProxyService.GetLobbies(Number(id));
+        return this.getLobbiesUseCase.execute(Number(id));
+    }
+
+    @Get(':id/lobbies/status')
+    getLobbiesStatus(@Param('id') id: number) {
+        return this.getLobbiesUseCase.execute(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
@@ -167,19 +176,14 @@ export class TournamentsController {
         @Param('id') id: number,
         @Body() body: { name?: string; lobbyCode: string; password?: string },
     ) {
-        const lobbyId = await this.itgOnlineProxyService.ConnectLobby(
-            Number(id),
-            body.name || body.lobbyCode,
-            body.lobbyCode,
-            body.password ?? '',
-        );
+        const lobbyId = await this.connectLobbyUseCase.execute(Number(id), body.lobbyCode, body.password ?? '', body.name);
         return { id: lobbyId };
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Delete(':id/lobbies/:lobbyId/disconnect')
     disconnectLobby(@Param('id') id: number, @Param('lobbyId') lobbyId: string) {
-        this.itgOnlineProxyService.DisconnectLobby(Number(id), lobbyId);
+        this.disconnectLobbyUseCase.execute(Number(id), lobbyId);
         return { ok: true };
     }
 }

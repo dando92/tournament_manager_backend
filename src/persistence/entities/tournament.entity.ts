@@ -22,6 +22,9 @@ export class Tournament {
   @Column()
   name: string;
 
+  @Column({ default: 'ws://syncservice.groovestats.com:1337' })
+  syncstartUrl: string;
+
   @OneToMany(() => Division, (division) => division.tournament, { eager: true, cascade: true })
   divisions: Division[]
 

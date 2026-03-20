@@ -16,6 +16,7 @@ export class CreateTournamentUseCase {
     async execute(dto: CreateTournamentDto, ownerId?: string): Promise<Tournament> {
         const newTournament = new Tournament();
         newTournament.name = dto.name;
+        if (dto.syncstartUrl) newTournament.syncstartUrl = dto.syncstartUrl;
 
         if (ownerId) {
             const owner = await this.accountRepository.findOneBy({ id: ownerId });

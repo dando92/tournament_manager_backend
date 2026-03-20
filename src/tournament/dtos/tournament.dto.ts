@@ -14,6 +14,11 @@ export class CreateTournamentDto {
     @IsNotEmpty()
     @ApiProperty({ example: 'UEFA Euro 2024', description: 'The name of the tournament.' })
     name: string;
+
+    @IsOptional()
+    @IsString()
+    @ApiProperty({ description: 'WebSocket URL of the syncstart server for this tournament.', required: false })
+    syncstartUrl?: string;
 }
 
 export class UpdateTournamentDto {
@@ -26,4 +31,8 @@ export class UpdateTournamentDto {
     @ApiProperty({ example: 'UEFA Euro 2024', description: 'The name of the tournament.', required: false })
     name: string;
 
+    @IsOptional()
+    @IsString()
+    @ApiProperty({ description: 'WebSocket URL of the syncstart server for this tournament.', required: false })
+    syncstartUrl: string;
 }

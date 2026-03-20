@@ -5,7 +5,7 @@ import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./services/standing.manager";
 import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemProvider";
 import { BracketSystemProvider } from "./services/bracket-systems/BracketSystemProvider";
-import { ItgOnlineProxyService } from "./services/itg-online-proxy.service";
+import { LobbyManager } from "./services/lobby-manager.service";
 
 // Division use cases
 import { CreateDivisionUseCase } from './use-cases/divisions/create-division.use-case';
@@ -99,6 +99,9 @@ import { RemoveSongFromTournamentUseCase } from './use-cases/tournaments/remove-
 import { GetPlayerTournamentsUseCase } from './use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
 import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
+import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case';
+import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
+import { DisconnectLobbyUseCase } from './use-cases/tournaments/disconnect-lobby.use-case';
 
 export { UserService as AccountService };
 export { MatchManager };
@@ -107,7 +110,7 @@ export { SongRoller };
 export { StandingManager };
 export { ScoringSystemProvider };
 export { BracketSystemProvider };
-export { ItgOnlineProxyService };
+export { LobbyManager };
 
 export { CreateDivisionUseCase };
 export { GetDivisionsUseCase };
@@ -190,6 +193,9 @@ export { RemoveSongFromTournamentUseCase };
 export { GetPlayerTournamentsUseCase };
 export { IsHelperOfAnyUseCase };
 export { GetTournamentByDivisionUseCase };
+export { GetLobbiesUseCase };
+export { ConnectLobbyUseCase };
+export { DisconnectLobbyUseCase };
 
 export const Services = [
     UserService,
@@ -199,7 +205,7 @@ export const Services = [
     StandingManager,
     ScoringSystemProvider,
     BracketSystemProvider,
-    ItgOnlineProxyService,
+    LobbyManager,
 
     // Division use cases
     CreateDivisionUseCase,
@@ -293,4 +299,7 @@ export const Services = [
     GetPlayerTournamentsUseCase,
     IsHelperOfAnyUseCase,
     GetTournamentByDivisionUseCase,
+    GetLobbiesUseCase,
+    ConnectLobbyUseCase,
+    DisconnectLobbyUseCase,
 ];
