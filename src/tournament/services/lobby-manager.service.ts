@@ -71,6 +71,11 @@ export class LobbyManager implements OnModuleInit {
         this.gateway.OnLobbyDisconnected(tournamentId, lobbyId);
     }
 
+    OnTournamentCreated(tournamentId: number, syncstartUrl: string): void {
+        this._createConnector(tournamentId, syncstartUrl);
+        console.log(`[LobbyManager] Created connector for new tournament=${tournamentId} url=${syncstartUrl}`);
+    }
+
     OnTournamentUrlChanged(tournamentId: number, newUrl: string): void {
         this._disconnectAllForTournament(tournamentId);
         this._createConnector(tournamentId, newUrl);
