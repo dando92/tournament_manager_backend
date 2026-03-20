@@ -1,10 +1,10 @@
-name: Docker Image CI
+name: Build & Deploy Backend
 
 on:
   push:
-    branches: [ "testing" ]
+    branches: ["main", "testing"]
   pull_request:
-    branches: [ "testing" ]
+    branches: ["main", "testing"]
 
 jobs:
   build-and-push:
@@ -12,7 +12,9 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -24,20 +26,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker metadata for backend
-        id: meta_backend
+      - name: Set up Docker metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/tournament_manager_backend
+          images: ghcr.io/${{ github.repository_owner }}/tournament_manager_backend
           tags: |
             type=sha
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=testing,enable=${{ github.ref == 'refs/heads/testing' }}
 
-      - name: Build & Push backend
+      - name: Build & Push
         uses: docker/build-push-action@v6
         with:
           context: ./
           file: Dockerfile
-          push: true
-          tags: ${{ steps.meta_backend.outputs.tags }}
-          labels: ${{ steps.meta_backend.outputs.labels }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Pull latest image
+        run: docker pull ghcr.io/${{ github.repository_owner }}/tournament_manager_backend:latest
+
+      - name: Restart container
+        run: |
+          docker stop tournament-backend || true
+          docker rm tournament-backend || true
+          docker run -d \
+            --name tournament-backend \
+            --restart unless-stopped \
+            -p 3000:3000 \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            -e DB_TYPE="${{ secrets.DB_TYPE }}" \
+            -e DATABASE_HOST="${{ secrets.DATABASE_HOST }}" \
+            -e DATABASE_PORT="${{ secrets.DATABASE_PORT }}" \
+            -e DATABASE_USER="${{ secrets.DATABASE_USER }}" \
+            -e DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
+            -e DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
+            -e DATABASE_SSL="${{ secrets.DATABASE_SSL }}" \
+            -e ITG_ONLINE_WS_URL="${{ secrets.ITG_ONLINE_WS_URL }}" \
+            ghcr.io/${{ github.repository_owner }}/tournament_manager_backend:latest
