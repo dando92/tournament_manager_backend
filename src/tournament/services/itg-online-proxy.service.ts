@@ -26,8 +26,15 @@ export class ItgOnlineProxyService {
         }
         const lobbyId = randomUUID();
         const spectator = this._createSpectator(tournamentId, lobbyId, name);
-        this.itgOnlineProxyGateway.RegisterLobby(lobbyId, lobbyCode);
-        await spectator.Connect(lobbyCode, password);
+        this.itgOnlineProxyGateway.RegisterLobby(tournamentId, lobbyId, name, lobbyCode);
+        try {
+            await spectator.Connect(lobbyCode, password);
+        } catch (err) {
+            console.error(`[ItgOnlineProxyService] ConnectLobby failed (tournament=${tournamentId} lobbyCode=${lobbyCode} name="${name}"): ${err?.message ?? err}`);
+            this.itgOnlineProxyGateway.UnregisterLobby(lobbyId);
+            throw err;
+        }
+        console.log(`[ItgOnlineProxyService] ConnectLobby succeeded (tournament=${tournamentId} lobbyCode=${lobbyCode} name="${name}" lobbyId=${lobbyId})`);
         this.lobbies.get(tournamentId)!.set(lobbyId, { id: lobbyId, name, lobbyCode, spectator });
         return lobbyId;
     }
@@ -46,16 +53,35 @@ export class ItgOnlineProxyService {
         }
     }
 
-    GetLobbies(tournamentId: number): { id: string; name: string; lobbyCode: string }[] {
+    GetLobbies(tournamentId: number): { id: string; name: string; lobbyCode: string; isActive: boolean; isConnected: boolean }[] {
         const tournamentLobbies = this.lobbies.get(tournamentId);
         if (!tournamentLobbies) return [];
-        return Array.from(tournamentLobbies.values()).map(({ id, name, lobbyCode }) => ({ id, name, lobbyCode }));
+        return Array.from(tournamentLobbies.values()).map(({ id, name, lobbyCode, spectator }) => ({
+            id,
+            name,
+            lobbyCode,
+            isActive: spectator.IsActive(),
+            isConnected: spectator.IsConnected(),
+        }));
     }
 
     private _createSpectator(tournamentId: number, lobbyId: string, lobbyName: string): ItgOnlineSpectator {
         const spectator = new ItgOnlineSpectator(tournamentId, lobbyId, lobbyName);
         spectator.AddObserver(this.standingManager);
         spectator.AddObserver(this.itgOnlineProxyGateway);
+        // When the server forcibly disconnects us, clean up the lobby entry
+        spectator.AddObserver({
+            async OnLobbyStateChanged() {},
+            OnLobbyDisconnected: (tid: number, lid: string) => {
+                const tournamentLobbies = this.lobbies.get(tid);
+                if (tournamentLobbies) {
+                    tournamentLobbies.delete(lid);
+                    if (tournamentLobbies.size === 0) {
+                        this.lobbies.delete(tid);
+                    }
+                }
+            },
+        });
         return spectator;
     }
 }

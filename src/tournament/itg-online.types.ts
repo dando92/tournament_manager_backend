@@ -15,26 +15,25 @@ export type Judgments = {
   totalRolls: number;
 };
 
+// Matches syncstart's Player type
 export type LobbyPlayer = {
   playerId: 'P1' | 'P2';
-  name: string;
-  ready: boolean | null;
-  ping?: number;
-  diffLevel?: number;
-  diffType?: string;
+  profileName: string;
+  screenName: 'NoScreen' | 'ScreenSelectMusic' | 'ScreenGameplay' | 'ScreenPlayerOptions' | 'ScreenEvaluation';
+  ready: boolean;
   judgments?: Judgments;
   score?: number;
   exScore?: number;
-  health?: number;
-  failed?: boolean;
   songProgression?: {
     currentTime: number;
     totalTime: number;
   };
 };
 
+// Matches syncstart's LobbyStatePayload type
 export type LobbyStatePayload = {
   players: LobbyPlayer[];
+  spectators: string[];
   code: string;
   songInfo?: {
     songPath: string;
@@ -42,15 +41,14 @@ export type LobbyStatePayload = {
     artist: string;
     songLength: number;
   };
-  temporary: boolean;
 };
 
 export type LobbyPlayerDto = {
   name: string;
   playerId: string;
   scorePercent: number;
-  health: number;
-  isFailed: boolean;
+  health?: number;
+  isFailed?: boolean;
   judgments?: {
     fantasticPlus: number;
     fantastics: number;

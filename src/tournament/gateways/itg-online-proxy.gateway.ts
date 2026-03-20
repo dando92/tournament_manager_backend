@@ -10,7 +10,8 @@ import { LobbyStatePayload, LobbyStateDto, LobbyPlayerDto } from '../itg-online.
 
 export type { LobbyStateDto, LobbyPlayerDto };
 
-type CachedLobbyState = { tournamentId: number; lobbyId: string; lobbyName: string; lobbyCode: string; payload: LobbyStatePayload };
+type LobbyMeta = { tournamentId: number; lobbyId: string; lobbyName: string; lobbyCode: string };
+type CachedLobbyState = LobbyMeta & { payload: LobbyStatePayload };
 
 @WebSocketGateway({
   path: '/scoreupdatehub',
@@ -22,23 +23,30 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
   @WebSocketServer()
   server: WsServer;
 
-  // keyed by lobbyId
+  // keyed by lobbyId — tracks all active (registered) lobbies
+  private activeLobbyMeta = new Map<string, LobbyMeta>();
+  // keyed by lobbyId — only populated once lobby state arrives (connected)
   private lastLobbyStates = new Map<string, CachedLobbyState>();
 
   afterInit() {}
 
-  RegisterLobby(lobbyId: string, lobbyCode: string): void {
-    const existing = this.lastLobbyStates.get(lobbyId);
-    if (existing) {
-      existing.lobbyCode = lobbyCode;
-    } else {
-      // store a placeholder so lobbyCode is available when first state arrives
-      this.lastLobbyStates.set(lobbyId, { tournamentId: 0, lobbyId, lobbyName: '', lobbyCode, payload: { players: [], code: lobbyCode, temporary: false } });
-    }
+  RegisterLobby(tournamentId: number, lobbyId: string, lobbyName: string, lobbyCode: string): void {
+    this.activeLobbyMeta.set(lobbyId, { tournamentId, lobbyId, lobbyName, lobbyCode });
+    this.broadcast('OnLobbyActive', { tournamentId, lobbyId, lobbyName, lobbyCode });
+  }
+
+  UnregisterLobby(lobbyId: string): void {
+    this.activeLobbyMeta.delete(lobbyId);
+    this.lastLobbyStates.delete(lobbyId);
   }
 
   handleConnection(client: WebSocket) {
     console.log(`[ItgOnlineProxyGateway] Frontend client connected (total: ${this.server.clients.size})`);
+    // Send active lobby info so client knows which lobbies exist
+    this.activeLobbyMeta.forEach(({ tournamentId, lobbyId, lobbyName, lobbyCode }) => {
+      this.sendToClient(client, 'OnLobbyActive', { tournamentId, lobbyId, lobbyName, lobbyCode });
+    });
+    // Send last known state for connected lobbies
     this.lastLobbyStates.forEach(({ tournamentId, lobbyId, lobbyName, lobbyCode, payload }) => {
       if (payload.players.length > 0) {
         this.sendToClient(client, 'OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(payload) });
@@ -47,12 +55,13 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
   }
 
   async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, lobbyId: string, lobbyName: string): Promise<void> {
-    const lobbyCode = this.lastLobbyStates.get(lobbyId)?.lobbyCode ?? '';
+    const lobbyCode = this.activeLobbyMeta.get(lobbyId)?.lobbyCode ?? '';
     this.lastLobbyStates.set(lobbyId, { tournamentId, lobbyId, lobbyName, lobbyCode, payload: lobbyState });
     this.broadcast('OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(lobbyState) });
   }
 
   OnLobbyDisconnected(tournamentId: number, lobbyId: string): void {
+    this.activeLobbyMeta.delete(lobbyId);
     this.lastLobbyStates.delete(lobbyId);
     this.broadcast('OnLobbyDisconnected', { tournamentId, lobbyId });
   }
@@ -62,11 +71,9 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
       songTitle: lobby.songInfo?.title ?? '',
       songPath: lobby.songInfo?.songPath ?? '',
       players: lobby.players.map((p) => ({
-        name: p.name,
+        name: p.profileName,
         playerId: p.playerId,
-        scorePercent: p.score,
-        health: p.health / 100,
-        isFailed: p.failed ?? false,
+        scorePercent: p.score ?? 0,
         judgments: p.judgments
           ? {
               fantasticPlus: p.judgments.fantasticPlus,

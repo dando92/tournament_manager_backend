@@ -217,16 +217,16 @@ export class StandingManager implements ILobbyStateObserver {
         for (const player of lobbyState.players) {
             const prog = player.songProgression;
             if (prog && prog.totalTime > 0 && prog.currentTime >= prog.totalTime) {
-                const key = `${player.name}:${songPath}`;
+                const key = `${player.profileName}:${songPath}`;
                 if (!state.completedSongs.has(key)) {
                     state.completedSongs.add(key);
                     const payload: SongCompletedPayload = {
-                        playerName: player.name,
+                        playerName: player.profileName,
                         songPath,
                         scorePercent: this.normalizePercent(player.score),
-                        isFailed: player.failed ?? false,
+                        isFailed: false,
                     };
-                    console.log(`[StandingManager] Song completed: ${player.name} — ${songPath} (${payload.scorePercent.toFixed(2)}%)`);
+                    console.log(`[StandingManager] Song completed: ${player.profileName} — ${songPath} (${payload.scorePercent.toFixed(2)}%)`);
                     await this.HandleSongCompleted(payload);
                 }
             }
