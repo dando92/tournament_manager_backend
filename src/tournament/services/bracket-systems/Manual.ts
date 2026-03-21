@@ -11,12 +11,10 @@ export class Manual extends IBracketSystem {
     }
 
     async generateForDivision(division: Division, players: Player[], _playerPerMatch: number): Promise<void> {
-        division.phases = division.phases ?? [];
-        const phase = await this.CreatePhase("Phase 1", division);
-        phase.matches = [];
-        const match = await this.CreateEmptyMatch("Match 1", "", phase.id);
+        division.matches = division.matches ?? [];
+        const matches = await this.CreateMatchesInDivision("Match", division, 1);
         for (const player of players) {
-            await this.AddPlayerToMatch(player, match.id);
+            await this.AddPlayerToMatch(player, matches[0].id);
         }
     }
 

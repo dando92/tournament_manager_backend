@@ -42,13 +42,12 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const phase = await match.phase;
-    const division = await phase.division;
+    const division = await match.division;
     const tournament = await this.getTournamentByDivisionUseCase.execute(division.id);
 
-    const msg = { matchId: match.id, phaseId: phase.id, divisionId: division.id, tournamentId: tournament?.id };
+    const msg = { matchId: match.id, divisionId: division.id, tournamentId: tournament?.id };
 
     this.broadcast('OnMatchUpdate', msg);
-    delete match.phase;
+    delete match.division;
   }
 }

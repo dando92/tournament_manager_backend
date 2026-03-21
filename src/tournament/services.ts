@@ -22,13 +22,6 @@ import { UpdateMatchUseCase } from './use-cases/matches/update-match.use-case';
 import { DeleteMatchUseCase } from './use-cases/matches/delete-match.use-case';
 import { RemovePlayersFromMatchUseCase } from './use-cases/matches/remove-players-from-match.use-case';
 
-// Phase use cases
-import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
-import { GetPhasesUseCase } from './use-cases/phases/get-phases.use-case';
-import { GetPhaseUseCase } from './use-cases/phases/get-phase.use-case';
-import { UpdatePhaseUseCase } from './use-cases/phases/update-phase.use-case';
-import { DeletePhaseUseCase } from './use-cases/phases/delete-phase.use-case';
-
 // Player use cases
 import { CreatePlayerUseCase } from './use-cases/players/create-player.use-case';
 import { GetPlayersUseCase } from './use-cases/players/get-players.use-case';
@@ -125,12 +118,6 @@ export { UpdateMatchUseCase };
 export { DeleteMatchUseCase };
 export { RemovePlayersFromMatchUseCase };
 
-export { CreatePhaseUseCase };
-export { GetPhasesUseCase };
-export { GetPhaseUseCase };
-export { UpdatePhaseUseCase };
-export { DeletePhaseUseCase };
-
 export { CreatePlayerUseCase };
 export { GetPlayersUseCase };
 export { GetPlayerUseCase };
@@ -221,13 +208,6 @@ export const Services = [
     UpdateMatchUseCase,
     DeleteMatchUseCase,
     RemovePlayersFromMatchUseCase,
-
-    // Phase use cases
-    CreatePhaseUseCase,
-    GetPhasesUseCase,
-    GetPhaseUseCase,
-    UpdatePhaseUseCase,
-    DeletePhaseUseCase,
 
     // Player use cases
     CreatePlayerUseCase,

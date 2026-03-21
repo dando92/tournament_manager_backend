@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Match, Phase, Player } from '@persistence/entities';
+import { Match, Division, Player } from '@persistence/entities';
 import { CreateMatchDto } from '../../dtos';
 
 @Injectable()
@@ -9,8 +9,8 @@ export class CreateMatchUseCase {
     constructor(
         @InjectRepository(Match)
         private readonly matchRepository: Repository<Match>,
-        @InjectRepository(Phase)
-        private readonly phaseRepository: Repository<Phase>,
+        @InjectRepository(Division)
+        private readonly divisionRepository: Repository<Division>,
         @InjectRepository(Player)
         private readonly playerRepository: Repository<Player>,
     ) {}
@@ -18,9 +18,9 @@ export class CreateMatchUseCase {
     async execute(dto: CreateMatchDto): Promise<Match> {
         const match = new Match();
 
-        const phase = await this.phaseRepository.findOneBy({ id: dto.phaseId });
-        if (!phase) throw new NotFoundException(`Phase with ID ${dto.phaseId} not found`);
-        match.phase = Promise.resolve(phase);
+        const division = await this.divisionRepository.findOneBy({ id: dto.divisionId });
+        if (!division) throw new NotFoundException(`Division with ID ${dto.divisionId} not found`);
+        match.division = Promise.resolve(division);
 
         match.players = [];
 

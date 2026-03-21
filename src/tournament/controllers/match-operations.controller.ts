@@ -13,7 +13,6 @@ import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.us
 class CreateMatchBody {
     tournamentId: number;
     divisionId: number;
-    phaseId: number;
     matchName: string;
     group: string;
     subtitle: string;
@@ -77,7 +76,7 @@ export class MatchOperationsController {
         const newMatchDto = new CreateMatchDto();
         newMatchDto.name = dto.matchName;
         newMatchDto.notes = dto.notes;
-        newMatchDto.phaseId = dto.phaseId;
+        newMatchDto.divisionId = dto.divisionId;
         newMatchDto.playerIds = dto.playerIds;
         newMatchDto.subtitle = dto.subtitle;
         newMatchDto.scoringSystem = dto.scoringSystem;

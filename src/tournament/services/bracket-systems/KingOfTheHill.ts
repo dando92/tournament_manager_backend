@@ -1,4 +1,3 @@
-import { Inject } from "@nestjs/common";
 import { IBracketSystem } from "./IBracketSystem";
 import { Division } from "@persistence/entities";
 
@@ -11,7 +10,7 @@ export class KingOfTheHill extends IBracketSystem {
         return "KingOfTheHill";
     }
 
-    protected async createBracket(orderedplayers: string[], playerPerMatch: number, division: Division) {
-
+    protected async createBracket(_orderedplayers: string[], _playerPerMatch: number, _division: Division) {
+        // KingOfTheHill bracket — not yet implemented
     }
 }

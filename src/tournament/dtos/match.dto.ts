@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Player, Phase } from '@persistence/entities';
+import { Player, Division } from '@persistence/entities';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMatchDto {
@@ -28,17 +28,17 @@ export class CreateMatchDto {
   @IsOptional()
   @IsArray()
   playerIds?: number[];
-  
+
   @ApiProperty({ description: 'The paths to reconstruct bracket win/loss', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
   paths?: number[];
 
-  @ApiProperty({ description: 'The id of the phase the match belong to', example: 1 })
+  @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
   @IsNotEmpty()
   @IsNumber()
-  phaseId: number;
-  
+  divisionId: number;
+
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsNotEmpty()
   @IsString()
@@ -67,16 +67,16 @@ export class UpdateMatchDto {
   @IsOptional()
   @IsArray()
   playerIds?: number[];
-  
+
   @ApiProperty({ description: 'The paths to reconstruct bracket win/loss', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
   paths?: number[];
 
-  @ApiProperty({ description: 'The id of the phase the match belong to', example: 1 })
+  @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
   @IsOptional()
   @IsNumber()
-  phaseId: number;
+  divisionId?: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsOptional()
@@ -84,5 +84,5 @@ export class UpdateMatchDto {
   scoringSystem: string;
 
   players?: Player[];
-  phase?: Promise<Phase>;
+  division?: Promise<Division>;
 }

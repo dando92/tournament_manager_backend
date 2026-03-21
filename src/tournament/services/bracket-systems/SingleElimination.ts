@@ -1,5 +1,5 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division } from "@persistence/entities";
+import { Division, Match } from "@persistence/entities";
 
 type PlayerInfo = {
     match: number;
@@ -26,47 +26,46 @@ export class SingleElimination extends IBracketSystem {
         let playerCount = nextEffN;
         let matchCount = playerCount / playerPerMatch;
         let indexes = null;
-        let phase = null;
-        let phaseIndex = 1;
+        let currentMatches: Match[] = null;
+        let roundIndex = 1;
         while (matchCount >= 1) {
             console.log("Creating matches: " + matchCount);
-            const nextPhase = await this.CreatePhaseWithMatches("Phase_" + phaseIndex++, division, matchCount);
+            const nextMatches = await this.CreateMatchesInDivision("Round_" + roundIndex++, division, matchCount);
 
-            if (phase != null) //Skip first time, we need match ids from next phase
-            {
-                for (let i = 0; i < nextPhase.matches.length; i++) {
+            if (currentMatches != null) {
+                for (let i = 0; i < nextMatches.length; i++) {
                     for (let j = 0; j < playerPerMatch; j++) {
                         const currentIndex = indexes[i][j];
                         this.insertAt(
-                            phase.matches[currentIndex.match].paths,
-                            nextPhase.matches[i].id,
+                            currentMatches[currentIndex.match].paths,
+                            nextMatches[i].id,
                             currentIndex.playerIndexInMatch);
                     }
                 }
 
-                for (let i = 0; i < phase.matches.length; i++) {
-                    this.UpdateMatchPaths(phase.matches[i]);
+                for (let i = 0; i < currentMatches.length; i++) {
+                    this.UpdateMatchPaths(currentMatches[i]);
                 }
             }
 
             if (matchCount > 1)
                 indexes = this.getIndexes(playerCount, playerPerMatch);
 
-            phase = nextPhase;
+            currentMatches = nextMatches;
             playerCount /= 2;
             matchCount = playerCount / playerPerMatch;
         }
 
         if (playerPerMatch > 2) {
             console.log("Creating finals");
-            const finals = await this.CreatePhaseWithMatches("Finals", division, 2);
+            const finals = await this.CreateMatchesInDivision("Finals", division, 2);
 
-            phase.matches[0].paths.push(finals.matches[1].id);
-            phase.matches[0].paths.push(finals.matches[1].id);
-            phase.matches[0].paths.push(finals.matches[0].id);
-            phase.matches[0].paths.push(finals.matches[0].id);
+            currentMatches[0].paths.push(finals[1].id);
+            currentMatches[0].paths.push(finals[1].id);
+            currentMatches[0].paths.push(finals[0].id);
+            currentMatches[0].paths.push(finals[0].id);
 
-            this.UpdateMatchPaths(phase.matches[0]);
+            this.UpdateMatchPaths(currentMatches[0]);
         }
     }
 
@@ -98,19 +97,15 @@ export class SingleElimination extends IBracketSystem {
         let matchCount = playerCount / playerPerMatch;
         let passingPlayers = playerPerMatch / 2;
 
-        //Next round will have half of the matches
         for (let i = 0; i < matchCount / 2; i++) {
-            console.log("creating final i " + i);
             final[i] = [];
         }
 
         for (let j = 0; j < passingPlayers; j++) {
-            let k = j % 2 == 0 ? 0 : (matchCount / 2) - 1; //Every other push from top or bottom
-            let increment = j % 2 == 0 ? 1 : -1; //When pushing from top index shall increment, when pushing from bottom shall decrement
-            let counter = passingPlayers; //This counter will be used to understand when it is necessary to pass on next match
-            console.log("meh");
+            let k = j % 2 == 0 ? 0 : (matchCount / 2) - 1;
+            let increment = j % 2 == 0 ? 1 : -1;
+            let counter = passingPlayers;
             for (let i = 0; i < matchCount; i++) {
-                console.log("Pushing in k " + k);
                 final[k].push({ match: i, playerIndexInMatch: j });
 
                 if (--counter <= 0) {
@@ -119,8 +114,6 @@ export class SingleElimination extends IBracketSystem {
                 }
             }
         }
-        console.log("Generated indexes for playerCount " + playerCount + " playerPerMatch " + playerPerMatch);
-        console.log(final);
         return final;
     }
 
@@ -129,17 +122,14 @@ export class SingleElimination extends IBracketSystem {
         const final: PlayerInfo[][] = [];
         let matchCount = playerCount / playerPerMatch;
 
-        //Next round will have half of the matches
         for (let i = 0; i < matchCount / 2; i++) {
-            console.log("creating final i " + i);
             final[i] = [];
         }
 
         let k = 0;
-        let counter = playerPerMatch; //This counter will be used to understand when it is necessary to pass on next match
+        let counter = playerPerMatch;
 
         for (let i = 0; i < matchCount; i++) {
-            console.log("Pushing in k " + k);
             final[k].push({ match: i, playerIndexInMatch: 0 });
 
             if (--counter <= 0) {
@@ -147,9 +137,6 @@ export class SingleElimination extends IBracketSystem {
                 k += 1;
             }
         }
-        
-        console.log("Generated indexes for playerCount " + playerCount + " playerPerMatch " + playerPerMatch);
-        console.log(final);
 
         return final;
     }

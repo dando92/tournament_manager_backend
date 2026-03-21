@@ -1,14 +1,14 @@
-import { 
-  Entity, 
-  Column, 
-  PrimaryGeneratedColumn, 
-  OneToMany, 
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
   ManyToOne,
-  ManyToMany, 
+  ManyToMany,
   JoinTable,
   JoinColumn } from 'typeorm';
-  
-import { Phase } from './phase.entity'
+
+import { Match } from './match.entity'
 import { Tournament } from './tournament.entity';
 import { Player } from './player.entity';
 
@@ -28,11 +28,10 @@ export class Division {
   @JoinTable()
   players: Player[];
 
-  @OneToMany(() => Phase, (phase) => phase.division, { eager: true, cascade: true  })
-  phases: Phase[];
+  @OneToMany(() => Match, (match) => match.division, { eager: true, cascade: true })
+  matches: Match[];
 
   @ManyToOne(() => Tournament, (tournament) => tournament.divisions, { onDelete: 'CASCADE' })
   @JoinColumn()
   tournament: Tournament;
 }
-

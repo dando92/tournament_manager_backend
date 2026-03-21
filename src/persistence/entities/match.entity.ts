@@ -1,15 +1,15 @@
-import { 
-  Entity, 
-  Column, 
-  PrimaryGeneratedColumn, 
-  ManyToOne, 
-  OneToMany, 
-  ManyToMany, 
-  JoinTable, 
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
   JoinColumn } from 'typeorm';
 
 import { Round } from './round.entity'
-import { Phase } from './phase.entity'
+import { Division } from './division.entity'
 import { Player } from './player.entity'
 
 
@@ -40,7 +40,7 @@ export class Match {
   @OneToMany(() => Round, (round) => round.match, { eager: true, cascade: true  })
   rounds: Round[];
 
-  @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Division, (division) => division.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
-  phase: Promise<Phase>;
+  division: Promise<Division>;
 }

@@ -1,6 +1,5 @@
 import { DivisionsController } from './controllers/divisions.controller';
 import { MatchesController } from './controllers/matches.controller';
-import { PhasesController } from './controllers/phases.controller';
 import { PlayersController } from './controllers/players.controller';
 import { RoundsController } from './controllers/rounds.controller';
 
@@ -19,7 +18,6 @@ export const Controllers = [
     RoundsController,
 
     PlayersController,
-    PhasesController,
     TournamentsController,
     ScoresController,
     SongsController,
