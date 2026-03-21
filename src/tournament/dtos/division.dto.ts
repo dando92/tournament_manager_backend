@@ -42,5 +42,11 @@ export class UpdateDivisionDto {
   @Type(() => String)
   bracketType: string;
 
+  @ApiProperty({ description: 'Max players per match for this bracket', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  playersPerMatch?: number;
+
   tournament?: Tournament;
 }

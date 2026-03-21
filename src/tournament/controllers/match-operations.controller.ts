@@ -3,11 +3,12 @@ import { MatchManager } from '../services/match.manager';
 import { StandingManager } from '../services/standing.manager';
 import { ScoringSystemProvider } from "@tournament/services/scoring-systems/ScoringSystemProvider";
 import { BracketSystemProvider } from '../services/bracket-systems/BracketSystemProvider';
-import { CreateMatchDto, CreateScoreDto, UpdateRoundDto } from '../dtos';
+import { CreateMatchDto, CreateScoreDto, UpdateDivisionDto, UpdateRoundDto } from '../dtos';
 import { GetMatchUseCase } from '../use-cases/matches/get-match.use-case';
 import { CreateMatchUseCase } from '../use-cases/matches/create-match.use-case';
 import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
 import { GetDivisionUseCase } from '../use-cases/divisions/get-division.use-case';
+import { UpdateDivisionUseCase } from '../use-cases/divisions/update-division.use-case';
 import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
 
 class CreateMatchBody {
@@ -58,6 +59,7 @@ export class MatchOperationsController {
         private readonly scoringSystemProvider: ScoringSystemProvider,
         private readonly bracketSystemProvider: BracketSystemProvider,
         private readonly getDivisionUseCase: GetDivisionUseCase,
+        private readonly updateDivisionUseCase: UpdateDivisionUseCase,
         private readonly getTournamentUseCase: GetTournamentUseCase,
     ) {}
 
@@ -173,8 +175,11 @@ export class MatchOperationsController {
         const division = await this.getDivisionUseCase.execute(Number(divisionId));
         const tournament = await this.getTournamentUseCase.execute(Number(body.tournamentId));
         const players = await tournament?.players ?? [];
+        const playerPerMatch = body.playerPerMatch ?? 2;
         const system = this.bracketSystemProvider.getBracketSystem(body.bracketType);
-        await system.generateForDivision(division, players, body.playerPerMatch ?? 2);
+        await system.generateForDivision(division, players, playerPerMatch);
+        const updateDto = Object.assign(new UpdateDivisionDto(), { bracketType: division.bracketType, playersPerMatch: playerPerMatch });
+        await this.updateDivisionUseCase.execute(Number(divisionId), updateDto);
         return { success: true };
     }
 }
