@@ -44,18 +44,33 @@ export class SingleElimination extends IBracketSystem {
             }
 
             if (currentMatches !== null) {
+                // Clear nextMatches sourcePaths before populating
+                for (let i = 0; i < nextMatches.length; i++) {
+                    nextMatches[i].sourcePaths = [];
+                }
+
                 for (let i = 0; i < nextMatches.length; i++) {
                     for (let j = 0; j < playerPerMatch; j++) {
                         const currentIndex = indexes[i][j];
+                        const sourceMatch = currentMatches[currentIndex.match];
                         this.insertAt(
-                            currentMatches[currentIndex.match].paths,
+                            sourceMatch.targetPaths,
                             nextMatches[i].id,
                             currentIndex.playerIndexInMatch);
+
+                        // Add source match to target match's sourcePaths (unique)
+                        if (!nextMatches[i].sourcePaths.includes(sourceMatch.id)) {
+                            nextMatches[i].sourcePaths.push(sourceMatch.id);
+                        }
                     }
                 }
 
+                // Save currentMatches (targetPaths set) and nextMatches (sourcePaths set)
                 for (let i = 0; i < currentMatches.length; i++) {
                     this.UpdateMatchPaths(currentMatches[i]);
+                }
+                for (let i = 0; i < nextMatches.length; i++) {
+                    this.UpdateMatchPaths(nextMatches[i]);
                 }
             }
 
@@ -72,12 +87,17 @@ export class SingleElimination extends IBracketSystem {
             console.log("Creating finals");
             const finals = await this.CreateMatchesInDivision("Finals", division, 2);
 
-            currentMatches[0].paths.push(finals[1].id);
-            currentMatches[0].paths.push(finals[1].id);
-            currentMatches[0].paths.push(finals[0].id);
-            currentMatches[0].paths.push(finals[0].id);
+            currentMatches[0].targetPaths.push(finals[1].id);
+            currentMatches[0].targetPaths.push(finals[1].id);
+            currentMatches[0].targetPaths.push(finals[0].id);
+            currentMatches[0].targetPaths.push(finals[0].id);
+
+            finals[0].sourcePaths = [currentMatches[0].id];
+            finals[1].sourcePaths = [currentMatches[0].id];
 
             this.UpdateMatchPaths(currentMatches[0]);
+            this.UpdateMatchPaths(finals[0]);
+            this.UpdateMatchPaths(finals[1]);
         }
 
         return firstRound;

@@ -37,6 +37,11 @@ export class UpdateMatchUseCase {
             delete dto.playerIds;
         }
 
+        if (dto.targetPaths !== undefined) match.targetPaths = dto.targetPaths;
+        if (dto.sourcePaths !== undefined) match.sourcePaths = dto.sourcePaths;
+        delete (dto as any).targetPaths;
+        delete (dto as any).sourcePaths;
+
         this.matchRepository.merge(match, dto);
         return await this.matchRepository.save(match);
     }

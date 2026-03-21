@@ -29,10 +29,15 @@ export class CreateMatchDto {
   @IsArray()
   playerIds?: number[];
 
-  @ApiProperty({ description: 'The paths to reconstruct bracket win/loss', example: [1, 2, 3] })
+  @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
-  paths?: number[];
+  targetPaths?: number[];
+
+  @ApiProperty({ description: 'The source paths (which matches feed into this match)', example: [1, 2] })
+  @IsOptional()
+  @IsArray()
+  sourcePaths?: number[];
 
   @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
   @IsNotEmpty()
@@ -68,10 +73,15 @@ export class UpdateMatchDto {
   @IsArray()
   playerIds?: number[];
 
-  @ApiProperty({ description: 'The paths to reconstruct bracket win/loss', example: [1, 2, 3] })
+  @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
-  paths?: number[];
+  targetPaths?: number[];
+
+  @ApiProperty({ description: 'The source paths (which matches feed into this match)', example: [1, 2] })
+  @IsOptional()
+  @IsArray()
+  sourcePaths?: number[];
 
   @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
   @IsOptional()

@@ -58,51 +58,62 @@ export class DoubleElimination extends IBracketSystem {
         const grandFinalMatches = await this.CreateMatchesInDivision('Grand_Final', division, 1);
         const grandFinalMatch = grandFinalMatches[0];
 
-        // --- Wire Winners Bracket paths ---
+        // --- Wire Winners Bracket paths (in memory) ---
         for (let k = 0; k < wbRoundCount; k++) {
             const round = wbRounds[k];
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.paths = [];
+                match.targetPaths = [];
 
-                const winnerDestId = k < wbRoundCount - 1
-                    ? wbRounds[k + 1][Math.floor(m / 2)].id
-                    : grandFinalMatch.id;
+                const winnerDest = k < wbRoundCount - 1
+                    ? wbRounds[k + 1][Math.floor(m / 2)]
+                    : grandFinalMatch;
 
-                const loserDestId = k === 0
-                    ? lbRounds[0][Math.floor(m / 2)].id
-                    : lbRounds[2 * k - 1][m].id;
+                const loserDest = k === 0
+                    ? lbRounds[0][Math.floor(m / 2)]
+                    : lbRounds[2 * k - 1][m];
 
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(winnerDestId);
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(loserDestId);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(loserDest.id);
 
-                await this.UpdateMatchPaths(match);
+                // Set sourcePaths on destinations
+                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
+                if (!loserDest.sourcePaths.includes(match.id)) loserDest.sourcePaths.push(match.id);
             }
         }
 
-        // --- Wire Losers Bracket paths ---
+        // --- Wire Losers Bracket paths (in memory) ---
         for (let i = 0; i < lbRounds.length; i++) {
             const round = lbRounds[i];
             const isLast = i === lbRounds.length - 1;
 
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.paths = [];
+                match.targetPaths = [];
 
-                let winnerDestId: number;
+                let winnerDest: Match;
                 if (isLast) {
-                    winnerDestId = grandFinalMatch.id;
+                    winnerDest = grandFinalMatch;
                 } else if (i % 2 === 0) {
-                    winnerDestId = lbRounds[i + 1][m].id;
+                    winnerDest = lbRounds[i + 1][m];
                 } else {
-                    winnerDestId = lbRounds[i + 1][Math.floor(m / 2)].id;
+                    winnerDest = lbRounds[i + 1][Math.floor(m / 2)];
                 }
 
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(winnerDestId);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
 
-                await this.UpdateMatchPaths(match);
+                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
             }
         }
+
+        // --- Save all matches ---
+        for (const round of wbRounds) {
+            for (const m of round) await this.UpdateMatchPaths(m);
+        }
+        for (const round of lbRounds) {
+            for (const m of round) await this.UpdateMatchPaths(m);
+        }
+        await this.UpdateMatchPaths(grandFinalMatch);
 
         return wbRounds[0];
     }

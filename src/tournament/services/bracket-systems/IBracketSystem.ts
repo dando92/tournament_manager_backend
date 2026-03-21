@@ -59,12 +59,21 @@ export class IBracketSystem {
         if (match == null)
             return;
 
-        if (match.paths == null)
+        if (match.targetPaths == null)
             return;
 
-        const advanceCount = Math.min(match.paths.length, match.players?.length ?? 0);
+        const advanceCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
         for (let i = 0; i < advanceCount; i++) {
-            this.AddPlayerToMatch(match.players[i], match.paths[i]);
+            await this.AddPlayerToMatch(match.players[i], match.targetPaths[i]);
+
+            // Remove this source match from the target match's sourcePaths
+            const targetMatchId = match.targetPaths[i];
+            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            if (targetMatch?.sourcePaths) {
+                const dto = new UpdateMatchDto();
+                dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== matchId);
+                await this.updateMatchUseCase.execute(targetMatchId, dto);
+            }
         }
     }
 
@@ -74,12 +83,24 @@ export class IBracketSystem {
         if (match == null)
             return;
 
-        if (match.paths == null)
+        if (match.targetPaths == null)
             return;
 
-        const revertCount = Math.min(match.paths.length, match.players?.length ?? 0);
+        const revertCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
         for (let i = 0; i < revertCount; i++) {
-            this.RemovePlayerFromMatch(match.players[i], match.paths[i]);
+            await this.RemovePlayerFromMatch(match.players[i], match.targetPaths[i]);
+
+            // Re-add this source match to the target match's sourcePaths
+            const targetMatchId = match.targetPaths[i];
+            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            if (targetMatch) {
+                const currentSourcePaths = targetMatch.sourcePaths ?? [];
+                if (!currentSourcePaths.includes(matchId)) {
+                    const dto = new UpdateMatchDto();
+                    dto.sourcePaths = [...currentSourcePaths, matchId];
+                    await this.updateMatchUseCase.execute(targetMatchId, dto);
+                }
+            }
         }
     }
 
@@ -106,16 +127,18 @@ export class IBracketSystem {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
             const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", division.id);
-            match.paths = [];
+            match.targetPaths = [];
+            match.sourcePaths = [];
             division.matches.push(match);
             matches.push(match);
         }
         return matches;
     }
 
-    protected async UpdateMatchPaths(match: Match){
+    protected async UpdateMatchPaths(match: Match) {
         const dto = new UpdateMatchDto();
-        dto.paths = match.paths;
+        if (match.targetPaths !== undefined) dto.targetPaths = match.targetPaths;
+        if (match.sourcePaths !== undefined) dto.sourcePaths = match.sourcePaths;
         await this.updateMatchUseCase.execute(match.id, dto);
     }
 
