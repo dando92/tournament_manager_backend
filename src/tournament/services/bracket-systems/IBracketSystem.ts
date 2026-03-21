@@ -36,21 +36,21 @@ export class IBracketSystem {
         throw new Error("Method 'Description' should be implemented.");
     }
 
-    async create(divisionName: string, tournamentId: number, orderedplayers: string[], playerPerMatch: number) : Promise<Division> {
+    async create(divisionName: string, tournamentId: number, playerPerMatch: number): Promise<Division> {
         const dto = new CreateDivisionDto();
         dto.name = divisionName;
         dto.tournamentId = tournamentId;
         dto.bracketType = this.getName();
         const division = await this.createDivisionUseCase.execute(dto);
         division.matches = [];
-        await this.createBracket(orderedplayers, playerPerMatch, division);
+        await this.createBracket([], playerPerMatch, division);
 
         return division;
     }
 
     async generateForDivision(division: Division, players: Player[], playerPerMatch: number = 2): Promise<void> {
         division.matches = division.matches ?? [];
-        await this.createBracket(players.map(p => String(p.id)), playerPerMatch, division);
+        await this.createBracket(players, playerPerMatch, division);
     }
 
     async updateBracket(matchId: number) {
@@ -83,8 +83,23 @@ export class IBracketSystem {
         }
     }
 
-    protected async createBracket(orderedplayers: string[], playerPerMatch: number, division: Division) {
+    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division): Promise<void> {
         throw new Error("Method 'createBracket' should be implemented.");
+    }
+
+    protected nextPow2(x: number): number {
+        let p = 1;
+        while (p < x) p *= 2;
+        return p;
+    }
+
+    protected async fillFirstWave(players: Player[], firstRound: Match[], playerPerMatch: number): Promise<void> {
+        for (let i = 0; i < players.length; i++) {
+            const matchIndex = Math.floor(i / playerPerMatch);
+            if (matchIndex < firstRound.length) {
+                await this.AddPlayerToMatch(players[i], firstRound[matchIndex].id);
+            }
+        }
     }
 
     protected async CreateMatchesInDivision(namePrefix: string, division: Division, matchCount: number): Promise<Match[]> {

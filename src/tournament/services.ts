@@ -13,6 +13,7 @@ import { GetDivisionsUseCase } from './use-cases/divisions/get-divisions.use-cas
 import { GetDivisionUseCase } from './use-cases/divisions/get-division.use-case';
 import { UpdateDivisionUseCase } from './use-cases/divisions/update-division.use-case';
 import { DeleteDivisionUseCase } from './use-cases/divisions/delete-division.use-case';
+import { GenerateBracketUseCase } from './use-cases/divisions/generate-bracket.use-case';
 
 // Match use cases
 import { CreateMatchUseCase } from './use-cases/matches/create-match.use-case';
@@ -110,6 +111,7 @@ export { GetDivisionsUseCase };
 export { GetDivisionUseCase };
 export { UpdateDivisionUseCase };
 export { DeleteDivisionUseCase };
+export { GenerateBracketUseCase };
 
 export { CreateMatchUseCase };
 export { GetMatchesUseCase };
@@ -200,6 +202,7 @@ export const Services = [
     GetDivisionUseCase,
     UpdateDivisionUseCase,
     DeleteDivisionUseCase,
+    GenerateBracketUseCase,
 
     // Match use cases
     CreateMatchUseCase,

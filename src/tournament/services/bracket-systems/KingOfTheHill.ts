@@ -1,16 +1,16 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division } from "@persistence/entities";
+import { Division, Player } from "@persistence/entities";
 
 export class KingOfTheHill extends IBracketSystem {
-    getName() : string {
+    getName(): string {
         return "KingOfTheHill";
     }
 
-    getDescription() : string {
+    getDescription(): string {
         return "KingOfTheHill";
     }
 
-    protected async createBracket(_orderedplayers: string[], _playerPerMatch: number, _division: Division) {
+    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division): Promise<void> {
         // KingOfTheHill bracket — not yet implemented
     }
 }
