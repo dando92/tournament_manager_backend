@@ -21,9 +21,6 @@ export class Division {
   @Column()
   name: string;
 
-  @Column()
-  bracketType: string;
-
   @Column({ nullable: true, default: null })
   playersPerMatch: number | null;
 

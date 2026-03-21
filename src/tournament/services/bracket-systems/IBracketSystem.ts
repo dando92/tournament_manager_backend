@@ -40,7 +40,6 @@ export class IBracketSystem {
         const dto = new CreateDivisionDto();
         dto.name = divisionName;
         dto.tournamentId = tournamentId;
-        dto.bracketType = this.getName();
         const division = await this.createDivisionUseCase.execute(dto);
         division.matches = [];
         await this.createBracket([], playerPerMatch, division);

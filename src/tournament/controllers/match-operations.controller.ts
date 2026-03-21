@@ -223,7 +223,7 @@ export class MatchOperationsController {
         const playerPerMatch = body.playerPerMatch ?? 2;
         const system = this.bracketSystemProvider.getBracketSystem(body.bracketType);
         await system.generateForDivision(division, players, playerPerMatch);
-        const updateDto = Object.assign(new UpdateDivisionDto(), { bracketType: division.bracketType, playersPerMatch: playerPerMatch });
+        const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
         await this.updateDivisionUseCase.execute(Number(divisionId), updateDto);
         return { success: true };
     }
