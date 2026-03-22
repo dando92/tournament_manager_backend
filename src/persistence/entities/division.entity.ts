@@ -21,8 +21,8 @@ export class Division {
   @Column()
   name: string;
 
-  @Column()
-  bracketType: string;
+  @Column({ nullable: true, default: null })
+  playersPerMatch: number | null;
 
   @ManyToMany(() => Player, (player) => player.divisions, { eager: true})
   @JoinTable()

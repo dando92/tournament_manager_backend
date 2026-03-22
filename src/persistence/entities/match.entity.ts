@@ -28,7 +28,10 @@ export class Match {
   notes: string;
 
   @Column({type: 'simple-array', nullable: true })
-  paths: number[];
+  targetPaths: number[];
+
+  @Column({type: 'simple-array', nullable: true })
+  sourcePaths: number[];
 
   @Column()
   scoringSystem: string;

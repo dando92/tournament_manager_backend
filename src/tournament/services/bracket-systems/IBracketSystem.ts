@@ -36,21 +36,20 @@ export class IBracketSystem {
         throw new Error("Method 'Description' should be implemented.");
     }
 
-    async create(divisionName: string, tournamentId: number, orderedplayers: string[], playerPerMatch: number) : Promise<Division> {
+    async create(divisionName: string, tournamentId: number, playerPerMatch: number): Promise<Division> {
         const dto = new CreateDivisionDto();
         dto.name = divisionName;
         dto.tournamentId = tournamentId;
-        dto.bracketType = this.getName();
         const division = await this.createDivisionUseCase.execute(dto);
         division.matches = [];
-        await this.createBracket(orderedplayers, playerPerMatch, division);
+        await this.createBracket([], playerPerMatch, division);
 
         return division;
     }
 
     async generateForDivision(division: Division, players: Player[], playerPerMatch: number = 2): Promise<void> {
         division.matches = division.matches ?? [];
-        await this.createBracket(players.map(p => String(p.id)), playerPerMatch, division);
+        await this.createBracket(players, playerPerMatch, division);
     }
 
     async updateBracket(matchId: number) {
@@ -59,12 +58,21 @@ export class IBracketSystem {
         if (match == null)
             return;
 
-        if (match.paths == null)
+        if (match.targetPaths == null)
             return;
 
-        const advanceCount = Math.min(match.paths.length, match.players?.length ?? 0);
+        const advanceCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
         for (let i = 0; i < advanceCount; i++) {
-            this.AddPlayerToMatch(match.players[i], match.paths[i]);
+            await this.AddPlayerToMatch(match.players[i], match.targetPaths[i]);
+
+            // Remove this source match from the target match's sourcePaths
+            const targetMatchId = match.targetPaths[i];
+            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            if (targetMatch?.sourcePaths) {
+                const dto = new UpdateMatchDto();
+                dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== matchId);
+                await this.updateMatchUseCase.execute(targetMatchId, dto);
+            }
         }
     }
 
@@ -74,33 +82,62 @@ export class IBracketSystem {
         if (match == null)
             return;
 
-        if (match.paths == null)
+        if (match.targetPaths == null)
             return;
 
-        const revertCount = Math.min(match.paths.length, match.players?.length ?? 0);
+        const revertCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
         for (let i = 0; i < revertCount; i++) {
-            this.RemovePlayerFromMatch(match.players[i], match.paths[i]);
+            await this.RemovePlayerFromMatch(match.players[i], match.targetPaths[i]);
+
+            // Re-add this source match to the target match's sourcePaths
+            const targetMatchId = match.targetPaths[i];
+            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            if (targetMatch) {
+                const currentSourcePaths = targetMatch.sourcePaths ?? [];
+                if (!currentSourcePaths.includes(matchId)) {
+                    const dto = new UpdateMatchDto();
+                    dto.sourcePaths = [...currentSourcePaths, matchId];
+                    await this.updateMatchUseCase.execute(targetMatchId, dto);
+                }
+            }
         }
     }
 
-    protected async createBracket(orderedplayers: string[], playerPerMatch: number, division: Division) {
+    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division): Promise<void> {
         throw new Error("Method 'createBracket' should be implemented.");
+    }
+
+    protected nextPow2(x: number): number {
+        let p = 1;
+        while (p < x) p *= 2;
+        return p;
+    }
+
+    protected async fillFirstWave(players: Player[], firstRound: Match[], playerPerMatch: number): Promise<void> {
+        for (let i = 0; i < players.length; i++) {
+            const matchIndex = Math.floor(i / playerPerMatch);
+            if (matchIndex < firstRound.length) {
+                await this.AddPlayerToMatch(players[i], firstRound[matchIndex].id);
+            }
+        }
     }
 
     protected async CreateMatchesInDivision(namePrefix: string, division: Division, matchCount: number): Promise<Match[]> {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
             const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", division.id);
-            match.paths = [];
+            match.targetPaths = [];
+            match.sourcePaths = [];
             division.matches.push(match);
             matches.push(match);
         }
         return matches;
     }
 
-    protected async UpdateMatchPaths(match: Match){
+    protected async UpdateMatchPaths(match: Match) {
         const dto = new UpdateMatchDto();
-        dto.paths = match.paths;
+        if (match.targetPaths !== undefined) dto.targetPaths = match.targetPaths;
+        if (match.sourcePaths !== undefined) dto.sourcePaths = match.sourcePaths;
         await this.updateMatchUseCase.execute(match.id, dto);
     }
 

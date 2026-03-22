@@ -19,7 +19,6 @@ export class CreateDivisionUseCase {
         const division = new Division();
         division.name = dto.name;
         division.tournament = tournament;
-        division.bracketType = dto.bracketType;
         await this.divisionRepository.save(division);
         return division;
     }

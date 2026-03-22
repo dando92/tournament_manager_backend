@@ -1,5 +1,5 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division, Match } from "@persistence/entities";
+import { Division, Match, Player } from "@persistence/entities";
 
 type PlayerInfo = {
     match: number;
@@ -15,67 +15,95 @@ export class SingleElimination extends IBracketSystem {
         return "SingleElimination";
     }
 
-    protected async createBracket(orderedplayers: string[], playerPerMatch: number, division: Division) {
-        const nextEffN = playerPerMatch * this.nextPow2(Math.ceil(orderedplayers.length / playerPerMatch));
-        const byes = nextEffN - orderedplayers.length;
+    protected async createBracket(players: Player[], playerPerMatch: number, division: Division): Promise<void> {
+        const firstRound = await this.buildStructure(players.length, playerPerMatch, division);
+        await this.fillFirstWave(players, firstRound, playerPerMatch);
+    }
+
+    private async buildStructure(playerCount: number, playerPerMatch: number, division: Division): Promise<Match[]> {
+        const nextEffN = playerPerMatch * this.nextPow2(Math.ceil(playerCount / playerPerMatch));
+        const byes = nextEffN - playerCount;
 
         if (byes > 0) {
             console.log(`SingleElimination: adding ${byes} bye(s) (effective bracket size: ${nextEffN})`);
         }
 
-        let playerCount = nextEffN;
-        let matchCount = playerCount / playerPerMatch;
-        let indexes = null;
+        let count = nextEffN;
+        let matchCount = count / playerPerMatch;
+        let indexes: PlayerInfo[][] = null;
         let currentMatches: Match[] = null;
+        let firstRound: Match[] = null;
         let roundIndex = 1;
+
         while (matchCount >= 1) {
             console.log("Creating matches: " + matchCount);
             const nextMatches = await this.CreateMatchesInDivision("Round_" + roundIndex++, division, matchCount);
 
-            if (currentMatches != null) {
+            if (firstRound === null) {
+                firstRound = nextMatches;
+            }
+
+            if (currentMatches !== null) {
+                // Clear nextMatches sourcePaths before populating
+                for (let i = 0; i < nextMatches.length; i++) {
+                    nextMatches[i].sourcePaths = [];
+                }
+
                 for (let i = 0; i < nextMatches.length; i++) {
                     for (let j = 0; j < playerPerMatch; j++) {
                         const currentIndex = indexes[i][j];
+                        const sourceMatch = currentMatches[currentIndex.match];
                         this.insertAt(
-                            currentMatches[currentIndex.match].paths,
+                            sourceMatch.targetPaths,
                             nextMatches[i].id,
                             currentIndex.playerIndexInMatch);
+
+                        // Add source match to target match's sourcePaths (unique)
+                        if (!nextMatches[i].sourcePaths.includes(sourceMatch.id)) {
+                            nextMatches[i].sourcePaths.push(sourceMatch.id);
+                        }
                     }
                 }
 
+                // Save currentMatches (targetPaths set) and nextMatches (sourcePaths set)
                 for (let i = 0; i < currentMatches.length; i++) {
                     this.UpdateMatchPaths(currentMatches[i]);
                 }
+                for (let i = 0; i < nextMatches.length; i++) {
+                    this.UpdateMatchPaths(nextMatches[i]);
+                }
             }
 
-            if (matchCount > 1)
-                indexes = this.getIndexes(playerCount, playerPerMatch);
+            if (matchCount > 1) {
+                indexes = this.getIndexes(count, playerPerMatch);
+            }
 
             currentMatches = nextMatches;
-            playerCount /= 2;
-            matchCount = playerCount / playerPerMatch;
+            count /= 2;
+            matchCount = count / playerPerMatch;
         }
 
         if (playerPerMatch > 2) {
             console.log("Creating finals");
             const finals = await this.CreateMatchesInDivision("Finals", division, 2);
 
-            currentMatches[0].paths.push(finals[1].id);
-            currentMatches[0].paths.push(finals[1].id);
-            currentMatches[0].paths.push(finals[0].id);
-            currentMatches[0].paths.push(finals[0].id);
+            currentMatches[0].targetPaths.push(finals[1].id);
+            currentMatches[0].targetPaths.push(finals[1].id);
+            currentMatches[0].targetPaths.push(finals[0].id);
+            currentMatches[0].targetPaths.push(finals[0].id);
+
+            finals[0].sourcePaths = [currentMatches[0].id];
+            finals[1].sourcePaths = [currentMatches[0].id];
 
             this.UpdateMatchPaths(currentMatches[0]);
+            this.UpdateMatchPaths(finals[0]);
+            this.UpdateMatchPaths(finals[1]);
         }
+
+        return firstRound;
     }
 
-    private nextPow2(x: number): number {
-        let p = 1;
-        while (p < x) p *= 2;
-        return p;
-    }
-
-    insertAt<T>(arr: T[], element: T, index: number) {
+    private insertAt<T>(arr: T[], element: T, index: number): void {
         if (index >= arr.length) {
             arr.push(element);
         } else {
@@ -83,7 +111,7 @@ export class SingleElimination extends IBracketSystem {
         }
     }
 
-    getIndexes(playerCount: number, playerPerMatch: number) {
+    private getIndexes(playerCount: number, playerPerMatch: number): PlayerInfo[][] {
         if (playerPerMatch > 2) {
             return this.leastRematchIndexes(playerCount, playerPerMatch);
         } else {
@@ -91,11 +119,11 @@ export class SingleElimination extends IBracketSystem {
         }
     }
 
-    leastRematchIndexes(playerCount: number, playerPerMatch: number) {
+    private leastRematchIndexes(playerCount: number, playerPerMatch: number): PlayerInfo[][] {
         console.log("Generating indexes for playerCount " + playerCount + " playerPerMatch " + playerPerMatch);
         const final: PlayerInfo[][] = [];
-        let matchCount = playerCount / playerPerMatch;
-        let passingPlayers = playerPerMatch / 2;
+        const matchCount = playerCount / playerPerMatch;
+        const passingPlayers = playerPerMatch / 2;
 
         for (let i = 0; i < matchCount / 2; i++) {
             final[i] = [];
@@ -103,7 +131,7 @@ export class SingleElimination extends IBracketSystem {
 
         for (let j = 0; j < passingPlayers; j++) {
             let k = j % 2 == 0 ? 0 : (matchCount / 2) - 1;
-            let increment = j % 2 == 0 ? 1 : -1;
+            const increment = j % 2 == 0 ? 1 : -1;
             let counter = passingPlayers;
             for (let i = 0; i < matchCount; i++) {
                 final[k].push({ match: i, playerIndexInMatch: j });
@@ -117,10 +145,10 @@ export class SingleElimination extends IBracketSystem {
         return final;
     }
 
-    directMatchIndexes(playerCount: number, playerPerMatch: number) {
+    private directMatchIndexes(playerCount: number, playerPerMatch: number): PlayerInfo[][] {
         console.log("Generating indexes for playerCount " + playerCount + " playerPerMatch " + playerPerMatch);
         const final: PlayerInfo[][] = [];
-        let matchCount = playerCount / playerPerMatch;
+        const matchCount = playerCount / playerPerMatch;
 
         for (let i = 0; i < matchCount / 2; i++) {
             final[i] = [];

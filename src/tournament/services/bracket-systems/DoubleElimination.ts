@@ -1,5 +1,5 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division, Match } from "@persistence/entities";
+import { Division, Match, Player } from "@persistence/entities";
 
 export class DoubleElimination extends IBracketSystem {
     getName(): string {
@@ -10,29 +10,31 @@ export class DoubleElimination extends IBracketSystem {
         return "DoubleElimination";
     }
 
-    protected async createBracket(orderedplayers: string[], playerPerMatch: number, division: Division) {
+    protected async createBracket(players: Player[], playerPerMatch: number, division: Division): Promise<void> {
         if (playerPerMatch !== 2 && playerPerMatch !== 4 && playerPerMatch !== 8) {
             throw new Error(`DoubleElimination only supports playerPerMatch of 2, 4, or 8, got ${playerPerMatch}`);
         }
 
-        const N = orderedplayers.length;
-        const P = playerPerMatch;
-        const passingPlayers = P / 2;
+        const firstRound = await this.buildStructure(players.length, playerPerMatch, division);
+        await this.fillFirstWave(players, firstRound, playerPerMatch);
+    }
 
-        const r1MatchCount = Math.max(2, this.nextPow2(Math.ceil(N / P)));
-        const nextEffN = P * r1MatchCount;
-        const byes = nextEffN - N;
+    private async buildStructure(playerCount: number, playerPerMatch: number, division: Division): Promise<Match[]> {
+        const passingPlayers = playerPerMatch / 2;
+        const r1MatchCount = Math.max(2, this.nextPow2(Math.ceil(playerCount / playerPerMatch)));
+        const nextEffN = playerPerMatch * r1MatchCount;
+        const byes = nextEffN - playerCount;
 
         if (byes > 0) {
             console.log(`DoubleElimination: adding ${byes} bye(s) (effective bracket size: ${nextEffN})`);
         }
 
-        const W = Math.log2(r1MatchCount) + 1;
+        const wbRoundCount = Math.log2(r1MatchCount) + 1;
 
         // --- Create Winners Bracket rounds ---
         const wbRounds: Match[][] = [];
         let wbMatchCount = r1MatchCount;
-        for (let k = 0; k < W; k++) {
+        for (let k = 0; k < wbRoundCount; k++) {
             const matches = await this.CreateMatchesInDivision(`WB_Round_${k + 1}`, division, wbMatchCount);
             wbRounds.push(matches);
             wbMatchCount = Math.floor(wbMatchCount / 2);
@@ -41,7 +43,7 @@ export class DoubleElimination extends IBracketSystem {
         // --- Create Losers Bracket rounds ---
         const lbRounds: Match[][] = [];
         let lbMatchCount = Math.floor(r1MatchCount / 2);
-        for (let i = 0; i < 2 * (W - 1); i++) {
+        for (let i = 0; i < 2 * (wbRoundCount - 1); i++) {
             const isDropRound = i % 2 === 1;
             const roundNum = Math.floor(i / 2) + 1;
             const roundName = isDropRound ? `LB_Drop_${roundNum}` : `LB_Merge_${roundNum}`;
@@ -56,56 +58,63 @@ export class DoubleElimination extends IBracketSystem {
         const grandFinalMatches = await this.CreateMatchesInDivision('Grand_Final', division, 1);
         const grandFinalMatch = grandFinalMatches[0];
 
-        // --- Wire Winners Bracket paths ---
-        for (let k = 0; k < W; k++) {
+        // --- Wire Winners Bracket paths (in memory) ---
+        for (let k = 0; k < wbRoundCount; k++) {
             const round = wbRounds[k];
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.paths = [];
+                match.targetPaths = [];
 
-                const winnerDestId = k < W - 1
-                    ? wbRounds[k + 1][Math.floor(m / 2)].id
-                    : grandFinalMatch.id;
+                const winnerDest = k < wbRoundCount - 1
+                    ? wbRounds[k + 1][Math.floor(m / 2)]
+                    : grandFinalMatch;
 
-                const loserDestId = k === 0
-                    ? lbRounds[0][Math.floor(m / 2)].id
-                    : lbRounds[2 * k - 1][m].id;
+                const loserDest = k === 0
+                    ? lbRounds[0][Math.floor(m / 2)]
+                    : lbRounds[2 * k - 1][m];
 
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(winnerDestId);
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(loserDestId);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(loserDest.id);
 
-                await this.UpdateMatchPaths(match);
+                // Set sourcePaths on destinations
+                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
+                if (!loserDest.sourcePaths.includes(match.id)) loserDest.sourcePaths.push(match.id);
             }
         }
 
-        // --- Wire Losers Bracket paths ---
+        // --- Wire Losers Bracket paths (in memory) ---
         for (let i = 0; i < lbRounds.length; i++) {
             const round = lbRounds[i];
             const isLast = i === lbRounds.length - 1;
 
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.paths = [];
+                match.targetPaths = [];
 
-                let winnerDestId: number;
+                let winnerDest: Match;
                 if (isLast) {
-                    winnerDestId = grandFinalMatch.id;
+                    winnerDest = grandFinalMatch;
                 } else if (i % 2 === 0) {
-                    winnerDestId = lbRounds[i + 1][m].id;
+                    winnerDest = lbRounds[i + 1][m];
                 } else {
-                    winnerDestId = lbRounds[i + 1][Math.floor(m / 2)].id;
+                    winnerDest = lbRounds[i + 1][Math.floor(m / 2)];
                 }
 
-                for (let p = 0; p < passingPlayers; p++) match.paths.push(winnerDestId);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
 
-                await this.UpdateMatchPaths(match);
+                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
             }
         }
-    }
 
-    private nextPow2(x: number): number {
-        let p = 1;
-        while (p < x) p *= 2;
-        return p;
+        // --- Save all matches ---
+        for (const round of wbRounds) {
+            for (const m of round) await this.UpdateMatchPaths(m);
+        }
+        for (const round of lbRounds) {
+            for (const m of round) await this.UpdateMatchPaths(m);
+        }
+        await this.UpdateMatchPaths(grandFinalMatch);
+
+        return wbRounds[0];
     }
 }

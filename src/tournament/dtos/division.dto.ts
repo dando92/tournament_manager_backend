@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Tournament } from '@persistence/entities';
@@ -15,12 +15,6 @@ export class CreateDivisionDto {
   @IsNumber()
   @Type(() => Number)
   tournamentId: number;
-
-  @ApiProperty({ description: 'The name of the bracketType [SingleElimination, DoubleElimination, Swiss, KingOfTheHill, Manual]', example: 'SingleElimination' })
-  @IsNotEmpty()
-  @IsString()
-  @Type(() => String)
-  bracketType: string;
 }
 
 export class UpdateDivisionDto {
@@ -35,12 +29,12 @@ export class UpdateDivisionDto {
   @IsNumber()
   @Type(() => Number)
   tournamentId: number;
-  
-  @ApiProperty({ description: 'The name of the bracketType [SingleElimination, DoubleElimination, Swiss, KingOfTheHill, Manual]', example: 'SingleElimination' })
-  @IsNotEmpty()
-  @IsString()
-  @Type(() => String)
-  bracketType: string;
+
+  @ApiProperty({ description: 'Max players per match for this bracket', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  playersPerMatch?: number;
 
   tournament?: Tournament;
 }

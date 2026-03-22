@@ -3,11 +3,13 @@ import { MatchManager } from '../services/match.manager';
 import { StandingManager } from '../services/standing.manager';
 import { ScoringSystemProvider } from "@tournament/services/scoring-systems/ScoringSystemProvider";
 import { BracketSystemProvider } from '../services/bracket-systems/BracketSystemProvider';
-import { CreateMatchDto, CreateScoreDto, UpdateRoundDto } from '../dtos';
+import { CreateMatchDto, CreateScoreDto, UpdateDivisionDto, UpdateMatchDto, UpdateRoundDto } from '../dtos';
 import { GetMatchUseCase } from '../use-cases/matches/get-match.use-case';
 import { CreateMatchUseCase } from '../use-cases/matches/create-match.use-case';
+import { UpdateMatchUseCase } from '../use-cases/matches/update-match.use-case';
 import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
 import { GetDivisionUseCase } from '../use-cases/divisions/get-division.use-case';
+import { UpdateDivisionUseCase } from '../use-cases/divisions/update-division.use-case';
 import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
 
 class CreateMatchBody {
@@ -54,10 +56,12 @@ export class MatchOperationsController {
         private readonly standingManager: StandingManager,
         private readonly createMatchUseCase: CreateMatchUseCase,
         private readonly getMatchUseCase: GetMatchUseCase,
+        private readonly updateMatchUseCase: UpdateMatchUseCase,
         private readonly updateRoundUseCase: UpdateRoundUseCase,
         private readonly scoringSystemProvider: ScoringSystemProvider,
         private readonly bracketSystemProvider: BracketSystemProvider,
         private readonly getDivisionUseCase: GetDivisionUseCase,
+        private readonly updateDivisionUseCase: UpdateDivisionUseCase,
         private readonly getTournamentUseCase: GetTournamentUseCase,
     ) {}
 
@@ -165,6 +169,49 @@ export class MatchOperationsController {
         return await this.standingManager.EditStandingInMatch(matchId, dto.playerId, dto.songId, dto.percentage, dto.isFailed);
     }
 
+    @Put('matches/:matchId/paths')
+    async updateMatchPaths(
+        @Param('matchId') matchId: number,
+        @Body() body: { sourcePaths: number[] },
+    ) {
+        const match = await this.getMatchUseCase.execute(Number(matchId));
+        if (!match) throw new Error(`Match ${matchId} not found`);
+
+        const oldSourcePaths = match.sourcePaths ?? [];
+        const newSourcePaths = body.sourcePaths ?? [];
+
+        // Remove current match from old source matches' targetPaths
+        for (const oldSourceId of oldSourcePaths) {
+            if (!newSourcePaths.includes(oldSourceId)) {
+                const sourceMatch = await this.getMatchUseCase.execute(oldSourceId);
+                if (sourceMatch) {
+                    const dto = new UpdateMatchDto();
+                    dto.targetPaths = (sourceMatch.targetPaths ?? []).filter(id => id !== Number(matchId));
+                    await this.updateMatchUseCase.execute(oldSourceId, dto);
+                }
+            }
+        }
+
+        // Add current match to new source matches' targetPaths
+        for (const newSourceId of newSourcePaths) {
+            if (!oldSourcePaths.includes(newSourceId)) {
+                const sourceMatch = await this.getMatchUseCase.execute(newSourceId);
+                if (sourceMatch) {
+                    const dto = new UpdateMatchDto();
+                    dto.targetPaths = [...(sourceMatch.targetPaths ?? []), Number(matchId)];
+                    await this.updateMatchUseCase.execute(newSourceId, dto);
+                }
+            }
+        }
+
+        // Update current match's sourcePaths
+        const dto = new UpdateMatchDto();
+        dto.sourcePaths = newSourcePaths;
+        await this.updateMatchUseCase.execute(Number(matchId), dto);
+
+        return await this.getMatchUseCase.execute(Number(matchId));
+    }
+
     @Post('divisions/:divisionId/generate-bracket')
     async generateBracket(
         @Param('divisionId') divisionId: number,
@@ -173,8 +220,11 @@ export class MatchOperationsController {
         const division = await this.getDivisionUseCase.execute(Number(divisionId));
         const tournament = await this.getTournamentUseCase.execute(Number(body.tournamentId));
         const players = await tournament?.players ?? [];
+        const playerPerMatch = body.playerPerMatch ?? 2;
         const system = this.bracketSystemProvider.getBracketSystem(body.bracketType);
-        await system.generateForDivision(division, players, body.playerPerMatch ?? 2);
+        await system.generateForDivision(division, players, playerPerMatch);
+        const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
+        await this.updateDivisionUseCase.execute(Number(divisionId), updateDto);
         return { success: true };
     }
 }

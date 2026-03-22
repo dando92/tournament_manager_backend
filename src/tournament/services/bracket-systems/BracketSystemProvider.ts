@@ -1,4 +1,5 @@
 import { Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Manual } from "./Manual";
 import { DoubleElimination } from "./DoubleElimination"
 import { SingleElimination } from "./SingleElimination"
@@ -11,8 +12,9 @@ import { RemovePlayersFromMatchUseCase } from "../../use-cases/matches/remove-pl
 import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
 import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
 
+@Injectable()
 export class BracketSystemProvider {
-    systems: Map<string, IBracketSystem>;
+    private readonly systems: Map<string, IBracketSystem>;
     constructor(
         @Inject()
         private readonly createMatchUseCase: CreateMatchUseCase,
@@ -27,16 +29,16 @@ export class BracketSystemProvider {
         @Inject()
         private readonly deleteStandingUseCase: DeleteStandingUseCase,
     ) {
-        this.systems = new Map<string, IBracketSystem>();
+        const args: [CreateMatchUseCase, GetMatchUseCase, UpdateMatchUseCase, RemovePlayersFromMatchUseCase, CreateDivisionUseCase, DeleteStandingUseCase] =
+            [createMatchUseCase, getMatchUseCase, updateMatchUseCase, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase];
 
-        this.add(new DoubleElimination(createMatchUseCase, getMatchUseCase, updateMatchUseCase, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase))
-        this.add(new SingleElimination(createMatchUseCase, getMatchUseCase, updateMatchUseCase, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase))
-        this.add(new KingOfTheHill(createMatchUseCase, getMatchUseCase, updateMatchUseCase, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase))
-        this.add(new Manual(createMatchUseCase, getMatchUseCase, updateMatchUseCase, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase))
-    }
-
-    add(bracketSystem: IBracketSystem): void {
-        this.systems.set(bracketSystem.getName(), bracketSystem);
+        const all: IBracketSystem[] = [
+            new DoubleElimination(...args),
+            new SingleElimination(...args),
+            new KingOfTheHill(...args),
+            new Manual(...args),
+        ];
+        this.systems = new Map(all.map(s => [s.getName(), s]));
     }
 
     getBracketSystem(name: string) : IBracketSystem {
