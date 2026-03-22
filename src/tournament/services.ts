@@ -92,6 +92,7 @@ import { AddSongToTournamentUseCase } from './use-cases/tournaments/add-song-to-
 import { RemoveSongFromTournamentUseCase } from './use-cases/tournaments/remove-song-from-tournament.use-case';
 import { GetPlayerTournamentsUseCase } from './use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
+import { GetMyTournamentRolesUseCase } from './use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
 import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case';
 import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
@@ -188,6 +189,7 @@ export { AddSongToTournamentUseCase };
 export { RemoveSongFromTournamentUseCase };
 export { GetPlayerTournamentsUseCase };
 export { IsHelperOfAnyUseCase };
+export { GetMyTournamentRolesUseCase };
 export { GetTournamentByDivisionUseCase };
 export { GetLobbiesUseCase };
 export { ConnectLobbyUseCase };
@@ -294,6 +296,7 @@ export const Services = [
     RemoveSongFromTournamentUseCase,
     GetPlayerTournamentsUseCase,
     IsHelperOfAnyUseCase,
+    GetMyTournamentRolesUseCase,
     GetTournamentByDivisionUseCase,
     GetLobbiesUseCase,
     ConnectLobbyUseCase,

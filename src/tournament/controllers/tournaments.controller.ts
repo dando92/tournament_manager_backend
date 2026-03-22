@@ -18,6 +18,7 @@ import { AddSongToTournamentUseCase } from '../use-cases/tournaments/add-song-to
 import { RemoveSongFromTournamentUseCase } from '../use-cases/tournaments/remove-song-from-tournament.use-case';
 import { GetPlayerTournamentsUseCase } from '../use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from '../use-cases/tournaments/is-helper-of-any.use-case';
+import { GetMyTournamentRolesUseCase, MyTournamentRoles } from '../use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetLobbiesUseCase } from '../use-cases/tournaments/get-lobbies.use-case';
 import { ConnectLobbyUseCase } from '../use-cases/tournaments/connect-lobby.use-case';
 import { DisconnectLobbyUseCase } from '../use-cases/tournaments/disconnect-lobby.use-case';
@@ -41,6 +42,7 @@ export class TournamentsController {
         private readonly removeSongFromTournamentUseCase: RemoveSongFromTournamentUseCase,
         private readonly getPlayerTournamentsUseCase: GetPlayerTournamentsUseCase,
         private readonly isHelperOfAnyUseCase: IsHelperOfAnyUseCase,
+        private readonly getMyTournamentRolesUseCase: GetMyTournamentRolesUseCase,
         private readonly getLobbiesUseCase: GetLobbiesUseCase,
         private readonly connectLobbyUseCase: ConnectLobbyUseCase,
         private readonly disconnectLobbyUseCase: DisconnectLobbyUseCase,
@@ -74,6 +76,12 @@ export class TournamentsController {
     async getIsHelper(@Request() req): Promise<{ isHelper: boolean }> {
         const isHelper = await this.isHelperOfAnyUseCase.execute(req.user.id);
         return { isHelper };
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('my-roles')
+    async getMyRoles(@Request() req): Promise<MyTournamentRoles> {
+        return this.getMyTournamentRolesUseCase.execute(req.user.id);
     }
 
     @Get(':id')
