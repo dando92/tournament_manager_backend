@@ -92,10 +92,18 @@ import { AddSongToTournamentUseCase } from './use-cases/tournaments/add-song-to-
 import { RemoveSongFromTournamentUseCase } from './use-cases/tournaments/remove-song-from-tournament.use-case';
 import { GetPlayerTournamentsUseCase } from './use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
+import { GetMyTournamentRolesUseCase } from './use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
 import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case';
 import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
 import { DisconnectLobbyUseCase } from './use-cases/tournaments/disconnect-lobby.use-case';
+
+// Phase use cases
+import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
+import { GetPhasesUseCase } from './use-cases/phases/get-phases.use-case';
+import { GetPhaseUseCase } from './use-cases/phases/get-phase.use-case';
+import { UpdatePhaseUseCase } from './use-cases/phases/update-phase.use-case';
+import { DeletePhaseUseCase } from './use-cases/phases/delete-phase.use-case';
 
 export { UserService as AccountService };
 export { MatchManager };
@@ -181,10 +189,17 @@ export { AddSongToTournamentUseCase };
 export { RemoveSongFromTournamentUseCase };
 export { GetPlayerTournamentsUseCase };
 export { IsHelperOfAnyUseCase };
+export { GetMyTournamentRolesUseCase };
 export { GetTournamentByDivisionUseCase };
 export { GetLobbiesUseCase };
 export { ConnectLobbyUseCase };
 export { DisconnectLobbyUseCase };
+
+export { CreatePhaseUseCase };
+export { GetPhasesUseCase };
+export { GetPhaseUseCase };
+export { UpdatePhaseUseCase };
+export { DeletePhaseUseCase };
 
 export const Services = [
     UserService,
@@ -281,8 +296,16 @@ export const Services = [
     RemoveSongFromTournamentUseCase,
     GetPlayerTournamentsUseCase,
     IsHelperOfAnyUseCase,
+    GetMyTournamentRolesUseCase,
     GetTournamentByDivisionUseCase,
     GetLobbiesUseCase,
     ConnectLobbyUseCase,
     DisconnectLobbyUseCase,
+
+    // Phase use cases
+    CreatePhaseUseCase,
+    GetPhasesUseCase,
+    GetPhaseUseCase,
+    UpdatePhaseUseCase,
+    DeletePhaseUseCase,
 ];

@@ -9,6 +9,7 @@ import {
   JoinColumn } from 'typeorm';
 
 import { Match } from './match.entity'
+import { Phase } from './phase.entity';
 import { Tournament } from './tournament.entity';
 import { Player } from './player.entity';
 
@@ -30,6 +31,9 @@ export class Division {
 
   @OneToMany(() => Match, (match) => match.division, { eager: true, cascade: true })
   matches: Match[];
+
+  @OneToMany(() => Phase, (phase) => phase.division, { eager: true, cascade: true })
+  phases: Phase[];
 
   @ManyToOne(() => Tournament, (tournament) => tournament.divisions, { onDelete: 'CASCADE' })
   @JoinColumn()

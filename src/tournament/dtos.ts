@@ -1,4 +1,5 @@
 import { CreateDivisionDto, UpdateDivisionDto } from './dtos/division.dto';
+import { CreatePhaseDto, UpdatePhaseDto } from './dtos/phase.dto';
 import { CreateMatchDto, UpdateMatchDto } from './dtos/match.dto';
 import { CreatePlayerDto, UpdatePlayerDto } from './dtos/player.dto';
 import { CreateRoundDto, UpdateRoundDto } from './dtos/round.dto';
@@ -13,6 +14,7 @@ import { CreateAccountDto, UpdateAcountDto  } from './dtos/acount.dto'
 import { CreateAccountPlayerDto, UpdateAccountPlayerDto } from './dtos/accountplayer.dto';
 
 export { CreateDivisionDto, UpdateDivisionDto };
+export { CreatePhaseDto, UpdatePhaseDto };
 export { CreateMatchDto, UpdateMatchDto };
 export { CreatePlayerDto, UpdatePlayerDto };
 export { CreateRoundDto, UpdateRoundDto };

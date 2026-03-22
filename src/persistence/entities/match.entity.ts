@@ -10,6 +10,7 @@ import {
 
 import { Round } from './round.entity'
 import { Division } from './division.entity'
+import { Phase } from './phase.entity'
 import { Player } from './player.entity'
 
 
@@ -46,4 +47,8 @@ export class Match {
   @ManyToOne(() => Division, (division) => division.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
   division: Promise<Division>;
+
+  @ManyToOne(() => Phase, (phase) => phase.matches, { nullable: true, onDelete: 'SET NULL', eager: false })
+  @JoinColumn()
+  phase: Phase | null;
 }
