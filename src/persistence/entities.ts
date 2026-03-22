@@ -1,4 +1,5 @@
 import { Division } from './entities/division.entity';
+import { Phase } from './entities/phase.entity';
 import { Match } from './entities/match.entity';
 import { Player } from './entities/player.entity';
 import { Round } from './entities/round.entity';
@@ -12,6 +13,7 @@ import { Setup } from './entities/setup.entity';
 import { Account } from './entities/account.entity';
 
 export { Division }
+export { Phase }
 export { Match }
 export { Player }
 export { Round }
@@ -26,6 +28,7 @@ export { Account }
 
 export const Entities = [
     Division,
+    Phase,
     Match,
     Player,
     Round,

@@ -97,6 +97,13 @@ import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case'
 import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
 import { DisconnectLobbyUseCase } from './use-cases/tournaments/disconnect-lobby.use-case';
 
+// Phase use cases
+import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
+import { GetPhasesUseCase } from './use-cases/phases/get-phases.use-case';
+import { GetPhaseUseCase } from './use-cases/phases/get-phase.use-case';
+import { UpdatePhaseUseCase } from './use-cases/phases/update-phase.use-case';
+import { DeletePhaseUseCase } from './use-cases/phases/delete-phase.use-case';
+
 export { UserService as AccountService };
 export { MatchManager };
 export { PadRoller };
@@ -185,6 +192,12 @@ export { GetTournamentByDivisionUseCase };
 export { GetLobbiesUseCase };
 export { ConnectLobbyUseCase };
 export { DisconnectLobbyUseCase };
+
+export { CreatePhaseUseCase };
+export { GetPhasesUseCase };
+export { GetPhaseUseCase };
+export { UpdatePhaseUseCase };
+export { DeletePhaseUseCase };
 
 export const Services = [
     UserService,
@@ -285,4 +298,11 @@ export const Services = [
     GetLobbiesUseCase,
     ConnectLobbyUseCase,
     DisconnectLobbyUseCase,
+
+    // Phase use cases
+    CreatePhaseUseCase,
+    GetPhasesUseCase,
+    GetPhaseUseCase,
+    UpdatePhaseUseCase,
+    DeletePhaseUseCase,
 ];
