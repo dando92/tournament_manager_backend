@@ -217,6 +217,22 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
+        const wasComplete = match.rounds.length > 0 && match.rounds.every(r =>
+            match.players.every(player =>
+                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
+            ),
+        );
+
+        const getTotalPoints = (pid: number) =>
+            match.rounds.reduce((acc, r) => {
+                const standing = r.standings.find(s => s.score.player.id === pid);
+                return acc + (standing?.points ?? 0);
+            }, 0);
+
+        const oldSortedPlayers = wasComplete && match.targetPaths?.length
+            ? [...match.players].sort((a, b) => getTotalPoints(b.id) - getTotalPoints(a.id))
+            : [];
+
         const round = match.rounds.find(round => round.song.id == songId);
 
         if (!round) {
@@ -244,6 +260,20 @@ export class StandingManager implements ILobbyStateObserver {
             const dto = new UpdateStandingDto();
             dto.points = s.points;
             await this.updateStandingUseCase.execute(s.id, dto);
+        }
+
+        if (wasComplete && match.targetPaths?.length) {
+            await this.bracketSystemProvider.revertPlayers(match, oldSortedPlayers);
+
+            const newSortedPlayers = [...match.players].sort(
+                (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
+            );
+            await this.bracketSystemProvider.advancePlayers(match, newSortedPlayers);
+
+            for (const targetMatchId of match.targetPaths) {
+                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+            }
         }
 
         await this.matchGateway.OnMatchUpdate(match);
