@@ -94,6 +94,7 @@ import { GetPlayerTournamentsUseCase } from './use-cases/tournaments/get-player-
 import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
 import { GetMyTournamentRolesUseCase } from './use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
+import { GetTournamentByPhaseUseCase } from './use-cases/tournaments/get-tournament-by-phase.use-case';
 import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case';
 import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
 import { DisconnectLobbyUseCase } from './use-cases/tournaments/disconnect-lobby.use-case';
@@ -191,6 +192,7 @@ export { GetPlayerTournamentsUseCase };
 export { IsHelperOfAnyUseCase };
 export { GetMyTournamentRolesUseCase };
 export { GetTournamentByDivisionUseCase };
+export { GetTournamentByPhaseUseCase };
 export { GetLobbiesUseCase };
 export { ConnectLobbyUseCase };
 export { DisconnectLobbyUseCase };
@@ -298,6 +300,7 @@ export const Services = [
     IsHelperOfAnyUseCase,
     GetMyTournamentRolesUseCase,
     GetTournamentByDivisionUseCase,
+    GetTournamentByPhaseUseCase,
     GetLobbiesUseCase,
     ConnectLobbyUseCase,
     DisconnectLobbyUseCase,

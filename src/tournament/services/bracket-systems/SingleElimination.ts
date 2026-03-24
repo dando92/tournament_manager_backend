@@ -1,5 +1,5 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division, Match, Player } from "@persistence/entities";
+import { Division, Match, Phase, Player } from "@persistence/entities";
 
 type PlayerInfo = {
     match: number;
@@ -15,12 +15,12 @@ export class SingleElimination extends IBracketSystem {
         return "SingleElimination";
     }
 
-    protected async createBracket(players: Player[], playerPerMatch: number, division: Division): Promise<void> {
-        const firstRound = await this.buildStructure(players.length, playerPerMatch, division);
+    protected async createBracket(players: Player[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
+        const firstRound = await this.buildStructure(players.length, playerPerMatch, phase);
         await this.fillFirstWave(players, firstRound, playerPerMatch);
     }
 
-    private async buildStructure(playerCount: number, playerPerMatch: number, division: Division): Promise<Match[]> {
+    private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase): Promise<Match[]> {
         const nextEffN = playerPerMatch * this.nextPow2(Math.ceil(playerCount / playerPerMatch));
         const byes = nextEffN - playerCount;
 
@@ -37,7 +37,7 @@ export class SingleElimination extends IBracketSystem {
 
         while (matchCount >= 1) {
             console.log("Creating matches: " + matchCount);
-            const nextMatches = await this.CreateMatchesInDivision("Round_" + roundIndex++, division, matchCount);
+            const nextMatches = await this.CreateMatchesInPhase("Round_" + roundIndex++, phase, matchCount);
 
             if (firstRound === null) {
                 firstRound = nextMatches;
@@ -85,7 +85,7 @@ export class SingleElimination extends IBracketSystem {
 
         if (playerPerMatch > 2) {
             console.log("Creating finals");
-            const finals = await this.CreateMatchesInDivision("Finals", division, 2);
+            const finals = await this.CreateMatchesInPhase("Finals", phase, 2);
 
             currentMatches[0].targetPaths.push(finals[1].id);
             currentMatches[0].targetPaths.push(finals[1].id);

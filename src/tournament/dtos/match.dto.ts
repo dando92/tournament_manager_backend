@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Player, Division } from '@persistence/entities';
+import { Player } from '@persistence/entities';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMatchDto {
@@ -39,10 +39,10 @@ export class CreateMatchDto {
   @IsArray()
   sourcePaths?: number[];
 
-  @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
+  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
   @IsNotEmpty()
   @IsNumber()
-  divisionId: number;
+  phaseId: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsNotEmpty()
@@ -83,10 +83,10 @@ export class UpdateMatchDto {
   @IsArray()
   sourcePaths?: number[];
 
-  @ApiProperty({ description: 'The id of the division the match belongs to', example: 1 })
+  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
   @IsOptional()
   @IsNumber()
-  divisionId?: number;
+  phaseId?: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsOptional()
@@ -94,5 +94,4 @@ export class UpdateMatchDto {
   scoringSystem: string;
 
   players?: Player[];
-  division?: Promise<Division>;
 }

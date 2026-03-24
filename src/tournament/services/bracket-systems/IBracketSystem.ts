@@ -3,13 +3,15 @@ import { CreateDivisionDto } from "../../dtos";
 import { CreateMatchDto } from "../../dtos";
 import { UpdateMatchDto } from "../../dtos";
 
-import { Match, Player, Standing, Division } from "@persistence/entities";
+import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
 import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
 import { CreateMatchUseCase } from "../../use-cases/matches/create-match.use-case";
 import { GetMatchUseCase } from "../../use-cases/matches/get-match.use-case";
 import { UpdateMatchUseCase } from "../../use-cases/matches/update-match.use-case";
 import { RemovePlayersFromMatchUseCase } from "../../use-cases/matches/remove-players-from-match.use-case";
 import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
+import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
+import { CreatePhaseDto } from "../../dtos";
 
 export class IBracketSystem {
     constructor(
@@ -25,6 +27,8 @@ export class IBracketSystem {
         protected readonly createDivisionUseCase: CreateDivisionUseCase,
         @Inject()
         protected readonly deleteStandingUseCase: DeleteStandingUseCase,
+        @Inject()
+        protected readonly createPhaseUseCase: CreatePhaseUseCase,
     ) {
     }
 
@@ -41,15 +45,44 @@ export class IBracketSystem {
         dto.name = divisionName;
         dto.tournamentId = tournamentId;
         const division = await this.createDivisionUseCase.execute(dto);
-        division.matches = [];
-        await this.createBracket([], playerPerMatch, division);
+
+        const phaseDto = new CreatePhaseDto();
+        phaseDto.name = "Bracket 1";
+        phaseDto.divisionId = division.id;
+        const phase = await this.createPhaseUseCase.execute(phaseDto);
+        phase.matches = [];
+
+        await this.createBracket([], playerPerMatch, division, phase);
 
         return division;
     }
 
     async generateForDivision(division: Division, players: Player[], playerPerMatch: number = 2): Promise<void> {
-        division.matches = division.matches ?? [];
-        await this.createBracket(players, playerPerMatch, division);
+        const phaseNumber = (division.phases?.length ?? 0) + 1;
+        const phaseDto = new CreatePhaseDto();
+        phaseDto.name = `Bracket ${phaseNumber}`;
+        phaseDto.divisionId = division.id;
+        const phase = await this.createPhaseUseCase.execute(phaseDto);
+        phase.matches = [];
+
+        await this.createBracket(players, playerPerMatch, division, phase);
+    }
+
+    async advanceSortedPlayers(match: Match, sortedPlayers: Player[]) {
+        if (!match.targetPaths?.length) return;
+
+        const advanceCount = Math.min(match.targetPaths.length, sortedPlayers.length);
+        for (let i = 0; i < advanceCount; i++) {
+            await this.AddPlayerToMatch(sortedPlayers[i], match.targetPaths[i]);
+
+            const targetMatchId = match.targetPaths[i];
+            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            if (targetMatch?.sourcePaths) {
+                const dto = new UpdateMatchDto();
+                dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== match.id);
+                await this.updateMatchUseCase.execute(targetMatchId, dto);
+            }
+        }
     }
 
     async updateBracket(matchId: number) {
@@ -103,7 +136,7 @@ export class IBracketSystem {
         }
     }
 
-    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division): Promise<void> {
+    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
         throw new Error("Method 'createBracket' should be implemented.");
     }
 
@@ -122,13 +155,13 @@ export class IBracketSystem {
         }
     }
 
-    protected async CreateMatchesInDivision(namePrefix: string, division: Division, matchCount: number): Promise<Match[]> {
+    protected async CreateMatchesInPhase(namePrefix: string, phase: Phase, matchCount: number): Promise<Match[]> {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
-            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", division.id);
+            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phase.id);
             match.targetPaths = [];
             match.sourcePaths = [];
-            division.matches.push(match);
+            phase.matches.push(match);
             matches.push(match);
         }
         return matches;
@@ -141,10 +174,10 @@ export class IBracketSystem {
         await this.updateMatchUseCase.execute(match.id, dto);
     }
 
-    protected async CreateEmptyMatch(name: string, desc: string, divisionId: number): Promise<Match> {
+    protected async CreateEmptyMatch(name: string, desc: string, phaseId: number): Promise<Match> {
         const dto = new CreateMatchDto();
 
-        dto.divisionId = divisionId;
+        dto.phaseId = phaseId;
         dto.name = name;
         dto.notes = desc;
         dto.scoringSystem = "EurocupScoreCalculator";

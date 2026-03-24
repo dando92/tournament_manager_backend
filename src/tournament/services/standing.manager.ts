@@ -16,6 +16,7 @@ import { GetSongByNameUseCase } from '../use-cases/songs/get-song-by-name.use-ca
 import { GetPlayerByNameUseCase } from '../use-cases/players/get-player-by-name.use-case';
 import { GetMatchUseCase } from '../use-cases/matches/get-match.use-case';
 import { GetMatchesUseCase } from '../use-cases/matches/get-matches.use-case';
+import { BracketSystemProvider } from './bracket-systems/BracketSystemProvider';
 
 type TournamentSongState = {
     currentSongPath: string | null;
@@ -49,6 +50,8 @@ export class StandingManager implements ILobbyStateObserver {
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
         private readonly matchGateway: MatchGateway,
+        @Inject()
+        private readonly bracketSystemProvider: BracketSystemProvider,
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
@@ -107,6 +110,31 @@ export class StandingManager implements ILobbyStateObserver {
             });
         }
 
+        const isMatchComplete = match.rounds.length > 0 && match.rounds.every(r =>
+            match.players.every(player =>
+                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
+            ),
+        );
+
+        if (isMatchComplete && match.targetPaths?.length) {
+            const getTotalPoints = (playerId: number) =>
+                match.rounds.reduce((acc, r) => {
+                    const standing = r.standings.find(s => s.score.player.id === playerId);
+                    return acc + (standing?.points ?? 0);
+                }, 0);
+
+            const sortedPlayers = [...match.players].sort(
+                (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
+            );
+
+            await this.bracketSystemProvider.advancePlayers(match, sortedPlayers);
+
+            for (const targetMatchId of match.targetPaths) {
+                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+            }
+        }
+
         await this.matchGateway.OnMatchUpdate(match);
 
         return match;
@@ -118,6 +146,22 @@ export class StandingManager implements ILobbyStateObserver {
         if (!match) {
             return;
         }
+
+        const wasComplete = match.rounds.length > 0 && match.rounds.every(r =>
+            match.players.every(player =>
+                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
+            ),
+        );
+
+        const getTotalPoints = (playerId: number) =>
+            match.rounds.reduce((acc, r) => {
+                const standing = r.standings.find(s => s.score.player.id === playerId);
+                return acc + (standing?.points ?? 0);
+            }, 0);
+
+        const sortedPlayers = wasComplete && match.targetPaths?.length
+            ? [...match.players].sort((a, b) => getTotalPoints(b.id) - getTotalPoints(a.id))
+            : [];
 
         const round = match.rounds.find(round => round.song.id == songId);
 
@@ -150,6 +194,15 @@ export class StandingManager implements ILobbyStateObserver {
             }
         } catch (error) {
             console.log(error);
+        }
+
+        if (wasComplete && match.targetPaths?.length) {
+            await this.bracketSystemProvider.revertPlayers(match, sortedPlayers);
+
+            for (const targetMatchId of match.targetPaths) {
+                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+            }
         }
 
         await this.matchGateway.OnMatchUpdate(match);

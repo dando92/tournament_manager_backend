@@ -9,7 +9,6 @@ import {
   JoinColumn } from 'typeorm';
 
 import { Round } from './round.entity'
-import { Division } from './division.entity'
 import { Phase } from './phase.entity'
 import { Player } from './player.entity'
 
@@ -28,10 +27,24 @@ export class Match {
   @Column({ nullable: true })
   notes: string;
 
-  @Column({type: 'simple-array', nullable: true })
+  @Column({
+    type: 'simple-array',
+    nullable: true,
+    transformer: {
+      to: (value: number[]) => value,
+      from: (value: string | number[]) => Array.isArray(value) ? value.map(Number) : (value ? value.split(',').map(Number) : []),
+    },
+  })
   targetPaths: number[];
 
-  @Column({type: 'simple-array', nullable: true })
+  @Column({
+    type: 'simple-array',
+    nullable: true,
+    transformer: {
+      to: (value: number[]) => value,
+      from: (value: string | number[]) => Array.isArray(value) ? value.map(Number) : (value ? value.split(',').map(Number) : []),
+    },
+  })
   sourcePaths: number[];
 
   @Column()
@@ -44,11 +57,7 @@ export class Match {
   @OneToMany(() => Round, (round) => round.match, { eager: true, cascade: true  })
   rounds: Round[];
 
-  @ManyToOne(() => Division, (division) => division.matches, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
-  division: Promise<Division>;
-
-  @ManyToOne(() => Phase, (phase) => phase.matches, { nullable: true, onDelete: 'SET NULL', eager: false })
-  @JoinColumn()
-  phase: Phase | null;
+  phase: Promise<Phase>;
 }

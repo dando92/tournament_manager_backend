@@ -14,7 +14,8 @@ import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.us
 
 class CreateMatchBody {
     tournamentId: number;
-    divisionId: number;
+    phaseId: number;
+    divisionId?: number; // only used for song rolling, not persisted on match
     matchName: string;
     group: string;
     subtitle: string;
@@ -80,7 +81,7 @@ export class MatchOperationsController {
         const newMatchDto = new CreateMatchDto();
         newMatchDto.name = dto.matchName;
         newMatchDto.notes = dto.notes;
-        newMatchDto.divisionId = dto.divisionId;
+        newMatchDto.phaseId = dto.phaseId;
         newMatchDto.playerIds = dto.playerIds;
         newMatchDto.subtitle = dto.subtitle;
         newMatchDto.scoringSystem = dto.scoringSystem;

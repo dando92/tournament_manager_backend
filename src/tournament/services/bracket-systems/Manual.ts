@@ -1,5 +1,6 @@
 import { IBracketSystem } from "./IBracketSystem";
-import { Division, Player } from "@persistence/entities";
+import { CreatePhaseDto } from "../../dtos";
+import { Division, Phase, Player } from "@persistence/entities";
 
 export class Manual extends IBracketSystem {
     getName(): string {
@@ -10,14 +11,20 @@ export class Manual extends IBracketSystem {
         return "Manual";
     }
 
-    async generateForDivision(division: Division, players: Player[], playerPerMatch: number): Promise<void> {
-        division.matches = division.matches ?? [];
-        const matchCount = Math.ceil(players.length / playerPerMatch);
-        const matches = await this.CreateMatchesInDivision("Match", division, matchCount);
-        await this.fillFirstWave(players, matches, playerPerMatch);
+    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
+        // Manual bracket — no automatic structure
     }
 
-    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division): Promise<void> {
-        // Manual bracket — no automatic structure
+    async generateForDivision(division: Division, players: Player[], playerPerMatch: number): Promise<void> {
+        const phaseNumber = (division.phases?.length ?? 0) + 1;
+        const phaseDto = new CreatePhaseDto();
+        phaseDto.name = `Bracket ${phaseNumber}`;
+        phaseDto.divisionId = division.id;
+        const phase = await this.createPhaseUseCase.execute(phaseDto);
+        phase.matches = [];
+
+        const matchCount = Math.ceil(players.length / playerPerMatch);
+        const matches = await this.CreateMatchesInPhase("Match", phase, matchCount);
+        await this.fillFirstWave(players, matches, playerPerMatch);
     }
 }
