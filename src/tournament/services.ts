@@ -1,5 +1,6 @@
 import { UserService } from '../user/services/user.service';
 import { MatchManager } from "./services/match.manager";
+import { MatchService } from "./services/match.service";
 import { PadRoller } from "./services/pad.roller";
 import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./services/standing.manager";
@@ -16,11 +17,6 @@ import { DeleteDivisionUseCase } from './use-cases/divisions/delete-division.use
 import { GenerateBracketUseCase } from './use-cases/divisions/generate-bracket.use-case';
 
 // Match use cases
-import { CreateMatchUseCase } from './use-cases/matches/create-match.use-case';
-import { GetMatchesUseCase } from './use-cases/matches/get-matches.use-case';
-import { GetMatchUseCase } from './use-cases/matches/get-match.use-case';
-import { UpdateMatchUseCase } from './use-cases/matches/update-match.use-case';
-import { DeleteMatchUseCase } from './use-cases/matches/delete-match.use-case';
 import { RemovePlayersFromMatchUseCase } from './use-cases/matches/remove-players-from-match.use-case';
 
 // Player use cases
@@ -108,6 +104,7 @@ import { DeletePhaseUseCase } from './use-cases/phases/delete-phase.use-case';
 
 export { UserService as AccountService };
 export { MatchManager };
+export { MatchService };
 export { PadRoller };
 export { SongRoller };
 export { StandingManager };
@@ -122,11 +119,6 @@ export { UpdateDivisionUseCase };
 export { DeleteDivisionUseCase };
 export { GenerateBracketUseCase };
 
-export { CreateMatchUseCase };
-export { GetMatchesUseCase };
-export { GetMatchUseCase };
-export { UpdateMatchUseCase };
-export { DeleteMatchUseCase };
 export { RemovePlayersFromMatchUseCase };
 
 export { CreatePlayerUseCase };
@@ -205,6 +197,7 @@ export { DeletePhaseUseCase };
 
 export const Services = [
     UserService,
+    MatchService,
     MatchManager,
     PadRoller,
     SongRoller,
@@ -222,11 +215,6 @@ export const Services = [
     GenerateBracketUseCase,
 
     // Match use cases
-    CreateMatchUseCase,
-    GetMatchesUseCase,
-    GetMatchUseCase,
-    UpdateMatchUseCase,
-    DeleteMatchUseCase,
     RemovePlayersFromMatchUseCase,
 
     // Player use cases

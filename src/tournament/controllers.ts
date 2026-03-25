@@ -11,7 +11,6 @@ import { StandingsController } from './controllers/standings.controller';
 import { SetupController } from './controllers/setup.controller';
 import { MatchAssignmentController } from './controllers/match_assignment.controller';
 import { MatchOperationsController } from './controllers/match-operations.controller';
-import { MatchManagerController } from './controllers/match-manager-controller';
 
 export const Controllers = [
     DivisionsController,
@@ -26,6 +25,5 @@ export const Controllers = [
     StandingsController,
     SetupController,
     MatchAssignmentController,
-    MatchManagerController,
     MatchOperationsController,
 ];

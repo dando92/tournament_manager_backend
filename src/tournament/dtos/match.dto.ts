@@ -4,6 +4,7 @@ import {
   IsArray,
   IsOptional,
   IsString,
+  IsBoolean,
 } from 'class-validator';
 import { Player } from '@persistence/entities';
 import { ApiProperty } from '@nestjs/swagger';
@@ -94,4 +95,89 @@ export class UpdateMatchDto {
   scoringSystem: string;
 
   players?: Player[];
+}
+
+export class CreateMatchWithSongsDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  subtitle?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  playerIds?: number[];
+
+  @IsNotEmpty()
+  @IsNumber()
+  phaseId: number;
+
+  @IsNotEmpty()
+  @IsString()
+  scoringSystem: string;
+
+  @IsOptional()
+  @IsNumber()
+  tournamentId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  divisionId?: number;
+
+  @IsOptional()
+  @IsString()
+  group?: string;
+
+  @IsOptional()
+  @IsString()
+  levels?: string;
+
+  @IsOptional()
+  @IsArray()
+  songIds?: number[];
+}
+
+export class AddSongToMatchDto {
+  @IsOptional()
+  @IsNumber()
+  songId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  tournamentId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  divisionId?: number;
+
+  @IsOptional()
+  @IsString()
+  group?: string;
+
+  @IsOptional()
+  @IsString()
+  level?: string;
+}
+
+export class AddStandingToMatchDto {
+  @IsNumber()
+  playerId: number;
+
+  @IsNumber()
+  songId: number;
+
+  @IsNumber()
+  percentage: number;
+
+  @IsNumber()
+  score: number;
+
+  @IsBoolean()
+  isFailed: boolean;
 }

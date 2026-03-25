@@ -1,11 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreateRoundDto } from '../../tournament/dtos';
+import { CreateRoundDto, UpdateMatchDto } from '../../tournament/dtos';
 import { Match } from '@persistence/entities';
 import { SongRoller } from './song.roller';
 import { MatchGateway } from '../gateways/match.gateway';
-import { GetMatchUseCase } from '../use-cases/matches/get-match.use-case';
 import { CreateRoundUseCase } from '../use-cases/rounds/create-round.use-case';
 import { DeleteRoundUseCase } from '../use-cases/rounds/delete-round.use-case';
+import { MatchService } from './match.service';
 
 @Injectable()
 export class MatchManager {
@@ -14,7 +14,7 @@ export class MatchManager {
 
     constructor(
         @Inject()
-        private readonly getMatchUseCase: GetMatchUseCase,
+        private readonly matchService: MatchService,
         @Inject()
         private readonly createRoundUseCase: CreateRoundUseCase,
         @Inject()
@@ -26,8 +26,20 @@ export class MatchManager {
     ) {
     }
 
+    async GetMatch(id: number): Promise<Match | null> {
+        return await this.matchService.getMatch(id);
+    }
+
+    async UpdateMatch(id: number, dto: UpdateMatchDto): Promise<Match> {
+        return await this.matchService.update(id, dto);
+    }
+
+    async DeleteMatch(id: number): Promise<void> {
+        return await this.matchService.delete(id);
+    }
+
     public async AddSongsToMatchById(matchId: number, songIds: number[]): Promise<void> {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.GetMatch(matchId);
 
         if (!match) {
             return;
@@ -37,7 +49,7 @@ export class MatchManager {
     }
 
     public async AddRandomSongsToMatchById(matchId: number, tournamentId: number, divisionId: number, group: string, levels: string): Promise<void> {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.GetMatch(matchId);
 
         if (!match) {
             return;
@@ -47,7 +59,7 @@ export class MatchManager {
     }
 
     public async RemoveSongFromMatchById(matchId: number, songId: number): Promise<void> {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.GetMatch(matchId);
 
         if (!match) {
             return;

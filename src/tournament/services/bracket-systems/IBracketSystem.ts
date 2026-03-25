@@ -5,22 +5,19 @@ import { UpdateMatchDto } from "../../dtos";
 
 import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
 import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
-import { CreateMatchUseCase } from "../../use-cases/matches/create-match.use-case";
-import { GetMatchUseCase } from "../../use-cases/matches/get-match.use-case";
-import { UpdateMatchUseCase } from "../../use-cases/matches/update-match.use-case";
 import { RemovePlayersFromMatchUseCase } from "../../use-cases/matches/remove-players-from-match.use-case";
 import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
 import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
 import { CreatePhaseDto } from "../../dtos";
+import { MatchManager } from "../match.manager";
+import { MatchService } from "../match.service";
 
 export class IBracketSystem {
     constructor(
         @Inject()
-        protected readonly createMatchUseCase: CreateMatchUseCase,
+        protected readonly matchService: MatchService,
         @Inject()
-        protected readonly getMatchUseCase: GetMatchUseCase,
-        @Inject()
-        protected readonly updateMatchUseCase: UpdateMatchUseCase,
+        protected readonly matchManager: MatchManager,
         @Inject()
         protected readonly removePlayersFromMatchUseCase: RemovePlayersFromMatchUseCase,
         @Inject()
@@ -76,17 +73,17 @@ export class IBracketSystem {
             await this.AddPlayerToMatch(sortedPlayers[i], match.targetPaths[i]);
 
             const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
             if (targetMatch?.sourcePaths) {
                 const dto = new UpdateMatchDto();
                 dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== match.id);
-                await this.updateMatchUseCase.execute(targetMatchId, dto);
+                await this.matchManager.UpdateMatch(targetMatchId, dto);
             }
         }
     }
 
     async updateBracket(matchId: number) {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.matchManager.GetMatch(matchId);
 
         if (match == null)
             return;
@@ -100,17 +97,17 @@ export class IBracketSystem {
 
             // Remove this source match from the target match's sourcePaths
             const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
             if (targetMatch?.sourcePaths) {
                 const dto = new UpdateMatchDto();
                 dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== matchId);
-                await this.updateMatchUseCase.execute(targetMatchId, dto);
+                await this.matchManager.UpdateMatch(targetMatchId, dto);
             }
         }
     }
 
     async reverseMatchCompletion(matchId: number) {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.matchManager.GetMatch(matchId);
 
         if (match == null)
             return;
@@ -124,13 +121,13 @@ export class IBracketSystem {
 
             // Re-add this source match to the target match's sourcePaths
             const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
+            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
             if (targetMatch) {
                 const currentSourcePaths = targetMatch.sourcePaths ?? [];
                 if (!currentSourcePaths.includes(matchId)) {
                     const dto = new UpdateMatchDto();
                     dto.sourcePaths = [...currentSourcePaths, matchId];
-                    await this.updateMatchUseCase.execute(targetMatchId, dto);
+                    await this.matchManager.UpdateMatch(targetMatchId, dto);
                 }
             }
         }
@@ -171,7 +168,7 @@ export class IBracketSystem {
         const dto = new UpdateMatchDto();
         if (match.targetPaths !== undefined) dto.targetPaths = match.targetPaths;
         if (match.sourcePaths !== undefined) dto.sourcePaths = match.sourcePaths;
-        await this.updateMatchUseCase.execute(match.id, dto);
+        await this.matchManager.UpdateMatch(match.id, dto);
     }
 
     protected async CreateEmptyMatch(name: string, desc: string, phaseId: number): Promise<Match> {
@@ -182,7 +179,7 @@ export class IBracketSystem {
         dto.notes = desc;
         dto.scoringSystem = "EurocupScoreCalculator";
 
-        return await this.createMatchUseCase.execute(dto);
+        return await this.matchService.create(dto);
     }
 
     protected async AddPlayerToMatch(player: Player, matchId: number) {
@@ -190,11 +187,11 @@ export class IBracketSystem {
 
         dto.playerIds = [player.id];
 
-        return await this.updateMatchUseCase.execute(matchId, dto);
+        return await this.matchManager.UpdateMatch(matchId, dto);
     }
 
     protected async RemovePlayerFromMatch(player: Player, matchId: number) {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.matchManager.GetMatch(matchId);
         const standings: Standing[] = [];
 
         for (const round of match.rounds) {
