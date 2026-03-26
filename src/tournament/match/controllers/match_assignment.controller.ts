@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
-import { CreateMatchAssignmentDto, UpdateMatchAssignmentDto } from '../dtos';
+import { CreateMatchAssignmentDto, UpdateMatchAssignmentDto } from '@match/dtos/match_assignment.dto';
 import { MatchAssignment } from '@persistence/entities';
-import { CreateMatchAssignmentUseCase } from '../use-cases/match-assignments/create-match-assignment.use-case';
-import { GetMatchAssignmentsUseCase } from '../use-cases/match-assignments/get-match-assignments.use-case';
-import { GetMatchAssignmentUseCase } from '../use-cases/match-assignments/get-match-assignment.use-case';
-import { UpdateMatchAssignmentUseCase } from '../use-cases/match-assignments/update-match-assignment.use-case';
-import { DeleteMatchAssignmentUseCase } from '../use-cases/match-assignments/delete-match-assignment.use-case';
+import { CreateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/create-match-assignment.use-case';
+import { GetMatchAssignmentsUseCase } from '@match/use-cases/match-assignments/get-match-assignments.use-case';
+import { GetMatchAssignmentUseCase } from '@match/use-cases/match-assignments/get-match-assignment.use-case';
+import { UpdateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/update-match-assignment.use-case';
+import { DeleteMatchAssignmentUseCase } from '@match/use-cases/match-assignments/delete-match-assignment.use-case';
 
 @Controller('matches')
 export class MatchAssignmentController {

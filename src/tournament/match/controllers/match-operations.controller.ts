@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ScoringSystemProvider } from "@tournament/services/scoring-systems/ScoringSystemProvider";
-import { BracketSystemProvider } from '../services/bracket-systems/BracketSystemProvider';
-import { UpdateDivisionDto } from '../dtos';
-import { GetDivisionUseCase } from '../use-cases/divisions/get-division.use-case';
-import { UpdateDivisionUseCase } from '../use-cases/divisions/update-division.use-case';
-import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
+import { BracketSystemProvider } from '@tournament/services/bracket-systems/BracketSystemProvider';
+import { UpdateDivisionDto } from '@tournament/dtos';
+import { GetDivisionUseCase } from '@tournament/use-cases/divisions/get-division.use-case';
+import { UpdateDivisionUseCase } from '@tournament/use-cases/divisions/update-division.use-case';
+import { GetTournamentUseCase } from '@tournament/use-cases/tournaments/get-tournament.use-case';
 
 @Controller('match-operations')
 export class MatchOperationsController {

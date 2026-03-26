@@ -1,11 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreateRoundDto, UpdateMatchDto } from '../../tournament/dtos';
+import { CreateRoundDto } from '@tournament/dtos';
+import { UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
-import { SongRoller } from './song.roller';
-import { MatchGateway } from '../gateways/match.gateway';
-import { CreateRoundUseCase } from '../use-cases/rounds/create-round.use-case';
-import { DeleteRoundUseCase } from '../use-cases/rounds/delete-round.use-case';
-import { MatchService } from './match.service';
+import { SongRoller } from '@tournament/services/song.roller';
+import { MatchGateway } from '@match/gateways/match.gateway';
+import { CreateRoundUseCase } from '@tournament/use-cases/rounds/create-round.use-case';
+import { DeleteRoundUseCase } from '@tournament/use-cases/rounds/delete-round.use-case';
+import { MatchService } from '@match/services/match.service';
 
 @Injectable()
 export class MatchManager {
@@ -36,6 +37,53 @@ export class MatchManager {
 
     async DeleteMatch(id: number): Promise<void> {
         return await this.matchService.delete(id);
+    }
+
+    async UpdateMatchPaths(matchId: number, dto: UpdateMatchDto): Promise<Match> {
+        const match = await this.matchService.getMatch(Number(matchId));
+        if (!match) throw new Error(`Match ${matchId} not found`);
+
+        const oldSourcePaths = match.sourcePaths ?? [];
+        const newSourcePaths = dto.sourcePaths ?? [];
+
+        for (const oldSourceId of oldSourcePaths) {
+            if (!newSourcePaths.includes(oldSourceId)) {
+                const sourceMatch = await this.matchService.getMatch(oldSourceId);
+                if (sourceMatch) {
+                    const updateDto = new UpdateMatchDto();
+                    updateDto.targetPaths = (sourceMatch.targetPaths ?? []).filter(id => id !== Number(matchId));
+                    await this.matchService.update(oldSourceId, updateDto);
+                }
+            }
+        }
+
+        for (const newSourceId of newSourcePaths) {
+            if (!oldSourcePaths.includes(newSourceId)) {
+                const sourceMatch = await this.matchService.getMatch(newSourceId);
+                if (sourceMatch) {
+                    const updateDto = new UpdateMatchDto();
+                    updateDto.targetPaths = [...(sourceMatch.targetPaths ?? []), Number(matchId)];
+                    await this.matchService.update(newSourceId, updateDto);
+                }
+            }
+        }
+
+        const updateDto = new UpdateMatchDto();
+        updateDto.sourcePaths = newSourcePaths;
+        await this.matchService.update(Number(matchId), updateDto);
+
+        return await this.matchService.getMatch(Number(matchId));
+    }
+
+    async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {
+        const match = await this.matchService.getMatch(matchId);
+        if (!match) return;
+        const remainingPlayerIds = match.players
+            .filter(player => !playerIdsToRemove.includes(player.id))
+            .map(player => player.id);
+        const dto = new UpdateMatchDto();
+        dto.playerIds = remainingPlayerIds;
+        await this.matchService.update(matchId, dto);
     }
 
     public async AddSongsToMatchById(matchId: number, songIds: number[]): Promise<void> {
@@ -85,13 +133,13 @@ export class MatchManager {
         await this.matchHub.OnMatchUpdate(match);
     }
 
-    public async AddRandomSongsToMatch(match: Match, tournamentId: number, divisionId: number, group: string, levels: string): Promise<void> {
+    public async AddRandomSongsToMatch(match: Match, tournamentId: number, divisionId: number, group: string, levels: string): Promise<Match> {
         const songIds = await this.songExtractor.RollSongs(tournamentId, divisionId, group, levels);
 
-        await this.AddSongsToMatch(match, songIds);
+        return await this.AddSongsToMatch(match, songIds);
     }
 
-    public async AddSongsToMatch(match: Match, songIds: number[]): Promise<void> {
+    public async AddSongsToMatch(match: Match, songIds: number[]): Promise<Match> {
         if (!match.rounds) {
             match.rounds = [];
         }
@@ -100,6 +148,7 @@ export class MatchManager {
         }
 
         await this.matchHub.OnMatchUpdate(match);
+        return match;
     }
 
     private async AddSongToMatch(match: Match, songId: number): Promise<void> {

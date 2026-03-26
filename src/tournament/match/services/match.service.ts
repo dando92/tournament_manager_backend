@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match, Phase, Player } from '@persistence/entities';
-import { CreateMatchDto, UpdateMatchDto } from '../dtos';
+import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 
 @Injectable()
 export class MatchService {

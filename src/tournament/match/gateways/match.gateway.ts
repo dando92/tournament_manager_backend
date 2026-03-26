@@ -6,7 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { WebSocket, Server as WsServer } from 'ws';
 import { Match } from '@persistence/entities';
-import { GetTournamentByPhaseUseCase } from '../use-cases/tournaments/get-tournament-by-phase.use-case';
+import { GetTournamentByPhaseUseCase } from '@tournament/use-cases/tournaments/get-tournament-by-phase.use-case';
 
 @WebSocketGateway({
   path: "/matchupdatehub",

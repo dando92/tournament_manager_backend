@@ -141,6 +141,17 @@ export class CreateMatchWithSongsDto {
   @IsOptional()
   @IsArray()
   songIds?: number[];
+
+  getCreateMatchDto() : CreateMatchDto {
+        const createDto = new CreateMatchDto();
+        createDto.name = this.name;
+        createDto.notes = this.notes;
+        createDto.phaseId = this.phaseId;
+        createDto.playerIds = this.playerIds;
+        createDto.subtitle = this.subtitle;
+        createDto.scoringSystem = this.scoringSystem;
+        return createDto
+  }
 }
 
 export class AddSongToMatchDto {

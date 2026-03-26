@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CreateMatchAssignmentDto } from '../../tournament/dtos';
 import { Match, MatchAssignment, Setup } from '@persistence/entities';
-import { CreateMatchAssignmentUseCase } from '../use-cases/match-assignments/create-match-assignment.use-case';
+import { CreateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/create-match-assignment.use-case';
 
 @Injectable()
 export class PadRoller {

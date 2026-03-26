@@ -4,7 +4,7 @@ import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } 
 import { Match, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "./scoring-systems/ScoringSystemProvider";
 import * as path from 'path';
-import { MatchGateway } from '../gateways/match.gateway';
+import { MatchGateway } from '@match/gateways/match.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '../itg-online.types';
 import { CreateStandingUseCase } from '../use-cases/standings/create-standing.use-case';
@@ -12,7 +12,7 @@ import { UpdateStandingUseCase } from '../use-cases/standings/update-standing.us
 import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.use-case';
 import { CreateScoreUseCase } from '../use-cases/scores/create-score.use-case';
 import { UpdateScoreUseCase } from '../use-cases/scores/update-score.use-case';
-import { MatchService } from './match.service';
+import { MatchService } from '@match/services/match.service';
 import { BracketSystemProvider } from './bracket-systems/BracketSystemProvider';
 
 @Injectable()

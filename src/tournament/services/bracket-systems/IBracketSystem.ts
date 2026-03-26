@@ -5,12 +5,11 @@ import { UpdateMatchDto } from "../../dtos";
 
 import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
 import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
-import { RemovePlayersFromMatchUseCase } from "../../use-cases/matches/remove-players-from-match.use-case";
 import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
 import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
 import { CreatePhaseDto } from "../../dtos";
-import { MatchManager } from "../match.manager";
-import { MatchService } from "../match.service";
+import { MatchManager } from "@match/services/match.manager";
+import { MatchService } from "@match/services/match.service";
 
 export class IBracketSystem {
     constructor(
@@ -18,8 +17,6 @@ export class IBracketSystem {
         protected readonly matchService: MatchService,
         @Inject()
         protected readonly matchManager: MatchManager,
-        @Inject()
-        protected readonly removePlayersFromMatchUseCase: RemovePlayersFromMatchUseCase,
         @Inject()
         protected readonly createDivisionUseCase: CreateDivisionUseCase,
         @Inject()
@@ -207,6 +204,6 @@ export class IBracketSystem {
             this.deleteStandingUseCase.execute(standing.id);
         }
 
-        this.removePlayersFromMatchUseCase.execute(matchId, [player.id]);
+        this.matchManager.RemovePlayersFromMatch(matchId, [player.id]);
     }
 }

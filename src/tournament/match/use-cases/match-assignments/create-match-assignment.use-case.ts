@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MatchAssignment, Round, Setup, Player } from '@persistence/entities';
-import { CreateMatchAssignmentDto } from '../../dtos';
+import { CreateMatchAssignmentDto } from '@match/dtos/match_assignment.dto';
 
 @Injectable()
 export class CreateMatchAssignmentUseCase {

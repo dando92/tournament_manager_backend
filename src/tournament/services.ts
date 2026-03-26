@@ -1,6 +1,6 @@
 import { UserService } from '../user/services/user.service';
-import { MatchManager } from "./services/match.manager";
-import { MatchService } from "./services/match.service";
+import { MatchManager } from "@match/services/match.manager";
+import { MatchService } from "@match/services/match.service";
 import { PadRoller } from "./services/pad.roller";
 import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./services/standing.manager";
@@ -15,9 +15,6 @@ import { GetDivisionUseCase } from './use-cases/divisions/get-division.use-case'
 import { UpdateDivisionUseCase } from './use-cases/divisions/update-division.use-case';
 import { DeleteDivisionUseCase } from './use-cases/divisions/delete-division.use-case';
 import { GenerateBracketUseCase } from './use-cases/divisions/generate-bracket.use-case';
-
-// Match use cases
-import { RemovePlayersFromMatchUseCase } from './use-cases/matches/remove-players-from-match.use-case';
 
 // Player use cases
 import { CreatePlayerUseCase } from './use-cases/players/create-player.use-case';
@@ -65,11 +62,11 @@ import { UpdateSetupUseCase } from './use-cases/setups/update-setup.use-case';
 import { DeleteSetupUseCase } from './use-cases/setups/delete-setup.use-case';
 
 // MatchAssignment use cases
-import { CreateMatchAssignmentUseCase } from './use-cases/match-assignments/create-match-assignment.use-case';
-import { GetMatchAssignmentsUseCase } from './use-cases/match-assignments/get-match-assignments.use-case';
-import { GetMatchAssignmentUseCase } from './use-cases/match-assignments/get-match-assignment.use-case';
-import { UpdateMatchAssignmentUseCase } from './use-cases/match-assignments/update-match-assignment.use-case';
-import { DeleteMatchAssignmentUseCase } from './use-cases/match-assignments/delete-match-assignment.use-case';
+import { CreateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/create-match-assignment.use-case';
+import { GetMatchAssignmentsUseCase } from '@match/use-cases/match-assignments/get-match-assignments.use-case';
+import { GetMatchAssignmentUseCase } from '@match/use-cases/match-assignments/get-match-assignment.use-case';
+import { UpdateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/update-match-assignment.use-case';
+import { DeleteMatchAssignmentUseCase } from '@match/use-cases/match-assignments/delete-match-assignment.use-case';
 
 // Tournament use cases
 import { CreateTournamentUseCase } from './use-cases/tournaments/create-tournament.use-case';
@@ -118,8 +115,6 @@ export { GetDivisionUseCase };
 export { UpdateDivisionUseCase };
 export { DeleteDivisionUseCase };
 export { GenerateBracketUseCase };
-
-export { RemovePlayersFromMatchUseCase };
 
 export { CreatePlayerUseCase };
 export { GetPlayersUseCase };
@@ -213,9 +208,6 @@ export const Services = [
     UpdateDivisionUseCase,
     DeleteDivisionUseCase,
     GenerateBracketUseCase,
-
-    // Match use cases
-    RemovePlayersFromMatchUseCase,
 
     // Player use cases
     CreatePlayerUseCase,

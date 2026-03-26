@@ -13,6 +13,7 @@
     "paths" : {
       "@auth/*" : ["./src/auth/*"],
       "@backwards-compat/*" : ["./src/backwards-compat/*"],
+      "@match/*" : ["./src/tournament/match/*"],
       "@match-manager/*" : ["./src/match-manager/*"],
       "@persistence/*": ["./src/persistence/*"],
       "@tournament/*" : ["./src/tournament/*"],

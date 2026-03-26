@@ -8,7 +8,7 @@ import { UpdateStandingUseCase } from '../use-cases/standings/update-standing.us
 import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.use-case';
 import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
 import { StandingManager } from '../services/standing.manager';
-import { MatchManager } from '../services/match.manager';
+import { MatchManager } from '@match/services/match.manager';
 
 @Controller('standings')
 export class StandingsController {

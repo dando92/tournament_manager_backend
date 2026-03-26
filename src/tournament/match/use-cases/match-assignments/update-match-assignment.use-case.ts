@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MatchAssignment, Round, Setup, Player } from '@persistence/entities';
-import { UpdateMatchAssignmentDto } from '../../dtos';
+import { UpdateMatchAssignmentDto } from '@match/dtos/match_assignment.dto';
 
 @Injectable()
 export class UpdateMatchAssignmentUseCase {

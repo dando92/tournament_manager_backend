@@ -5,13 +5,12 @@ import { SingleElimination } from "./SingleElimination"
 import { IBracketSystem } from "./IBracketSystem";
 import { Match, Player } from "@persistence/entities";
 import { KingOfTheHill } from "./KingOfTheHill"
-import { RemovePlayersFromMatchUseCase } from "../../use-cases/matches/remove-players-from-match.use-case";
-import { MatchService } from "../match.service";
+import { MatchService } from "@match/services/match.service";
 import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
 import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
 import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
 import { UpdateMatchDto } from "../../dtos";
-import { MatchManager } from "../match.manager";
+import { MatchManager } from "@match/services/match.manager";
 
 @Injectable()
 export class BracketSystemProvider {
@@ -22,16 +21,14 @@ export class BracketSystemProvider {
         @Inject()
         private readonly matchManager: MatchManager,
         @Inject()
-        private readonly removePlayersFromMatchUseCase: RemovePlayersFromMatchUseCase,
-        @Inject()
         private readonly createDivisionUseCase: CreateDivisionUseCase,
         @Inject()
         private readonly deleteStandingUseCase: DeleteStandingUseCase,
         @Inject()
         private readonly createPhaseUseCase: CreatePhaseUseCase,
     ) {
-        const args: [MatchService, MatchManager, RemovePlayersFromMatchUseCase, CreateDivisionUseCase, DeleteStandingUseCase, CreatePhaseUseCase] =
-            [matchService, matchManager, removePlayersFromMatchUseCase, createDivisionUseCase, deleteStandingUseCase, createPhaseUseCase];
+        const args: [MatchService, MatchManager, CreateDivisionUseCase, DeleteStandingUseCase, CreatePhaseUseCase] =
+            [matchService, matchManager, createDivisionUseCase, deleteStandingUseCase, createPhaseUseCase];
 
         const all: IBracketSystem[] = [
             new DoubleElimination(...args),
@@ -58,7 +55,7 @@ export class BracketSystemProvider {
             const player = sortedPlayers[i];
             const targetMatchId = match.targetPaths[i];
 
-            await this.removePlayersFromMatchUseCase.execute(targetMatchId, [player.id]);
+            await this.matchManager.RemovePlayersFromMatch(targetMatchId, [player.id]);
 
             const targetMatch = await this.matchManager.GetMatch(targetMatchId);
             if (targetMatch) {
