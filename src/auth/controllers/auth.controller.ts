@@ -8,7 +8,7 @@ import {
     UseGuards } from '@nestjs/common';
 
 import { AuthService } from '../services';
-import { AuthRefreshTokenDto } from '../dtos';
+import { AuthRefreshTokenDto, LocalApiKeyLoginDto } from '../dtos';
 import { UserService } from '@user/services';
 import { CreateUserPlayerDto } from '@user/dtos';
 import { LocalAuthGuard, JwtAuthGuard, AdminGuard } from '@auth/guards';
@@ -24,6 +24,11 @@ export class AuthController {
     @Post('login')
     async login(@Request() req) {
         return this.authService.login(req.user);
+    }
+
+    @Post('login/local')
+    async loginLocal(@Body(new ValidationPipe()) dto: LocalApiKeyLoginDto) {
+        return this.authService.loginWithApiKey(dto.apiKey);
     }
 
     @UseGuards(LocalAuthGuard)

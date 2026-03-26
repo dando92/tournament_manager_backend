@@ -1,4 +1,5 @@
 import { DivisionsController } from './controllers/divisions.controller';
+import { DivisionPlayersController } from './controllers/division-players.controller';
 import { PhasesController } from './controllers/phases.controller';
 import { MatchesController } from '@match/controllers/matches.controller';
 import { PlayersController } from './controllers/players.controller';
@@ -14,6 +15,7 @@ import { MatchOperationsController } from '@match/controllers/match-operations.c
 
 export const Controllers = [
     DivisionsController,
+    DivisionPlayersController,
     PhasesController,
     MatchesController,
     RoundsController,

@@ -1,4 +1,5 @@
 import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Request, UseGuards, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { UserService } from '../services';
 import { CreateUserPlayerDto } from '../dtos';
@@ -7,10 +8,16 @@ import { JwtAuthGuard, AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
 
 @Controller('user')
 export class UserController {
-    constructor(private readonly service: UserService) { }
+    constructor(
+        private readonly service: UserService,
+        private readonly configService: ConfigService,
+    ) { }
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateUserPlayerDto) {
+        if (this.configService.get<string>('AUTH_MODE') === 'local') {
+            throw new ForbiddenException('Registration is disabled in local mode');
+        }
         return await this.service.create(dto);
     }
 

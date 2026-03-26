@@ -7,6 +7,8 @@ import { StandingManager } from "./services/standing.manager";
 import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemProvider";
 import { BracketSystemProvider } from "./services/bracket-systems/BracketSystemProvider";
 import { LobbyManager } from "./services/lobby-manager.service";
+import { PlayerService } from "./services/player.service";
+import { PlayerManager } from "./services/player.manager";
 
 // Division use cases
 import { CreateDivisionUseCase } from './use-cases/divisions/create-division.use-case';
@@ -108,6 +110,8 @@ export { StandingManager };
 export { ScoringSystemProvider };
 export { BracketSystemProvider };
 export { LobbyManager };
+export { PlayerService };
+export { PlayerManager };
 
 export { CreateDivisionUseCase };
 export { GetDivisionsUseCase };
@@ -200,6 +204,8 @@ export const Services = [
     ScoringSystemProvider,
     BracketSystemProvider,
     LobbyManager,
+    PlayerService,
+    PlayerManager,
 
     // Division use cases
     CreateDivisionUseCase,

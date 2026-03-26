@@ -6,6 +6,7 @@ import { GetPlayersUseCase } from '../use-cases/players/get-players.use-case';
 import { GetPlayerUseCase } from '../use-cases/players/get-player.use-case';
 import { UpdatePlayerUseCase } from '../use-cases/players/update-player.use-case';
 import { DeletePlayerUseCase } from '../use-cases/players/delete-player.use-case';
+import { PlayerService } from '../services/player.service';
 
 @Controller('players')
 export class PlayersController {
@@ -15,11 +16,16 @@ export class PlayersController {
         private readonly getPlayerUseCase: GetPlayerUseCase,
         private readonly updatePlayerUseCase: UpdatePlayerUseCase,
         private readonly deletePlayerUseCase: DeletePlayerUseCase,
+        private readonly playerService: PlayerService,
     ) {}
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreatePlayerDto): Promise<Player> {
-        return await this.createPlayerUseCase.execute(dto);
+        const player = await this.createPlayerUseCase.execute(dto);
+        if (dto.divisionId) {
+            await this.playerService.linkToDivision(player.id, dto.divisionId);
+        }
+        return player;
     }
 
     @Get()
