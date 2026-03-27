@@ -11,6 +11,6 @@ export class GetDivisionUseCase {
     ) {}
 
     async execute(id: number): Promise<Division | null> {
-        return await this.divisionRepository.findOne({ where: { id }, relations: ['tournament'] });
+        return await this.divisionRepository.findOne({ where: { id }, relations: ['tournament', 'players'] });
     }
 }

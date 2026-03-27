@@ -1,7 +1,7 @@
 import { CreateDivisionDto, UpdateDivisionDto } from './dtos/division.dto';
 import { CreatePhaseDto, UpdatePhaseDto } from './dtos/phase.dto';
 import { CreateMatchDto, UpdateMatchDto, CreateMatchWithSongsDto, AddSongToMatchDto, AddStandingToMatchDto } from '@match/dtos/match.dto';
-import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from './dtos/player.dto';
+import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from '@player/player.dto';
 import { CreateRoundDto, UpdateRoundDto } from './dtos/round.dto';
 import { CreateScoreDto, UpdateScoreDto } from './dtos/score.dto';
 import { CreateSongDto, UpdateSongDto } from './dtos/song.dto';

@@ -1,4 +1,4 @@
-import { IBracketSystem } from "./IBracketSystem";
+import { IBracketSystem } from "@bracket/IBracketSystem";
 import { Division, Match, Phase, Player } from "@persistence/entities";
 
 type PlayerInfo = {

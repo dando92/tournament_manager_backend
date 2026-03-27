@@ -3,13 +3,20 @@ import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatch
 import { Match } from '@persistence/entities';
 import { MatchManager } from '@match/services/match.manager';
 import { MatchService } from '@match/services/match.service';
+import { ScoringSystemProvider } from '@tournament/services/scoring-systems/ScoringSystemProvider';
 
 @Controller('matches')
 export class MatchesController {
     constructor(
         private readonly matchService: MatchService,
         private readonly matchManager: MatchManager,
+        private readonly scoringSystemProvider: ScoringSystemProvider,
     ) {}
+
+    @Get('scoring-systems')
+    getScoringSystem(): string[] {
+        return this.scoringSystemProvider.getAll();
+    }
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateMatchWithSongsDto): Promise<Match> {

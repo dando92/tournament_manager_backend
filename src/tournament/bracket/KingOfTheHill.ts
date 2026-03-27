@@ -1,4 +1,4 @@
-import { IBracketSystem } from "./IBracketSystem";
+import { IBracketSystem } from "@bracket/IBracketSystem";
 import { Division, Phase, Player } from "@persistence/entities";
 
 export class KingOfTheHill extends IBracketSystem {

@@ -1,13 +1,13 @@
 import { Inject } from "@nestjs/common";
-import { CreateDivisionDto } from "../../dtos";
-import { CreateMatchDto } from "../../dtos";
-import { UpdateMatchDto } from "../../dtos";
+import { CreateDivisionDto } from "@tournament/dtos";
+import { CreateMatchDto } from "@tournament/dtos";
+import { UpdateMatchDto } from "@tournament/dtos";
 
 import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
-import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
-import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
-import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
-import { CreatePhaseDto } from "../../dtos";
+import { CreateDivisionUseCase } from "@tournament/use-cases/divisions/create-division.use-case";
+import { DeleteStandingUseCase } from "@tournament/use-cases/standings/delete-standing.use-case";
+import { CreatePhaseUseCase } from "@tournament/use-cases/phases/create-phase.use-case";
+import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
 
@@ -34,23 +34,6 @@ export class IBracketSystem {
         throw new Error("Method 'Description' should be implemented.");
     }
 
-    async create(divisionName: string, tournamentId: number, playerPerMatch: number): Promise<Division> {
-        const dto = new CreateDivisionDto();
-        dto.name = divisionName;
-        dto.tournamentId = tournamentId;
-        const division = await this.createDivisionUseCase.execute(dto);
-
-        const phaseDto = new CreatePhaseDto();
-        phaseDto.name = "Bracket 1";
-        phaseDto.divisionId = division.id;
-        const phase = await this.createPhaseUseCase.execute(phaseDto);
-        phase.matches = [];
-
-        await this.createBracket([], playerPerMatch, division, phase);
-
-        return division;
-    }
-
     async generateForDivision(division: Division, players: Player[], playerPerMatch: number = 2): Promise<void> {
         const phaseNumber = (division.phases?.length ?? 0) + 1;
         const phaseDto = new CreatePhaseDto();
@@ -60,74 +43,6 @@ export class IBracketSystem {
         phase.matches = [];
 
         await this.createBracket(players, playerPerMatch, division, phase);
-    }
-
-    async advanceSortedPlayers(match: Match, sortedPlayers: Player[]) {
-        if (!match.targetPaths?.length) return;
-
-        const advanceCount = Math.min(match.targetPaths.length, sortedPlayers.length);
-        for (let i = 0; i < advanceCount; i++) {
-            await this.AddPlayerToMatch(sortedPlayers[i], match.targetPaths[i]);
-
-            const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
-            if (targetMatch?.sourcePaths) {
-                const dto = new UpdateMatchDto();
-                dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== match.id);
-                await this.matchManager.UpdateMatch(targetMatchId, dto);
-            }
-        }
-    }
-
-    async updateBracket(matchId: number) {
-        const match = await this.matchManager.GetMatch(matchId);
-
-        if (match == null)
-            return;
-
-        if (match.targetPaths == null)
-            return;
-
-        const advanceCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
-        for (let i = 0; i < advanceCount; i++) {
-            await this.AddPlayerToMatch(match.players[i], match.targetPaths[i]);
-
-            // Remove this source match from the target match's sourcePaths
-            const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
-            if (targetMatch?.sourcePaths) {
-                const dto = new UpdateMatchDto();
-                dto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== matchId);
-                await this.matchManager.UpdateMatch(targetMatchId, dto);
-            }
-        }
-    }
-
-    async reverseMatchCompletion(matchId: number) {
-        const match = await this.matchManager.GetMatch(matchId);
-
-        if (match == null)
-            return;
-
-        if (match.targetPaths == null)
-            return;
-
-        const revertCount = Math.min(match.targetPaths.length, match.players?.length ?? 0);
-        for (let i = 0; i < revertCount; i++) {
-            await this.RemovePlayerFromMatch(match.players[i], match.targetPaths[i]);
-
-            // Re-add this source match to the target match's sourcePaths
-            const targetMatchId = match.targetPaths[i];
-            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
-            if (targetMatch) {
-                const currentSourcePaths = targetMatch.sourcePaths ?? [];
-                if (!currentSourcePaths.includes(matchId)) {
-                    const dto = new UpdateMatchDto();
-                    dto.sourcePaths = [...currentSourcePaths, matchId];
-                    await this.matchManager.UpdateMatch(targetMatchId, dto);
-                }
-            }
-        }
     }
 
     protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {

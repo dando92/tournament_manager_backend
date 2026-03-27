@@ -13,7 +13,7 @@ import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.us
 import { CreateScoreUseCase } from '../use-cases/scores/create-score.use-case';
 import { UpdateScoreUseCase } from '../use-cases/scores/update-score.use-case';
 import { MatchService } from '@match/services/match.service';
-import { BracketSystemProvider } from './bracket-systems/BracketSystemProvider';
+import { BracketManager } from '@bracket/bracket.manager';
 
 @Injectable()
 export class StandingManager implements ILobbyStateObserver {
@@ -35,7 +35,7 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly matchGateway: MatchGateway,
         @Inject()
-        private readonly bracketSystemProvider: BracketSystemProvider,
+        private readonly bracketManager: BracketManager,
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
@@ -111,7 +111,7 @@ export class StandingManager implements ILobbyStateObserver {
                 (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
             );
 
-            await this.bracketSystemProvider.advancePlayers(match, sortedPlayers);
+            await this.bracketManager.advancePlayers(match, sortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);
@@ -181,7 +181,7 @@ export class StandingManager implements ILobbyStateObserver {
         }
 
         if (wasComplete && match.targetPaths?.length) {
-            await this.bracketSystemProvider.revertPlayers(match, sortedPlayers);
+            await this.bracketManager.revertPlayers(match, sortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);
@@ -247,12 +247,12 @@ export class StandingManager implements ILobbyStateObserver {
         }
 
         if (wasComplete && match.targetPaths?.length) {
-            await this.bracketSystemProvider.revertPlayers(match, oldSortedPlayers);
+            await this.bracketManager.revertPlayers(match, oldSortedPlayers);
 
             const newSortedPlayers = [...match.players].sort(
                 (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
             );
-            await this.bracketSystemProvider.advancePlayers(match, newSortedPlayers);
+            await this.bracketManager.advancePlayers(match, newSortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);

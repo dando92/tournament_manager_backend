@@ -1,50 +1,35 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { Manual } from "./Manual";
-import { DoubleElimination } from "./DoubleElimination"
-import { SingleElimination } from "./SingleElimination"
-import { IBracketSystem } from "./IBracketSystem";
-import { Match, Player } from "@persistence/entities";
-import { KingOfTheHill } from "./KingOfTheHill"
-import { MatchService } from "@match/services/match.service";
-import { CreateDivisionUseCase } from "../../use-cases/divisions/create-division.use-case";
-import { DeleteStandingUseCase } from "../../use-cases/standings/delete-standing.use-case";
-import { CreatePhaseUseCase } from "../../use-cases/phases/create-phase.use-case";
-import { UpdateMatchDto } from "../../dtos";
+import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { MatchManager } from "@match/services/match.manager";
+import { Match, Player } from "@persistence/entities";
+import { UpdateMatchDto, UpdateDivisionDto } from "@tournament/dtos";
+import { GetDivisionUseCase } from "@tournament/use-cases/divisions/get-division.use-case";
+import { UpdateDivisionUseCase } from "@tournament/use-cases/divisions/update-division.use-case";
 
 @Injectable()
-export class BracketSystemProvider {
-    private readonly systems: Map<string, IBracketSystem>;
+export class BracketManager {
     constructor(
         @Inject()
-        private readonly matchService: MatchService,
+        private readonly bracketSystemProvider: BracketSystemProvider,
         @Inject()
         private readonly matchManager: MatchManager,
         @Inject()
-        private readonly createDivisionUseCase: CreateDivisionUseCase,
+        private readonly getDivisionUseCase: GetDivisionUseCase,
         @Inject()
-        private readonly deleteStandingUseCase: DeleteStandingUseCase,
-        @Inject()
-        private readonly createPhaseUseCase: CreatePhaseUseCase,
-    ) {
-        const args: [MatchService, MatchManager, CreateDivisionUseCase, DeleteStandingUseCase, CreatePhaseUseCase] =
-            [matchService, matchManager, createDivisionUseCase, deleteStandingUseCase, createPhaseUseCase];
+        private readonly updateDivisionUseCase: UpdateDivisionUseCase,
+    ) {}
 
-        const all: IBracketSystem[] = [
-            new DoubleElimination(...args),
-            new SingleElimination(...args),
-            new KingOfTheHill(...args),
-            new Manual(...args),
-        ];
-        this.systems = new Map(all.map(s => [s.getName(), s]));
+    getBracketTypes(): string[] {
+        return this.bracketSystemProvider.getAll();
     }
 
-    getBracketSystem(name: string) : IBracketSystem {
-        return this.systems.get(name);
-    }
-
-    getAll() : string[] {
-        return Array.from(this.systems.keys());
+    async generateForDivision(divisionId: number, bracketType: string, playerPerMatch: number): Promise<void> {
+        const division = await this.getDivisionUseCase.execute(divisionId);
+        const players = division?.players ?? [];
+        const system = this.bracketSystemProvider.getBracketSystem(bracketType);
+        await system.generateForDivision(division, players, playerPerMatch);
+        const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
+        await this.updateDivisionUseCase.execute(divisionId, updateDto);
     }
 
     async revertPlayers(match: Match, sortedPlayers: Player[]): Promise<void> {

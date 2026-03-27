@@ -5,10 +5,11 @@ import { PadRoller } from "./services/pad.roller";
 import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./services/standing.manager";
 import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemProvider";
-import { BracketSystemProvider } from "./services/bracket-systems/BracketSystemProvider";
+import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
+import { BracketManager } from "@bracket/bracket.manager";
 import { LobbyManager } from "./services/lobby-manager.service";
-import { PlayerService } from "./services/player.service";
-import { PlayerManager } from "./services/player.manager";
+import { PlayerService } from "@player/player.service";
+import { PlayerManager } from "@player/player.manager";
 
 // Division use cases
 import { CreateDivisionUseCase } from './use-cases/divisions/create-division.use-case';
@@ -16,15 +17,6 @@ import { GetDivisionsUseCase } from './use-cases/divisions/get-divisions.use-cas
 import { GetDivisionUseCase } from './use-cases/divisions/get-division.use-case';
 import { UpdateDivisionUseCase } from './use-cases/divisions/update-division.use-case';
 import { DeleteDivisionUseCase } from './use-cases/divisions/delete-division.use-case';
-import { GenerateBracketUseCase } from './use-cases/divisions/generate-bracket.use-case';
-
-// Player use cases
-import { CreatePlayerUseCase } from './use-cases/players/create-player.use-case';
-import { GetPlayersUseCase } from './use-cases/players/get-players.use-case';
-import { GetPlayerUseCase } from './use-cases/players/get-player.use-case';
-import { GetPlayerByNameUseCase } from './use-cases/players/get-player-by-name.use-case';
-import { UpdatePlayerUseCase } from './use-cases/players/update-player.use-case';
-import { DeletePlayerUseCase } from './use-cases/players/delete-player.use-case';
 
 // Round use cases
 import { CreateRoundUseCase } from './use-cases/rounds/create-round.use-case';
@@ -109,6 +101,7 @@ export { SongRoller };
 export { StandingManager };
 export { ScoringSystemProvider };
 export { BracketSystemProvider };
+export { BracketManager };
 export { LobbyManager };
 export { PlayerService };
 export { PlayerManager };
@@ -118,14 +111,6 @@ export { GetDivisionsUseCase };
 export { GetDivisionUseCase };
 export { UpdateDivisionUseCase };
 export { DeleteDivisionUseCase };
-export { GenerateBracketUseCase };
-
-export { CreatePlayerUseCase };
-export { GetPlayersUseCase };
-export { GetPlayerUseCase };
-export { GetPlayerByNameUseCase };
-export { UpdatePlayerUseCase };
-export { DeletePlayerUseCase };
 
 export { CreateRoundUseCase };
 export { GetRoundsUseCase };
@@ -203,6 +188,7 @@ export const Services = [
     StandingManager,
     ScoringSystemProvider,
     BracketSystemProvider,
+    BracketManager,
     LobbyManager,
     PlayerService,
     PlayerManager,
@@ -213,15 +199,6 @@ export const Services = [
     GetDivisionUseCase,
     UpdateDivisionUseCase,
     DeleteDivisionUseCase,
-    GenerateBracketUseCase,
-
-    // Player use cases
-    CreatePlayerUseCase,
-    GetPlayersUseCase,
-    GetPlayerUseCase,
-    GetPlayerByNameUseCase,
-    UpdatePlayerUseCase,
-    DeletePlayerUseCase,
 
     // Round use cases
     CreateRoundUseCase,
