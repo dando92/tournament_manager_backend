@@ -10,9 +10,6 @@ import { MatchService } from '@match/services/match.service';
 
 @Injectable()
 export class MatchManager {
-    activeMatchId: number;
-    activeMatch: Match;
-
     constructor(
         @Inject()
         private readonly matchService: MatchService,
@@ -43,33 +40,40 @@ export class MatchManager {
         const match = await this.matchService.getMatch(Number(matchId));
         if (!match) throw new Error(`Match ${matchId} not found`);
 
-        const oldSourcePaths = match.sourcePaths ?? [];
-        const newSourcePaths = dto.sourcePaths ?? [];
+        const newTargetPaths = dto.targetPaths ?? [];
+        const oldTargets = new Set((match.targetPaths ?? []).filter(id => id > 0));
+        const newTargets = new Set(newTargetPaths.filter(id => id > 0));
 
-        for (const oldSourceId of oldSourcePaths) {
-            if (!newSourcePaths.includes(oldSourceId)) {
-                const sourceMatch = await this.matchService.getMatch(oldSourceId);
-                if (sourceMatch) {
+        // Remove this match from sourcePaths of destinations no longer targeted
+        for (const oldDestId of oldTargets) {
+            if (!newTargets.has(oldDestId)) {
+                const destMatch = await this.matchService.getMatch(oldDestId);
+                if (destMatch) {
                     const updateDto = new UpdateMatchDto();
-                    updateDto.targetPaths = (sourceMatch.targetPaths ?? []).filter(id => id !== Number(matchId));
-                    await this.matchService.update(oldSourceId, updateDto);
+                    updateDto.sourcePaths = (destMatch.sourcePaths ?? []).filter(id => id !== Number(matchId));
+                    await this.matchService.update(oldDestId, updateDto);
                 }
             }
         }
 
-        for (const newSourceId of newSourcePaths) {
-            if (!oldSourcePaths.includes(newSourceId)) {
-                const sourceMatch = await this.matchService.getMatch(newSourceId);
-                if (sourceMatch) {
-                    const updateDto = new UpdateMatchDto();
-                    updateDto.targetPaths = [...(sourceMatch.targetPaths ?? []), Number(matchId)];
-                    await this.matchService.update(newSourceId, updateDto);
+        // Add this match to sourcePaths of newly targeted destinations
+        for (const newDestId of newTargets) {
+            if (!oldTargets.has(newDestId)) {
+                const destMatch = await this.matchService.getMatch(newDestId);
+                if (destMatch) {
+                    const existing = destMatch.sourcePaths ?? [];
+                    if (!existing.includes(Number(matchId))) {
+                        const updateDto = new UpdateMatchDto();
+                        updateDto.sourcePaths = [...existing, Number(matchId)];
+                        await this.matchService.update(newDestId, updateDto);
+                    }
                 }
             }
         }
 
+        // Save this match's targetPaths
         const updateDto = new UpdateMatchDto();
-        updateDto.sourcePaths = newSourcePaths;
+        updateDto.targetPaths = newTargetPaths;
         await this.matchService.update(Number(matchId), updateDto);
 
         return await this.matchService.getMatch(Number(matchId));
@@ -83,6 +87,23 @@ export class MatchManager {
             .map(player => player.id);
         const dto = new UpdateMatchDto();
         dto.playerIds = remainingPlayerIds;
+        await this.matchService.update(matchId, dto);
+    }
+
+    async AddPlayerInMatch(matchId: number, playerId: number): Promise<void> {
+        const match = await this.matchService.getMatch(matchId);
+        if (!match) return;
+        if (match.players.some(p => p.id === playerId)) return;
+        const dto = new UpdateMatchDto();
+        dto.playerIds = [...match.players.map(p => p.id), playerId];
+        await this.matchService.update(matchId, dto);
+    }
+
+    async RemovePlayerInMatch(matchId: number, playerId: number): Promise<void> {
+        const match = await this.matchService.getMatch(matchId);
+        if (!match) return;
+        const dto = new UpdateMatchDto();
+        dto.playerIds = match.players.filter(p => p.id !== playerId).map(p => p.id);
         await this.matchService.update(matchId, dto);
     }
 

@@ -44,6 +44,11 @@ export class SingleElimination extends IBracketSystem {
             }
 
             if (currentMatches !== null) {
+                // Initialize currentMatches targetPaths as fixed-length positional array
+                for (let i = 0; i < currentMatches.length; i++) {
+                    currentMatches[i].targetPaths = Array(playerPerMatch).fill(0);
+                }
+
                 // Clear nextMatches sourcePaths before populating
                 for (let i = 0; i < nextMatches.length; i++) {
                     nextMatches[i].sourcePaths = [];
@@ -53,10 +58,8 @@ export class SingleElimination extends IBracketSystem {
                     for (let j = 0; j < playerPerMatch; j++) {
                         const currentIndex = indexes[i][j];
                         const sourceMatch = currentMatches[currentIndex.match];
-                        this.insertAt(
-                            sourceMatch.targetPaths,
-                            nextMatches[i].id,
-                            currentIndex.playerIndexInMatch);
+                        // Assign positionally: targetPaths[rank] = destination match id
+                        sourceMatch.targetPaths[currentIndex.playerIndexInMatch] = nextMatches[i].id;
 
                         // Add source match to target match's sourcePaths (unique)
                         if (!nextMatches[i].sourcePaths.includes(sourceMatch.id)) {
@@ -87,10 +90,11 @@ export class SingleElimination extends IBracketSystem {
             console.log("Creating finals");
             const finals = await this.CreateMatchesInPhase("Finals", phase, 2);
 
-            currentMatches[0].targetPaths.push(finals[1].id);
-            currentMatches[0].targetPaths.push(finals[1].id);
-            currentMatches[0].targetPaths.push(finals[0].id);
-            currentMatches[0].targetPaths.push(finals[0].id);
+            // Fixed-length positional targetPaths: top half → finals[0], bottom half → finals[1]
+            const passingPlayers = Math.floor(playerPerMatch / 2);
+            currentMatches[0].targetPaths = Array(playerPerMatch).fill(0);
+            for (let p = 0; p < passingPlayers; p++) currentMatches[0].targetPaths[p] = finals[0].id;
+            for (let p = passingPlayers; p < playerPerMatch; p++) currentMatches[0].targetPaths[p] = finals[1].id;
 
             finals[0].sourcePaths = [currentMatches[0].id];
             finals[1].sourcePaths = [currentMatches[0].id];
@@ -101,14 +105,6 @@ export class SingleElimination extends IBracketSystem {
         }
 
         return firstRound;
-    }
-
-    private insertAt<T>(arr: T[], element: T, index: number): void {
-        if (index >= arr.length) {
-            arr.push(element);
-        } else {
-            arr.splice(index, 0, element);
-        }
     }
 
     private getIndexes(playerCount: number, playerPerMatch: number): PlayerInfo[][] {

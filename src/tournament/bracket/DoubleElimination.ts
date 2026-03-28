@@ -63,7 +63,9 @@ export class DoubleElimination extends IBracketSystem {
             const round = wbRounds[k];
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.targetPaths = [];
+                // Fixed-length positional targetPaths: positions 0..passingPlayers-1 → winner dest,
+                // positions passingPlayers..playerPerMatch-1 → loser dest
+                match.targetPaths = Array(playerPerMatch).fill(0);
 
                 const winnerDest = k < wbRoundCount - 1
                     ? wbRounds[k + 1][Math.floor(m / 2)]
@@ -73,8 +75,8 @@ export class DoubleElimination extends IBracketSystem {
                     ? lbRounds[0][Math.floor(m / 2)]
                     : lbRounds[2 * k - 1][m];
 
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(loserDest.id);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths[p] = winnerDest.id;
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths[passingPlayers + p] = loserDest.id;
 
                 // Set sourcePaths on destinations
                 if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
@@ -89,7 +91,8 @@ export class DoubleElimination extends IBracketSystem {
 
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                match.targetPaths = [];
+                // Fixed-length positional targetPaths: winner positions, rest stay 0 (eliminated)
+                match.targetPaths = Array(playerPerMatch).fill(0);
 
                 let winnerDest: Match;
                 if (isLast) {
@@ -100,7 +103,7 @@ export class DoubleElimination extends IBracketSystem {
                     winnerDest = lbRounds[i + 1][Math.floor(m / 2)];
                 }
 
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths.push(winnerDest.id);
+                for (let p = 0; p < passingPlayers; p++) match.targetPaths[p] = winnerDest.id;
 
                 if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
             }

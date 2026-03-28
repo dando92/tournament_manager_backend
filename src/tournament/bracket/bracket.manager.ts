@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { MatchManager } from "@match/services/match.manager";
 import { Match, Player } from "@persistence/entities";
-import { UpdateMatchDto, UpdateDivisionDto } from "@tournament/dtos";
+import { UpdateDivisionDto } from "@tournament/dtos";
 import { GetDivisionUseCase } from "@tournament/use-cases/divisions/get-division.use-case";
 import { UpdateDivisionUseCase } from "@tournament/use-cases/divisions/update-division.use-case";
 
@@ -33,45 +33,30 @@ export class BracketManager {
     }
 
     async revertPlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
-        if (!match.targetPaths?.length) return;
+        if (!match.targetPaths) 
+            return;
 
-        const revertCount = Math.min(match.targetPaths.length, sortedPlayers.length);
-        for (let i = 0; i < revertCount; i++) {
-            const player = sortedPlayers[i];
+        for (let i = 0; i < match.targetPaths.length; i++) {
             const targetMatchId = match.targetPaths[i];
 
-            await this.matchManager.RemovePlayersFromMatch(targetMatchId, [player.id]);
+            if (targetMatchId === 0) 
+                continue;
 
-            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
-            if (targetMatch) {
-                const currentSourcePaths = targetMatch.sourcePaths ?? [];
-                if (!currentSourcePaths.includes(match.id)) {
-                    const dto = new UpdateMatchDto();
-                    dto.sourcePaths = [...currentSourcePaths, match.id];
-                    await this.matchManager.UpdateMatch(targetMatchId, dto);
-                }
-            }
+            await this.matchManager.RemovePlayerInMatch(match.targetPaths[i], sortedPlayers[i].id);
         }
     }
 
     async advancePlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
-        if (!match.targetPaths?.length) return;
+        if (!match.targetPaths) 
+            return;
 
-        const advanceCount = Math.min(match.targetPaths.length, sortedPlayers.length);
-        for (let i = 0; i < advanceCount; i++) {
-            const player = sortedPlayers[i];
+        for (let i = 0; i < match.targetPaths.length; i++) {
             const targetMatchId = match.targetPaths[i];
 
-            const dto = new UpdateMatchDto();
-            dto.playerIds = [player.id];
-            await this.matchManager.UpdateMatch(targetMatchId, dto);
+            if (targetMatchId === 0) 
+                continue;
 
-            const targetMatch = await this.matchManager.GetMatch(targetMatchId);
-            if (targetMatch?.sourcePaths) {
-                const pathDto = new UpdateMatchDto();
-                pathDto.sourcePaths = targetMatch.sourcePaths.filter(id => id !== match.id);
-                await this.matchManager.UpdateMatch(targetMatchId, pathDto);
-            }
+            await this.matchManager.AddPlayerInMatch(targetMatchId, sortedPlayers[i].id);
         }
     }
 }

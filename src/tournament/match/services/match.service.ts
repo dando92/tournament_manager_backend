@@ -24,7 +24,7 @@ export class MatchService {
 
         match.players = [];
 
-        if (dto.playerIds) {
+        if (dto.playerIds !== undefined) {
             for (const playerId of dto.playerIds) {
                 const player = await this.playerRepository.findOneBy({ id: playerId });
                 if (!player) throw new NotFoundException(`Player with ID ${playerId} not found`);
@@ -63,14 +63,14 @@ export class MatchService {
             delete dto.phaseId;
         }
 
-        if (dto.playerIds) {
+        if (dto.playerIds !== undefined) {
             const players = [];
             for (const playerId of dto.playerIds) {
                 const player = await this.playerRepository.findOneBy({ id: playerId });
                 if (!player) throw new NotFoundException(`Player with ID ${playerId} not found`);
                 players.push(player);
             }
-            dto.players = players;
+            match.players = players;
             delete dto.playerIds;
         }
 
