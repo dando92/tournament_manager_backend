@@ -24,6 +24,9 @@ export class Division {
   @Column({ nullable: true, default: null })
   playersPerMatch: number | null;
 
+  @Column({ type: 'simple-json', nullable: true, default: null })
+  seeding: number[] | null;
+
   @ManyToMany(() => Player, (player) => player.divisions, { eager: true })
   @JoinTable()
   players: Player[];

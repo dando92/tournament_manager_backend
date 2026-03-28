@@ -3,11 +3,11 @@ import { Division, Phase, Player } from "@persistence/entities";
 
 export class Manual extends IBracketSystem {
     getName(): string {
-        return "Manual";
+        return "First phase only";
     }
 
     getDescription(): string {
-        return "Manual";
+        return "First phase only";
     }
 
     protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {

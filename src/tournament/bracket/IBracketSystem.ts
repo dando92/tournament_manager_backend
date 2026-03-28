@@ -95,11 +95,7 @@ export class IBracketSystem {
     }
 
     protected async AddPlayerToMatch(player: Player, matchId: number) {
-        const dto = new UpdateMatchDto();
-
-        dto.playerIds = [player.id];
-
-        return await this.matchManager.UpdateMatch(matchId, dto);
+        return await this.matchManager.AddPlayerInMatch(matchId, player.id);
     }
 
     protected async RemovePlayerFromMatch(player: Player, matchId: number) {

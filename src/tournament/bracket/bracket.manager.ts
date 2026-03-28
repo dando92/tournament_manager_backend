@@ -6,6 +6,8 @@ import { UpdateDivisionDto } from "@tournament/dtos";
 import { GetDivisionUseCase } from "@tournament/use-cases/divisions/get-division.use-case";
 import { UpdateDivisionUseCase } from "@tournament/use-cases/divisions/update-division.use-case";
 
+type WithId = { id: number | string };
+
 @Injectable()
 export class BracketManager {
     constructor(
@@ -17,7 +19,7 @@ export class BracketManager {
         private readonly getDivisionUseCase: GetDivisionUseCase,
         @Inject()
         private readonly updateDivisionUseCase: UpdateDivisionUseCase,
-    ) {}
+    ) { }
 
     getBracketTypes(): string[] {
         return this.bracketSystemProvider.getAll();
@@ -25,7 +27,10 @@ export class BracketManager {
 
     async generateForDivision(divisionId: number, bracketType: string, playerPerMatch: number): Promise<void> {
         const division = await this.getDivisionUseCase.execute(divisionId);
-        const players = division?.players ?? [];
+        const players = this.sortBySeed(
+            division?.players ?? [],
+            division?.seeding ?? []
+        );
         const system = this.bracketSystemProvider.getBracketSystem(bracketType);
         await system.generateForDivision(division, players, playerPerMatch);
         const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
@@ -33,13 +38,13 @@ export class BracketManager {
     }
 
     async revertPlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
-        if (!match.targetPaths) 
+        if (!match.targetPaths)
             return;
 
         for (let i = 0; i < match.targetPaths.length; i++) {
             const targetMatchId = match.targetPaths[i];
 
-            if (targetMatchId === 0) 
+            if (targetMatchId === 0)
                 continue;
 
             await this.matchManager.RemovePlayerInMatch(match.targetPaths[i], sortedPlayers[i].id);
@@ -47,16 +52,44 @@ export class BracketManager {
     }
 
     async advancePlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
-        if (!match.targetPaths) 
+        if (!match.targetPaths)
             return;
 
         for (let i = 0; i < match.targetPaths.length; i++) {
             const targetMatchId = match.targetPaths[i];
 
-            if (targetMatchId === 0) 
+            if (targetMatchId === 0)
                 continue;
 
             await this.matchManager.AddPlayerInMatch(targetMatchId, sortedPlayers[i].id);
         }
+    }
+
+    sortBySeed<T extends WithId>(
+        items: T[],
+        seeding: (number | string)[]
+    ): T[] {
+        if (!seeding || seeding.length === 0) return items;
+
+        const map = new Map(items.map(item => [item.id, item]));
+        const result: T[] = [];
+
+        // Add seeded players in order
+        for (const id of seeding) {
+            const item = map.get(id);
+            if (item) {
+                result.push(item);
+                map.delete(id); // avoid duplicates later
+            }
+        }
+
+        // Add remaining players (not in seeding)
+        for (const item of items) {
+            if (map.has(item.id)) {
+                result.push(item);
+            }
+        }
+
+        return result;
     }
 }

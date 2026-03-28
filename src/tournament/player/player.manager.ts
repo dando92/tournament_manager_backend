@@ -24,6 +24,7 @@ export class PlayerManager {
             const player = new Player();
             player.id = playerId;
             division.players.push(player);
+            division.seeding = [...(division.seeding ?? []), playerId];
             await this.divisionRepo.save(division);
         }
     }
@@ -36,6 +37,7 @@ export class PlayerManager {
         if (!division) throw new NotFoundException(`Division ${divisionId} not found`);
 
         division.players = division.players.filter((p) => p.id !== playerId);
+        division.seeding = (division.seeding ?? []).filter((id) => id !== playerId);
         await this.divisionRepo.save(division);
     }
 

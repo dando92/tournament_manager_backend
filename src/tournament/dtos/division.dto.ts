@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Tournament } from '@persistence/entities';
@@ -35,6 +35,11 @@ export class UpdateDivisionDto {
   @IsNumber()
   @Type(() => Number)
   playersPerMatch?: number;
+
+  @ApiProperty({ description: 'Ordered player IDs for seeding', required: false })
+  @IsOptional()
+  @IsArray()
+  seeding?: number[];
 
   tournament?: Tournament;
 }
