@@ -10,13 +10,9 @@ import { UpdateTournamentUseCase } from '../use-cases/tournaments/update-tournam
 import { DeleteTournamentUseCase } from '../use-cases/tournaments/delete-tournament.use-case';
 import { AssignTournamentHelperUseCase } from '../use-cases/tournaments/assign-tournament-helper.use-case';
 import { RemoveTournamentHelperUseCase } from '../use-cases/tournaments/remove-tournament-helper.use-case';
-import { GetTournamentPlayersUseCase } from '../use-cases/tournaments/get-tournament-players.use-case';
-import { AddPlayerToTournamentUseCase } from '../use-cases/tournaments/add-player-to-tournament.use-case';
-import { RemovePlayerFromTournamentUseCase } from '../use-cases/tournaments/remove-player-from-tournament.use-case';
 import { GetTournamentSongsUseCase } from '../use-cases/tournaments/get-tournament-songs.use-case';
 import { AddSongToTournamentUseCase } from '../use-cases/tournaments/add-song-to-tournament.use-case';
 import { RemoveSongFromTournamentUseCase } from '../use-cases/tournaments/remove-song-from-tournament.use-case';
-import { GetPlayerTournamentsUseCase } from '../use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from '../use-cases/tournaments/is-helper-of-any.use-case';
 import { GetMyTournamentRolesUseCase, MyTournamentRoles } from '../use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetLobbiesUseCase } from '../use-cases/tournaments/get-lobbies.use-case';
@@ -34,13 +30,9 @@ export class TournamentsController {
         private readonly deleteTournamentUseCase: DeleteTournamentUseCase,
         private readonly assignTournamentHelperUseCase: AssignTournamentHelperUseCase,
         private readonly removeTournamentHelperUseCase: RemoveTournamentHelperUseCase,
-        private readonly getTournamentPlayersUseCase: GetTournamentPlayersUseCase,
-        private readonly addPlayerToTournamentUseCase: AddPlayerToTournamentUseCase,
-        private readonly removePlayerFromTournamentUseCase: RemovePlayerFromTournamentUseCase,
         private readonly getTournamentSongsUseCase: GetTournamentSongsUseCase,
         private readonly addSongToTournamentUseCase: AddSongToTournamentUseCase,
         private readonly removeSongFromTournamentUseCase: RemoveSongFromTournamentUseCase,
-        private readonly getPlayerTournamentsUseCase: GetPlayerTournamentsUseCase,
         private readonly isHelperOfAnyUseCase: IsHelperOfAnyUseCase,
         private readonly getMyTournamentRolesUseCase: GetMyTournamentRolesUseCase,
         private readonly getLobbiesUseCase: GetLobbiesUseCase,
@@ -63,12 +55,6 @@ export class TournamentsController {
     @Get('public')
     async findAllPublic(): Promise<Tournament[]> {
         return this.getPublicTournamentsUseCase.execute();
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Get('player-registrations')
-    async getPlayerRegistrations(@Request() req): Promise<number[]> {
-        return this.getPlayerTournamentsUseCase.execute(req.user.id);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -117,30 +103,6 @@ export class TournamentsController {
         @Param('accountId') accountId: string,
     ): Promise<Tournament> {
         return this.removeTournamentHelperUseCase.execute(id, accountId);
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Get(':id/players')
-    async getPlayers(@Param('id') id: number) {
-        return this.getTournamentPlayersUseCase.execute(id);
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Post(':id/players')
-    async addPlayer(
-        @Param('id') id: number,
-        @Body() body: { playerId: number },
-    ) {
-        await this.addPlayerToTournamentUseCase.execute(id, body.playerId);
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Delete(':id/players/:playerId')
-    async removePlayer(
-        @Param('id') id: number,
-        @Param('playerId') playerId: number,
-    ) {
-        await this.removePlayerFromTournamentUseCase.execute(id, Number(playerId));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)

@@ -10,7 +10,6 @@ import {
 
 import { Division } from './division.entity';
 import { Account } from './account.entity';
-import { Player } from './player.entity';
 import { Song } from './song.entity';
 
 
@@ -34,10 +33,6 @@ export class Tournament {
   @ManyToMany(() => Account, { eager: false })
   @JoinTable()
   helpers: Account[];
-
-  @ManyToMany(() => Player, { eager: false })
-  @JoinTable()
-  players: Promise<Player[]>;
 
   @OneToMany(() => Song, (song) => song.tournament, { eager: false })
   songs: Promise<Song[]>;

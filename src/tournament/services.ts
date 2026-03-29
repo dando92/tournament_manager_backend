@@ -10,13 +10,7 @@ import { BracketManager } from "@bracket/bracket.manager";
 import { LobbyManager } from "./services/lobby-manager.service";
 import { PlayerService } from "@player/player.service";
 import { PlayerManager } from "@player/player.manager";
-
-// Division use cases
-import { CreateDivisionUseCase } from './use-cases/divisions/create-division.use-case';
-import { GetDivisionsUseCase } from './use-cases/divisions/get-divisions.use-case';
-import { GetDivisionUseCase } from './use-cases/divisions/get-division.use-case';
-import { UpdateDivisionUseCase } from './use-cases/divisions/update-division.use-case';
-import { DeleteDivisionUseCase } from './use-cases/divisions/delete-division.use-case';
+import { DivisionService } from './services/division.service';
 
 // Round use cases
 import { CreateRoundUseCase } from './use-cases/rounds/create-round.use-case';
@@ -71,13 +65,9 @@ import { UpdateTournamentUseCase } from './use-cases/tournaments/update-tourname
 import { DeleteTournamentUseCase } from './use-cases/tournaments/delete-tournament.use-case';
 import { AssignTournamentHelperUseCase } from './use-cases/tournaments/assign-tournament-helper.use-case';
 import { RemoveTournamentHelperUseCase } from './use-cases/tournaments/remove-tournament-helper.use-case';
-import { GetTournamentPlayersUseCase } from './use-cases/tournaments/get-tournament-players.use-case';
-import { AddPlayerToTournamentUseCase } from './use-cases/tournaments/add-player-to-tournament.use-case';
-import { RemovePlayerFromTournamentUseCase } from './use-cases/tournaments/remove-player-from-tournament.use-case';
 import { GetTournamentSongsUseCase } from './use-cases/tournaments/get-tournament-songs.use-case';
 import { AddSongToTournamentUseCase } from './use-cases/tournaments/add-song-to-tournament.use-case';
 import { RemoveSongFromTournamentUseCase } from './use-cases/tournaments/remove-song-from-tournament.use-case';
-import { GetPlayerTournamentsUseCase } from './use-cases/tournaments/get-player-tournaments.use-case';
 import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
 import { GetMyTournamentRolesUseCase } from './use-cases/tournaments/get-my-tournament-roles.use-case';
 import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
@@ -105,12 +95,7 @@ export { BracketManager };
 export { LobbyManager };
 export { PlayerService };
 export { PlayerManager };
-
-export { CreateDivisionUseCase };
-export { GetDivisionsUseCase };
-export { GetDivisionUseCase };
-export { UpdateDivisionUseCase };
-export { DeleteDivisionUseCase };
+export { DivisionService };
 
 export { CreateRoundUseCase };
 export { GetRoundsUseCase };
@@ -158,13 +143,9 @@ export { UpdateTournamentUseCase };
 export { DeleteTournamentUseCase };
 export { AssignTournamentHelperUseCase };
 export { RemoveTournamentHelperUseCase };
-export { GetTournamentPlayersUseCase };
-export { AddPlayerToTournamentUseCase };
-export { RemovePlayerFromTournamentUseCase };
 export { GetTournamentSongsUseCase };
 export { AddSongToTournamentUseCase };
 export { RemoveSongFromTournamentUseCase };
-export { GetPlayerTournamentsUseCase };
 export { IsHelperOfAnyUseCase };
 export { GetMyTournamentRolesUseCase };
 export { GetTournamentByDivisionUseCase };
@@ -193,12 +174,7 @@ export const Services = [
     PlayerService,
     PlayerManager,
 
-    // Division use cases
-    CreateDivisionUseCase,
-    GetDivisionsUseCase,
-    GetDivisionUseCase,
-    UpdateDivisionUseCase,
-    DeleteDivisionUseCase,
+    DivisionService,
 
     // Round use cases
     CreateRoundUseCase,
@@ -253,13 +229,9 @@ export const Services = [
     DeleteTournamentUseCase,
     AssignTournamentHelperUseCase,
     RemoveTournamentHelperUseCase,
-    GetTournamentPlayersUseCase,
-    AddPlayerToTournamentUseCase,
-    RemovePlayerFromTournamentUseCase,
     GetTournamentSongsUseCase,
     AddSongToTournamentUseCase,
     RemoveSongFromTournamentUseCase,
-    GetPlayerTournamentsUseCase,
     IsHelperOfAnyUseCase,
     GetMyTournamentRolesUseCase,
     GetTournamentByDivisionUseCase,

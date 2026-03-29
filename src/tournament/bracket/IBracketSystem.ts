@@ -4,7 +4,7 @@ import { CreateMatchDto } from "@tournament/dtos";
 import { UpdateMatchDto } from "@tournament/dtos";
 
 import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
-import { CreateDivisionUseCase } from "@tournament/use-cases/divisions/create-division.use-case";
+import { DivisionService } from "@tournament/services/division.service";
 import { DeleteStandingUseCase } from "@tournament/use-cases/standings/delete-standing.use-case";
 import { CreatePhaseUseCase } from "@tournament/use-cases/phases/create-phase.use-case";
 import { CreatePhaseDto } from "@tournament/dtos";
@@ -18,7 +18,7 @@ export class IBracketSystem {
         @Inject()
         protected readonly matchManager: MatchManager,
         @Inject()
-        protected readonly createDivisionUseCase: CreateDivisionUseCase,
+        protected readonly divisionService: DivisionService,
         @Inject()
         protected readonly deleteStandingUseCase: DeleteStandingUseCase,
         @Inject()

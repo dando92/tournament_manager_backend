@@ -3,8 +3,7 @@ import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { MatchManager } from "@match/services/match.manager";
 import { Match, Player } from "@persistence/entities";
 import { UpdateDivisionDto } from "@tournament/dtos";
-import { GetDivisionUseCase } from "@tournament/use-cases/divisions/get-division.use-case";
-import { UpdateDivisionUseCase } from "@tournament/use-cases/divisions/update-division.use-case";
+import { DivisionService } from "@tournament/services/division.service";
 
 type WithId = { id: number | string };
 
@@ -16,9 +15,7 @@ export class BracketManager {
         @Inject()
         private readonly matchManager: MatchManager,
         @Inject()
-        private readonly getDivisionUseCase: GetDivisionUseCase,
-        @Inject()
-        private readonly updateDivisionUseCase: UpdateDivisionUseCase,
+        private readonly divisionService: DivisionService,
     ) { }
 
     getBracketTypes(): string[] {
@@ -26,7 +23,7 @@ export class BracketManager {
     }
 
     async generateForDivision(divisionId: number, bracketType: string, playerPerMatch: number): Promise<void> {
-        const division = await this.getDivisionUseCase.execute(divisionId);
+        const division = await this.divisionService.findOne(divisionId);
         const players = this.sortBySeed(
             division?.players ?? [],
             division?.seeding ?? []
@@ -34,7 +31,7 @@ export class BracketManager {
         const system = this.bracketSystemProvider.getBracketSystem(bracketType);
         await system.generateForDivision(division, players, playerPerMatch);
         const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
-        await this.updateDivisionUseCase.execute(divisionId, updateDto);
+        await this.divisionService.update(divisionId, updateDto);
     }
 
     async revertPlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
