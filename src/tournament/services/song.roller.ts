@@ -27,19 +27,17 @@ export class SongRoller {
     }
 
     async RollASong(tournamentId: number, divisionId: number, group: string, level: number): Promise<number> {
-        const division = await this.divisionService.findOne(divisionId).catch(() => null);
+        const division = await this.divisionService.findOneForBracketGeneration(divisionId).catch(() => null);
 
         if (!division) {
             return 0;
         }
 
-        const tournament = await this.tournamentService.findOne(tournamentId);
+        const songs = await this.tournamentService.findSongsByTournamentId(tournamentId);
 
-        if (!tournament) {
+        if (songs.length === 0) {
             return 0;
         }
-
-        const songs = await tournament.songs;
 
         return this.RollSong(songs, division, group, level);
     }

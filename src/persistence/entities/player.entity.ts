@@ -20,7 +20,7 @@ export class Player {
   @Column()
   playerName: string;
 
-  @OneToOne(() => Account, (account) => account.player, { eager: true })
+  @OneToOne(() => Account, (account) => account.player)
   account: Account;
 
   @OneToMany(() => Score, (score) => score.player, { cascade: true })
@@ -32,6 +32,6 @@ export class Player {
   @ManyToMany(() => Division, (division) => division.players)
   divisions: Division[];
 
-  @OneToMany(() => MatchAssignment, (matchAssignment) => matchAssignment.player, { eager: true })
+  @OneToMany(() => MatchAssignment, (matchAssignment) => matchAssignment.player)
   matchAssignments: MatchAssignment[];
 }

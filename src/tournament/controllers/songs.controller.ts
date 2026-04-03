@@ -22,7 +22,7 @@ export class SongsController {
 
     @Get()
     async findAll(@Query('tournamentId') tournamentId: number): Promise<Song[]> {
-        return (await this.tournamentService.findOne(tournamentId)).songs;
+        return this.tournamentService.findSongsByTournamentId(Number(tournamentId));
     }
 
     @Get(':id/scores')

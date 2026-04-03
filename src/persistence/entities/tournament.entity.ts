@@ -24,13 +24,13 @@ export class Tournament {
   @Column({ default: 'ws://syncservice.groovestats.com:1337' })
   syncstartUrl: string;
 
-  @OneToMany(() => Division, (division) => division.tournament, { eager: true, cascade: true })
+  @OneToMany(() => Division, (division) => division.tournament, { cascade: true })
   divisions: Division[]
 
-  @ManyToOne(() => Account, { nullable: true, eager: true })
+  @ManyToOne(() => Account, { nullable: true })
   owner: Account;
 
-  @ManyToMany(() => Account, { eager: true })
+  @ManyToMany(() => Account)
   @JoinTable()
   helpers: Account[];
 

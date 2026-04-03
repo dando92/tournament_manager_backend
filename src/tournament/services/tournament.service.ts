@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Tournament, Account } from '@persistence/entities';
+import { Tournament, Account, Song } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 
 export interface MyTournamentRoles {
@@ -16,6 +16,8 @@ export class TournamentService {
         private readonly tournamentRepository: Repository<Tournament>,
         @InjectRepository(Account)
         private readonly accountRepository: Repository<Account>,
+        @InjectRepository(Song)
+        private readonly songRepository: Repository<Song>,
     ) {}
 
     async create(dto: CreateTournamentDto, ownerId?: string): Promise<Tournament> {
@@ -32,15 +34,40 @@ export class TournamentService {
     }
 
     async findAllPublic(): Promise<Tournament[]> {
-        return this.tournamentRepository.find();
+        return this.tournamentRepository.find({
+            select: {
+                id: true,
+                name: true,
+            },
+        });
     }
 
     async findOne(id: number): Promise<Tournament | null> {
-        return this.tournamentRepository.findOne({ where: { id }, relations: ['helpers', 'owner'] });
+        return this.findOneForPage(id);
+    }
+
+    async findOneForPage(id: number): Promise<Tournament | null> {
+        return this.tournamentRepository.findOne({
+            where: { id },
+            relations: {
+                helpers: true,
+                owner: true,
+            },
+        });
+    }
+
+    async findOneForUpdate(id: number): Promise<Tournament | null> {
+        return this.findOneForPage(id);
+    }
+
+    async findSongsByTournamentId(tournamentId: number): Promise<Song[]> {
+        return this.songRepository.find({
+            where: { tournament: { id: tournamentId } },
+        });
     }
 
     async update(id: number, dto: UpdateTournamentDto): Promise<{ tournament: Tournament; previousSyncstartUrl: string | undefined }> {
-        const existing = await this.tournamentRepository.findOne({ where: { id }, relations: ['helpers', 'owner'] });
+        const existing = await this.findOneForUpdate(id);
         if (!existing) throw new NotFoundException(`Tournament with id ${id} not found`);
 
         const previousSyncstartUrl = existing.syncstartUrl;

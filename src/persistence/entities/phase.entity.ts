@@ -17,7 +17,7 @@ export class Phase {
   @Column()
   name: string;
 
-  @OneToMany(() => Match, (match) => match.phase, { eager: true, cascade: true })
+  @OneToMany(() => Match, (match) => match.phase, { cascade: true })
   matches: Match[];
 
   @ManyToOne(() => Division, (division) => division.phases, { onDelete: 'CASCADE' })

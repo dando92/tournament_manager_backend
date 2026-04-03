@@ -23,7 +23,10 @@ export class BracketManager {
     }
 
     async generateForDivision(divisionId: number, bracketType: string, playerPerMatch: number): Promise<void> {
-        const division = await this.divisionService.findOne(divisionId);
+        const division = await this.divisionService.findOneForBracketGeneration(divisionId);
+        if (!division) {
+            throw new Error(`Division ${divisionId} not found`);
+        }
         const players = this.sortBySeed(
             division?.players ?? [],
             division?.seeding ?? []
