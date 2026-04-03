@@ -1,10 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, ValidationPipe } from '@nestjs/common';
 import { Song } from '@persistence/entities';
-import { CreateSongDto, UpdateSongDto } from '../dtos';
+import { CreateSongDto } from '../dtos';
 import { CreateSongUseCase } from '../use-cases/songs/create-song.use-case';
-import { GetSongsUseCase } from '../use-cases/songs/get-songs.use-case';
-import { GetSongUseCase } from '../use-cases/songs/get-song.use-case';
-import { UpdateSongUseCase } from '../use-cases/songs/update-song.use-case';
 import { DeleteSongUseCase } from '../use-cases/songs/delete-song.use-case';
 import { GetScoresBySongUseCase } from '../use-cases/scores/get-scores-by-song.use-case';
 import { TournamentService } from '../services/tournament.service';
@@ -13,9 +10,6 @@ import { TournamentService } from '../services/tournament.service';
 export class SongsController {
     constructor(
         private readonly createSongUseCase: CreateSongUseCase,
-        private readonly getSongsUseCase: GetSongsUseCase,
-        private readonly getSongUseCase: GetSongUseCase,
-        private readonly updateSongUseCase: UpdateSongUseCase,
         private readonly deleteSongUseCase: DeleteSongUseCase,
         private readonly getScoresBySongUseCase: GetScoresBySongUseCase,
         private readonly tournamentService: TournamentService,
@@ -31,19 +25,9 @@ export class SongsController {
         return (await this.tournamentService.findOne(tournamentId)).songs;
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: number): Promise<Song | null> {
-        return this.getSongUseCase.execute(id);
-    }
-
     @Get(':id/scores')
     findScores(@Param('id') id: number) {
         return this.getScoresBySongUseCase.execute(id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateSongDto): Promise<Song> {
-        return this.updateSongUseCase.execute(id, dto);
     }
 
     @Delete(':id')

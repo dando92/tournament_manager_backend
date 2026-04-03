@@ -1,7 +1,6 @@
 import { UserService } from '../user/services/user.service';
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
-import { PadRoller } from "./services/pad.roller";
 import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./services/standing.manager";
 import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemProvider";
@@ -16,60 +15,29 @@ import { DivisionService } from './services/division.service';
 
 // Round use cases
 import { CreateRoundUseCase } from './use-cases/rounds/create-round.use-case';
-import { GetRoundsUseCase } from './use-cases/rounds/get-rounds.use-case';
-import { GetRoundUseCase } from './use-cases/rounds/get-round.use-case';
 import { UpdateRoundUseCase } from './use-cases/rounds/update-round.use-case';
 import { DeleteRoundUseCase } from './use-cases/rounds/delete-round.use-case';
 
 // Score use cases
 import { CreateScoreUseCase } from './use-cases/scores/create-score.use-case';
-import { GetScoresUseCase } from './use-cases/scores/get-scores.use-case';
-import { GetScoreUseCase } from './use-cases/scores/get-score.use-case';
 import { GetScoresBySongUseCase } from './use-cases/scores/get-scores-by-song.use-case';
 import { UpdateScoreUseCase } from './use-cases/scores/update-score.use-case';
-import { DeleteScoreUseCase } from './use-cases/scores/delete-score.use-case';
 
 // Song use cases
 import { CreateSongUseCase } from './use-cases/songs/create-song.use-case';
-import { GetSongsUseCase } from './use-cases/songs/get-songs.use-case';
-import { GetSongUseCase } from './use-cases/songs/get-song.use-case';
-import { GetSongByNameUseCase } from './use-cases/songs/get-song-by-name.use-case';
-import { UpdateSongUseCase } from './use-cases/songs/update-song.use-case';
 import { DeleteSongUseCase } from './use-cases/songs/delete-song.use-case';
 
 // Standing use cases
 import { CreateStandingUseCase } from './use-cases/standings/create-standing.use-case';
-import { GetStandingsUseCase } from './use-cases/standings/get-standings.use-case';
-import { GetStandingUseCase } from './use-cases/standings/get-standing.use-case';
 import { UpdateStandingUseCase } from './use-cases/standings/update-standing.use-case';
 import { DeleteStandingUseCase } from './use-cases/standings/delete-standing.use-case';
 
-// Setup use cases
-import { CreateSetupUseCase } from './use-cases/setups/create-setup.use-case';
-import { GetSetupsUseCase } from './use-cases/setups/get-setups.use-case';
-import { GetSetupUseCase } from './use-cases/setups/get-setup.use-case';
-import { UpdateSetupUseCase } from './use-cases/setups/update-setup.use-case';
-import { DeleteSetupUseCase } from './use-cases/setups/delete-setup.use-case';
-
-// MatchAssignment use cases
-import { CreateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/create-match-assignment.use-case';
-import { GetMatchAssignmentsUseCase } from '@match/use-cases/match-assignments/get-match-assignments.use-case';
-import { GetMatchAssignmentUseCase } from '@match/use-cases/match-assignments/get-match-assignment.use-case';
-import { UpdateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/update-match-assignment.use-case';
-import { DeleteMatchAssignmentUseCase } from '@match/use-cases/match-assignments/delete-match-assignment.use-case';
-
-
 // Phase use cases
 import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
-import { GetPhasesUseCase } from './use-cases/phases/get-phases.use-case';
-import { GetPhaseUseCase } from './use-cases/phases/get-phase.use-case';
-import { UpdatePhaseUseCase } from './use-cases/phases/update-phase.use-case';
-import { DeletePhaseUseCase } from './use-cases/phases/delete-phase.use-case';
 
 export { UserService as AccountService };
 export { MatchManager };
 export { MatchService };
-export { PadRoller };
 export { SongRoller };
 export { StandingManager };
 export { ScoringSystemProvider };
@@ -83,55 +51,26 @@ export { PlayerManager };
 export { DivisionService };
 
 export { CreateRoundUseCase };
-export { GetRoundsUseCase };
-export { GetRoundUseCase };
 export { UpdateRoundUseCase };
 export { DeleteRoundUseCase };
 
 export { CreateScoreUseCase };
-export { GetScoresUseCase };
-export { GetScoreUseCase };
 export { GetScoresBySongUseCase };
 export { UpdateScoreUseCase };
-export { DeleteScoreUseCase };
 
 export { CreateSongUseCase };
-export { GetSongsUseCase };
-export { GetSongUseCase };
-export { GetSongByNameUseCase };
-export { UpdateSongUseCase };
 export { DeleteSongUseCase };
 
 export { CreateStandingUseCase };
-export { GetStandingsUseCase };
-export { GetStandingUseCase };
 export { UpdateStandingUseCase };
 export { DeleteStandingUseCase };
 
-export { CreateSetupUseCase };
-export { GetSetupsUseCase };
-export { GetSetupUseCase };
-export { UpdateSetupUseCase };
-export { DeleteSetupUseCase };
-
-export { CreateMatchAssignmentUseCase };
-export { GetMatchAssignmentsUseCase };
-export { GetMatchAssignmentUseCase };
-export { UpdateMatchAssignmentUseCase };
-export { DeleteMatchAssignmentUseCase };
-
-
 export { CreatePhaseUseCase };
-export { GetPhasesUseCase };
-export { GetPhaseUseCase };
-export { UpdatePhaseUseCase };
-export { DeletePhaseUseCase };
 
 export const Services = [
     UserService,
     MatchService,
     MatchManager,
-    PadRoller,
     SongRoller,
     StandingManager,
     ScoringSystemProvider,
@@ -145,55 +84,26 @@ export const Services = [
 
     // Round use cases
     CreateRoundUseCase,
-    GetRoundsUseCase,
-    GetRoundUseCase,
     UpdateRoundUseCase,
     DeleteRoundUseCase,
 
     // Score use cases
     CreateScoreUseCase,
-    GetScoresUseCase,
-    GetScoreUseCase,
     GetScoresBySongUseCase,
     UpdateScoreUseCase,
-    DeleteScoreUseCase,
 
     // Song use cases
     CreateSongUseCase,
-    GetSongsUseCase,
-    GetSongUseCase,
-    GetSongByNameUseCase,
-    UpdateSongUseCase,
     DeleteSongUseCase,
 
     // Standing use cases
     CreateStandingUseCase,
-    GetStandingsUseCase,
-    GetStandingUseCase,
     UpdateStandingUseCase,
     DeleteStandingUseCase,
-
-    // Setup use cases
-    CreateSetupUseCase,
-    GetSetupsUseCase,
-    GetSetupUseCase,
-    UpdateSetupUseCase,
-    DeleteSetupUseCase,
-
-    // MatchAssignment use cases
-    CreateMatchAssignmentUseCase,
-    GetMatchAssignmentsUseCase,
-    GetMatchAssignmentUseCase,
-    UpdateMatchAssignmentUseCase,
-    DeleteMatchAssignmentUseCase,
 
     TournamentService,
     TournamentManager,
 
     // Phase use cases
     CreatePhaseUseCase,
-    GetPhasesUseCase,
-    GetPhaseUseCase,
-    UpdatePhaseUseCase,
-    DeletePhaseUseCase,
 ];

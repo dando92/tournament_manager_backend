@@ -1,11 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
-import { AddStandingToMatchDto, CreateScoreDto, CreateStandingDto, UpdateRoundDto, UpdateStandingDto } from '../dtos';
-import { Match, Standing } from '@persistence/entities';
-import { CreateStandingUseCase } from '../use-cases/standings/create-standing.use-case';
-import { GetStandingsUseCase } from '../use-cases/standings/get-standings.use-case';
-import { GetStandingUseCase } from '../use-cases/standings/get-standing.use-case';
-import { UpdateStandingUseCase } from '../use-cases/standings/update-standing.use-case';
-import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.use-case';
+import { Body, Controller, Delete, Param, Post, Put } from '@nestjs/common';
+import { AddStandingToMatchDto, CreateScoreDto, UpdateRoundDto } from '../dtos';
+import { Match } from '@persistence/entities';
 import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
 import { StandingManager } from '../services/standing.manager';
 import { MatchManager } from '@match/services/match.manager';
@@ -13,40 +8,10 @@ import { MatchManager } from '@match/services/match.manager';
 @Controller('standings')
 export class StandingsController {
     constructor(
-        private readonly createStandingUseCase: CreateStandingUseCase,
-        private readonly getStandingsUseCase: GetStandingsUseCase,
-        private readonly getStandingUseCase: GetStandingUseCase,
-        private readonly updateStandingUseCase: UpdateStandingUseCase,
-        private readonly deleteStandingUseCase: DeleteStandingUseCase,
         private readonly updateRoundUseCase: UpdateRoundUseCase,
         private readonly standingManager: StandingManager,
         private readonly matchManager: MatchManager,
     ) {}
-
-    @Post()
-    async create(@Body(new ValidationPipe()) dto: CreateStandingDto): Promise<Standing> {
-        return await this.createStandingUseCase.execute(dto);
-    }
-
-    @Get()
-    async findAll(): Promise<Standing[]> {
-        return await this.getStandingsUseCase.execute();
-    }
-
-    @Get(':id')
-    findOne(@Param('id') id: number): Promise<Standing | null> {
-        return this.getStandingUseCase.execute(id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateStandingDto): Promise<Standing> {
-        return this.updateStandingUseCase.execute(id, dto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: number): Promise<void> {
-        return this.deleteStandingUseCase.execute(id);
-    }
 
     @Post('matches/:matchId')
     async addStanding(@Param('matchId') matchId: number, @Body() dto: AddStandingToMatchDto): Promise<Match> {

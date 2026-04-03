@@ -30,15 +30,13 @@ export class UpdateTournamentDto {
     @IsOptional()
     @IsString()
     @ApiProperty({ example: 'UEFA Euro 2024', description: 'The name of the tournament.', required: false })
-    name: string;
+    name?: string;
 
     @IsOptional()
     @IsString()
     @ApiProperty({ description: 'WebSocket URL of the syncstart server for this tournament.', required: false })
-    syncstartUrl: string;
+    syncstartUrl?: string;
 
     // Internal use by TournamentManager — not validated from HTTP body
     helpers?: Account[];
-    songToAdd?: number;
-    songToRemove?: number;
 }

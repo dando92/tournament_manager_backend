@@ -22,9 +22,6 @@ export class Account {
     password: string;
 
     @Column({ default: "" })
-    refreshToken: string;
-
-    @Column({ default: "" })
     grooveStatsApi: string;
 
     @Column({ default: false })
@@ -42,5 +39,4 @@ export class Account {
     @OneToOne(() => Player)
     @JoinColumn()
     player: Player
-
 }

@@ -28,17 +28,6 @@ export class UserController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Patch(':id/groove-stats')
-    async updateGrooveStats(
-        @Param('id') id: string,
-        @Body() body: { grooveStatsApi: string },
-        @Request() req,
-    ) {
-        if (req.user.id !== id) throw new ForbiddenException();
-        return this.service.updateGrooveStatsApi(id, body.grooveStatsApi);
-    }
-
-    @UseGuards(JwtAuthGuard)
     @Patch(':id/profile')
     async updateProfile(
         @Param('id') id: string,

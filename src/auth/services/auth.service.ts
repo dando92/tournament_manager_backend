@@ -7,8 +7,6 @@ import { Repository } from 'typeorm';
 
 import * as bcrypt from 'bcrypt';
 
-import { AuthRefreshTokenDto } from '../dtos';
-
 import { Account } from '@persistence/entities';
 
 
@@ -74,18 +72,5 @@ export class AuthService {
             where: { id: userId },
             relations: ['player'],
         });
-    }
-
-    async getRefreshToken(authRefreshTokenDto: AuthRefreshTokenDto): Promise<{ access_token: string }> {
-        const refreshToken = authRefreshTokenDto.accessToken;
-        const user = await this.accountRepo.findOneBy({ refreshToken });
-        const isMatch = (refreshToken === user.refreshToken);
-        if (!isMatch) {
-            throw new UnauthorizedException();
-        }
-        const payload = { sub: user.id, username: user.username, isAdmin: user.isAdmin, isTournamentCreator: user.isTournamentCreator };
-        return {
-            access_token: await this.jwtService.signAsync(payload),
-        };
     }
 }

@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Player } from '@persistence/entities';
 import { JwtAuthGuard } from '@auth/guards';
 import { PlayerService } from '@player/player.service';
 import { PlayerManager } from '@player/player.manager';
-import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from '@player/player.dto';
+import { BulkAddPlayersToDivisionDto } from '@player/player.dto';
 
 @Controller('players')
 export class PlayersController {
@@ -12,29 +12,9 @@ export class PlayersController {
         private readonly playerManager: PlayerManager,
     ) {}
 
-    @Post()
-    async create(@Body(new ValidationPipe()) dto: CreatePlayerDto): Promise<Player> {
-        return this.playerService.create(dto.playerName);
-    }
-
     @Get()
     async findAll(): Promise<Player[]> {
         return this.playerService.findAll();
-    }
-
-    @Get(':id')
-    findOne(@Param('id') id: number): Promise<Player | null> {
-        return this.playerService.findById(id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdatePlayerDto): Promise<Player> {
-        return this.playerService.update(id, dto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: number): Promise<void> {
-        return this.playerService.delete(id);
     }
 
     @UseGuards(JwtAuthGuard)

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Tournament, Account, Song } from '@persistence/entities';
+import { Tournament, Account } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 
 export interface MyTournamentRoles {
@@ -16,8 +16,6 @@ export class TournamentService {
         private readonly tournamentRepository: Repository<Tournament>,
         @InjectRepository(Account)
         private readonly accountRepository: Repository<Account>,
-        @InjectRepository(Song)
-        private readonly songRepository: Repository<Song>,
     ) {}
 
     async create(dto: CreateTournamentDto, ownerId?: string): Promise<Tournament> {
@@ -31,18 +29,6 @@ export class TournamentService {
         }
 
         return this.tournamentRepository.save(tournament);
-    }
-
-    async findAll(userId?: string, isAdmin?: boolean): Promise<Tournament[]> {
-        if (!userId || isAdmin) {
-            return this.tournamentRepository.find();
-        }
-        return this.tournamentRepository
-            .createQueryBuilder('tournament')
-            .leftJoin('tournament.owner', 'owner')
-            .leftJoin('tournament.helpers', 'helper')
-            .where('owner.id = :userId OR helper.id = :userId', { userId })
-            .getMany();
     }
 
     async findAllPublic(): Promise<Tournament[]> {
@@ -63,39 +49,9 @@ export class TournamentService {
             existing.helpers = dto.helpers;
         }
 
-        if (dto.songToAdd !== undefined) {
-            const song = await this.songRepository.findOneBy({ id: dto.songToAdd });
-            if (!song) throw new NotFoundException(`Song ${dto.songToAdd} not found`);
-            song.tournament = existing;
-            await this.songRepository.save(song);
-        }
-
-        if (dto.songToRemove !== undefined) {
-            const song = await this.songRepository.findOne({
-                where: { id: dto.songToRemove, tournament: { id } },
-            });
-            if (song) {
-                song.tournament = null;
-                await this.songRepository.save(song);
-            }
-        }
-
         this.tournamentRepository.merge(existing, { name: dto.name, syncstartUrl: dto.syncstartUrl });
         const tournament = await this.tournamentRepository.save(existing);
         return { tournament, previousSyncstartUrl };
-    }
-
-    async delete(id: number): Promise<void> {
-        await this.tournamentRepository.delete(id);
-    }
-
-    async isHelperOfAny(accountId: string): Promise<boolean> {
-        const count = await this.tournamentRepository
-            .createQueryBuilder('tournament')
-            .leftJoin('tournament.helpers', 'helper')
-            .where('helper.id = :accountId', { accountId })
-            .getCount();
-        return count > 0;
     }
 
     async getMyRoles(accountId: string): Promise<MyTournamentRoles> {
@@ -112,13 +68,9 @@ export class TournamentService {
             .getMany();
 
         return {
-            ownedTournamentIds: owned.map(t => t.id),
-            helperTournamentIds: helped.map(t => t.id),
+            ownedTournamentIds: owned.map(tournament => tournament.id),
+            helperTournamentIds: helped.map(tournament => tournament.id),
         };
-    }
-
-    async findByDivision(divisionId: number): Promise<Tournament | null> {
-        return this.tournamentRepository.findOne({ where: { divisions: { id: divisionId } } });
     }
 
     async findByPhase(phaseId: number): Promise<Tournament | null> {

@@ -24,19 +24,3 @@ export class AuthSignInDto {
     @IsString()
     password: string;
 }
-
-export class AuthRefreshTokenDto {
-    @ApiProperty({
-
-    })
-    @IsNotEmpty()
-    @IsString()
-    username: string;
-    
-    @ApiProperty({
-
-    })
-    @IsNotEmpty()
-    @IsString()
-    accessToken: string;
-}

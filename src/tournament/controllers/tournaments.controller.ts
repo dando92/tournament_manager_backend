@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Delete, Request, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Tournament } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
-import { JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
-import { TournamentService, MyTournamentRoles } from '../services/tournament.service';
+import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
+import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
 import { LobbyManager } from '../services/lobby-manager.service';
 
@@ -24,22 +24,9 @@ export class TournamentsController {
         return tournament;
     }
 
-    @UseGuards(OptionalJwtAuthGuard)
-    @Get()
-    async findAll(@Request() req): Promise<Tournament[]> {
-        return this.tournamentService.findAll(req.user?.id, req.user?.isAdmin);
-    }
-
     @Get('public')
     async findAllPublic(): Promise<Tournament[]> {
         return this.tournamentService.findAllPublic();
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Get('is-helper')
-    async getIsHelper(@Request() req): Promise<{ isHelper: boolean }> {
-        const isHelper = await this.tournamentService.isHelperOfAny(req.user.id);
-        return { isHelper };
     }
 
     @UseGuards(JwtAuthGuard)
@@ -63,12 +50,6 @@ export class TournamentsController {
         return tournament;
     }
 
-    @UseGuards(JwtAuthGuard, AdminGuard)
-    @Delete(':id')
-    remove(@Param('id') id: number): Promise<void> {
-        return this.tournamentService.delete(Number(id));
-    }
-
     @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
     @Post(':id/helpers')
     async addHelper(
@@ -85,24 +66,6 @@ export class TournamentsController {
         @Param('accountId') accountId: string,
     ): Promise<Tournament> {
         return this.tournamentManager.removeHelper(Number(id), accountId);
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Get(':id/songs')
-    async getSongs(@Param('id') id: number) {
-        return (await this.tournamentService.findOne(id)).songs;
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Post(':id/songs/:songId')
-    async addSong(@Param('id') id: number, @Param('songId') songId: number) {
-        await this.tournamentManager.addSong(Number(id), Number(songId));
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
-    @Delete(':id/songs/:songId')
-    async removeSong(@Param('id') id: number, @Param('songId') songId: number) {
-        await this.tournamentManager.removeSong(Number(id), Number(songId));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)

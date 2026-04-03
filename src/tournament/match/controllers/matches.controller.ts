@@ -31,11 +31,6 @@ export class MatchesController {
         return match;
     }
 
-    @Get()
-    async findAll(): Promise<Match[]> {
-        return await this.matchService.findAll();
-    }
-
     @Get(':id')
     findOne(@Param('id') id: number): Promise<Match | null> {
         return this.matchService.getMatch(id);

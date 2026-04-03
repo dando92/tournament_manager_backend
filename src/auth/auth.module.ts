@@ -9,7 +9,6 @@ import { LocalAuthGuard, AdminGuard } from './guards';
 import { AuthService } from './services';
 import { LocalStrategy } from './strategies';
 
-import { AccountModule } from '@user/user.module';
 import { PersistenceModule } from '@persistence/persistence.module';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -18,7 +17,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
     imports: [
         PersistenceModule,
-        AccountModule,
         PassportModule,
         JwtModule.registerAsync({
             inject: [ConfigService],

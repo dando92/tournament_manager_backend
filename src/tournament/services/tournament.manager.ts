@@ -31,17 +31,4 @@ export class TournamentManager {
         return (await this.tournamentService.update(tournamentId, { helpers })).tournament;
     }
 
-    async addSong(tournamentId: number, songId: number): Promise<void> {
-        const tournament = await this.tournamentService.findOne(tournamentId);
-        if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
-
-        await this.tournamentService.update(tournamentId, { songToAdd: songId });
-    }
-
-    async removeSong(tournamentId: number, songId: number): Promise<void> {
-        const tournament = await this.tournamentService.findOne(tournamentId);
-        if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
-
-        await this.tournamentService.update(tournamentId, { songToRemove: songId });
-    }
 }

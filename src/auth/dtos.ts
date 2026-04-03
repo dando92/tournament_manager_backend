@@ -1,3 +1,3 @@
-import { AuthSignInDto, AuthRefreshTokenDto, LocalApiKeyLoginDto } from './dtos/auth.dto'
+import { AuthSignInDto, LocalApiKeyLoginDto } from './dtos/auth.dto'
 
-export { AuthSignInDto, AuthRefreshTokenDto, LocalApiKeyLoginDto };
+export { AuthSignInDto, LocalApiKeyLoginDto };
