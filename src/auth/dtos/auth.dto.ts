@@ -2,6 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString } from 'class-validator';
 
+export class LocalApiKeyLoginDto {
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    apiKey: string;
+}
+
 export class AuthSignInDto {
     @ApiProperty({
 
@@ -16,20 +23,4 @@ export class AuthSignInDto {
     @IsNotEmpty()
     @IsString()
     password: string;
-}
-
-export class AuthRefreshTokenDto {
-    @ApiProperty({
-
-    })
-    @IsNotEmpty()
-    @IsString()
-    username: string;
-    
-    @ApiProperty({
-
-    })
-    @IsNotEmpty()
-    @IsString()
-    accessToken: string;
 }

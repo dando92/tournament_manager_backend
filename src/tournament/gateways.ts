@@ -1,10 +1,10 @@
 import { ItgOnlineProxyGateway } from "../tournament/gateways/itg-online-proxy.gateway";
-import { MatchGateway } from "../tournament/gateways/match.gateway";
+import { UiUpdateGateway } from "@match/gateways/ui-update.gateway";
 
 export { ItgOnlineProxyGateway }
-export { MatchGateway }
+export { UiUpdateGateway }
 
 export const Gateways = [
     ItgOnlineProxyGateway,
-    MatchGateway
+    UiUpdateGateway
 ];

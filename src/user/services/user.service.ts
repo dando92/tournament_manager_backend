@@ -48,12 +48,6 @@ export class UserService {
         return this.accountRepo.find({ relations: ['player'] });
     }
 
-    async updateGrooveStatsApi(accountId: string, grooveStatsApi: string): Promise<Account> {
-        const account = await this.accountRepo.findOneBy({ id: accountId });
-        account.grooveStatsApi = grooveStatsApi;
-        return this.accountRepo.save(account);
-    }
-
     async updateProfile(accountId: string, profile: { playerName?: string; nationality?: string; grooveStatsApi?: string; profilePicture?: string }): Promise<Account> {
         const account = await this.accountRepo.findOne({ where: { id: accountId }, relations: ['player'] });
         if (profile.nationality !== undefined) account.nationality = profile.nationality;

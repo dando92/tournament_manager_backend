@@ -10,7 +10,6 @@ import {
 
 import { Division } from './division.entity';
 import { Account } from './account.entity';
-import { Player } from './player.entity';
 import { Song } from './song.entity';
 
 
@@ -25,19 +24,15 @@ export class Tournament {
   @Column({ default: 'ws://syncservice.groovestats.com:1337' })
   syncstartUrl: string;
 
-  @OneToMany(() => Division, (division) => division.tournament, { eager: true, cascade: true })
+  @OneToMany(() => Division, (division) => division.tournament, { cascade: true })
   divisions: Division[]
 
-  @ManyToOne(() => Account, { nullable: true, eager: false })
+  @ManyToOne(() => Account, { nullable: true })
   owner: Account;
 
-  @ManyToMany(() => Account, { eager: false })
+  @ManyToMany(() => Account)
   @JoinTable()
   helpers: Account[];
-
-  @ManyToMany(() => Player, { eager: false })
-  @JoinTable()
-  players: Promise<Player[]>;
 
   @OneToMany(() => Song, (song) => song.tournament, { eager: false })
   songs: Promise<Song[]>;

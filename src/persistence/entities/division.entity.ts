@@ -24,11 +24,14 @@ export class Division {
   @Column({ nullable: true, default: null })
   playersPerMatch: number | null;
 
-  @ManyToMany(() => Player, (player) => player.divisions, { eager: true})
+  @Column({ type: 'simple-json', nullable: true, default: null })
+  seeding: number[] | null;
+
+  @ManyToMany(() => Player, (player) => player.divisions)
   @JoinTable()
   players: Player[];
 
-  @OneToMany(() => Phase, (phase) => phase.division, { eager: true, cascade: true })
+  @OneToMany(() => Phase, (phase) => phase.division, { cascade: true })
   phases: Phase[];
 
   @ManyToOne(() => Tournament, (tournament) => tournament.divisions, { onDelete: 'CASCADE' })

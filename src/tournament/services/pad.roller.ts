@@ -1,13 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CreateMatchAssignmentDto } from '../../tournament/dtos';
 import { Match, MatchAssignment, Setup } from '@persistence/entities';
-import { CreateMatchAssignmentUseCase } from '../use-cases/match-assignments/create-match-assignment.use-case';
+
 
 @Injectable()
 export class PadRoller {
-    constructor(
-        @Inject()
-        private createMatchAssignmentUseCase: CreateMatchAssignmentUseCase) { }
+    constructor() { }
 
     async AutoRollPads(match: Match) {
         const rounds = match.rounds;
@@ -24,8 +22,8 @@ export class PadRoller {
                 matchAssignment.playerId = players[j].id;
                 matchAssignment.setupId = setups[j].id;
                 matchAssignment.roundId = rounds[i].id;
-
-                matchAssignments.push(await this.createMatchAssignmentUseCase.execute(matchAssignment));
+                //todo: CREATE MATCH ASSIGNMENT
+                //matchAssignments.push(await this.createMatchAssignmentUseCase.execute(matchAssignment));
             }
 
             setups.push(setups.shift());

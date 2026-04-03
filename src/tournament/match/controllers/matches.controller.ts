@@ -1,0 +1,86 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
+import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto } from '@match/dtos/match.dto';
+import { Match } from '@persistence/entities';
+import { MatchManager } from '@match/services/match.manager';
+import { MatchService } from '@match/services/match.service';
+import { ScoringSystemProvider } from '@tournament/services/scoring-systems/ScoringSystemProvider';
+
+@Controller('matches')
+export class MatchesController {
+    constructor(
+        private readonly matchService: MatchService,
+        private readonly matchManager: MatchManager,
+        private readonly scoringSystemProvider: ScoringSystemProvider,
+    ) {}
+
+    @Get('scoring-systems')
+    getScoringSystem(): string[] {
+        return this.scoringSystemProvider.getAll();
+    }
+
+    @Post()
+    async create(@Body(new ValidationPipe()) dto: CreateMatchWithSongsDto): Promise<Match> {
+        const match = await this.matchService.create(dto.getCreateMatchDto());
+
+        if (dto.songIds) {
+            return await this.matchManager.AddSongsToMatch(match, dto.songIds);
+        } else if (dto.levels) {
+            return await this.matchManager.AddRandomSongsToMatch(match, dto.tournamentId, dto.divisionId, dto.group, dto.levels);
+        }
+
+        return match;
+    }
+
+    @Get(':id')
+    findOne(@Param('id') id: number): Promise<Match | null> {
+        return this.matchService.getMatch(id);
+    }
+
+    @Patch(':id')
+    update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateMatchDto): Promise<Match> {
+        return this.matchService.update(id, dto);
+    }
+
+    @Delete(':id')
+    remove(@Param('id') id: number): Promise<void> {
+        return this.matchService.delete(id);
+    }
+
+    @Post(':matchId/songs')
+    async addSongToMatch(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: AddSongToMatchDto): Promise<Match> {
+        const match = await this.matchService.getMatch(matchId);
+
+        if (dto.songId) {
+            return await this.matchManager.AddSongsToMatch(match, [dto.songId]);
+        } else if (dto.level) {
+            return await this.matchManager.AddRandomSongsToMatch(match, dto.tournamentId, dto.divisionId, dto.group, dto.level);
+        }
+
+        return match;
+    }
+
+    @Delete(':matchId/songs/:songId')
+    async removeSongFromMatch(@Param('matchId') matchId: number, @Param('songId') songId: number): Promise<Match> {
+        await this.matchManager.RemoveSongFromMatchById(matchId, songId);
+        return await this.matchService.getMatch(matchId);
+    }
+
+    @Put(':matchId/songs/:songId')
+    async editSongInMatch(@Param('matchId') matchId: number, @Param('songId') songId: number, @Body(new ValidationPipe()) dto: AddSongToMatchDto): Promise<Match> {
+        await this.matchManager.RemoveSongFromMatchById(matchId, songId);
+        const match = await this.matchService.getMatch(matchId);
+
+        if (dto.songId) {
+            return await this.matchManager.AddSongsToMatch(match, [dto.songId]);
+        } else if (dto.level) {
+            return await this.matchManager.AddRandomSongsToMatch(match, dto.tournamentId, dto.divisionId, dto.group, dto.level);
+        }
+
+        return match;
+    }
+
+    @Put(':matchId/paths')
+    async updateMatchPaths(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: UpdateMatchDto): Promise<Match> {
+        return await this.matchManager.UpdateMatchPaths(matchId, dto);
+    }
+}

@@ -16,7 +16,7 @@ export class Round {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToMany(() => Standing, (standing) => standing.round, { eager: true, cascade: true })
+  @OneToMany(() => Standing, (standing) => standing.round, { cascade: true })
   standings: Standing[]
 
   disabledPlayerIds: number[];
@@ -24,9 +24,9 @@ export class Round {
   @ManyToOne(() => Match, (match) => match.rounds, { onDelete: 'CASCADE' })
   match: Match;
 
-  @ManyToOne(() => Song, (song) => song.rounds, { onDelete: 'CASCADE', eager: true })
+  @ManyToOne(() => Song, (song) => song.rounds, { onDelete: 'CASCADE' })
   song: Song;
 
-  @OneToMany(() => MatchAssignment, (matchAssignment) => matchAssignment.round, { eager: true })
+  @OneToMany(() => MatchAssignment, (matchAssignment) => matchAssignment.round)
   matchAssignments: MatchAssignment[];
 }

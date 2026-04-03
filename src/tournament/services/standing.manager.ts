@@ -4,7 +4,7 @@ import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } 
 import { Match, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "./scoring-systems/ScoringSystemProvider";
 import * as path from 'path';
-import { MatchGateway } from '../gateways/match.gateway';
+import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '../itg-online.types';
 import { CreateStandingUseCase } from '../use-cases/standings/create-standing.use-case';
@@ -12,21 +12,11 @@ import { UpdateStandingUseCase } from '../use-cases/standings/update-standing.us
 import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.use-case';
 import { CreateScoreUseCase } from '../use-cases/scores/create-score.use-case';
 import { UpdateScoreUseCase } from '../use-cases/scores/update-score.use-case';
-import { GetSongByNameUseCase } from '../use-cases/songs/get-song-by-name.use-case';
-import { GetPlayerByNameUseCase } from '../use-cases/players/get-player-by-name.use-case';
-import { GetMatchUseCase } from '../use-cases/matches/get-match.use-case';
-import { GetMatchesUseCase } from '../use-cases/matches/get-matches.use-case';
-import { BracketSystemProvider } from './bracket-systems/BracketSystemProvider';
-
-type TournamentSongState = {
-    currentSongPath: string | null;
-    completedSongs: Set<string>;
-};
+import { MatchService } from '@match/services/match.service';
+import { BracketManager } from '@bracket/bracket.manager';
 
 @Injectable()
 export class StandingManager implements ILobbyStateObserver {
-    private tournamentSongState = new Map<number, TournamentSongState>();
-
     constructor(
         @Inject()
         private readonly createStandingUseCase: CreateStandingUseCase,
@@ -39,23 +29,17 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly updateScoreUseCase: UpdateScoreUseCase,
         @Inject()
-        private readonly getSongByNameUseCase: GetSongByNameUseCase,
-        @Inject()
-        private readonly getPlayerByNameUseCase: GetPlayerByNameUseCase,
-        @Inject()
-        private readonly getMatchUseCase: GetMatchUseCase,
-        @Inject()
-        private readonly getMatchesUseCase: GetMatchesUseCase,
+        private readonly matchService: MatchService,
         @Inject()
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
-        private readonly matchGateway: MatchGateway,
+        private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
-        private readonly bracketSystemProvider: BracketSystemProvider,
+        private readonly bracketManager: BracketManager,
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
-        const match = await this.getMatchUseCase.execute(matchId)
+        const match = await this.matchService.getMatch(matchId)
 
         if (!match) {
             console.warn(`[StandingManager] No match found with id "${matchId}"`);
@@ -127,21 +111,21 @@ export class StandingManager implements ILobbyStateObserver {
                 (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
             );
 
-            await this.bracketSystemProvider.advancePlayers(match, sortedPlayers);
+            await this.bracketManager.advancePlayers(match, sortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                const targetMatch = await this.matchService.getMatch(targetMatchId);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
 
     async RemoveStandingFromMatch(matchId: number, playerId: number, songId: number): Promise<Match> {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.matchService.getMatch(matchId);
 
         if (!match) {
             return;
@@ -197,21 +181,21 @@ export class StandingManager implements ILobbyStateObserver {
         }
 
         if (wasComplete && match.targetPaths?.length) {
-            await this.bracketSystemProvider.revertPlayers(match, sortedPlayers);
+            await this.bracketManager.revertPlayers(match, sortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                const targetMatch = await this.matchService.getMatch(targetMatchId);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
 
     async EditStandingInMatch(matchId: number, playerId: number, songId: number, percentage: number, isFailed: boolean): Promise<Match> {
-        const match = await this.getMatchUseCase.execute(matchId);
+        const match = await this.matchService.getMatch(matchId);
 
         if (!match) {
             return;
@@ -263,20 +247,20 @@ export class StandingManager implements ILobbyStateObserver {
         }
 
         if (wasComplete && match.targetPaths?.length) {
-            await this.bracketSystemProvider.revertPlayers(match, oldSortedPlayers);
+            await this.bracketManager.revertPlayers(match, oldSortedPlayers);
 
             const newSortedPlayers = [...match.players].sort(
                 (a, b) => getTotalPoints(b.id) - getTotalPoints(a.id),
             );
-            await this.bracketSystemProvider.advancePlayers(match, newSortedPlayers);
+            await this.bracketManager.advancePlayers(match, newSortedPlayers);
 
             for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.getMatchUseCase.execute(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                const targetMatch = await this.matchService.getMatch(targetMatchId);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
@@ -284,79 +268,42 @@ export class StandingManager implements ILobbyStateObserver {
     async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, _lobbyId: string, _lobbyName: string): Promise<void> {
         const songPath = lobbyState.songInfo?.songPath ?? null;
 
-        let state = this.tournamentSongState.get(tournamentId);
-        if (!state) {
-            state = { currentSongPath: null, completedSongs: new Set() };
-            this.tournamentSongState.set(tournamentId, state);
-        }
-
-        if (songPath !== state.currentSongPath) {
-            state.currentSongPath = songPath;
-            state.completedSongs.clear();
-        }
-
         if (!songPath) return;
 
         for (const player of lobbyState.players) {
             const prog = player.songProgression;
-            if (prog && prog.totalTime > 0 && prog.currentTime >= prog.totalTime) {
-                const key = `${player.profileName}:${songPath}`;
-                if (!state.completedSongs.has(key)) {
-                    state.completedSongs.add(key);
-                    const payload: SongCompletedPayload = {
-                        playerName: player.profileName,
-                        songPath,
-                        scorePercent: this.normalizePercent(player.score),
-                        isFailed: false,
-                    };
-                    console.log(`[StandingManager] Song completed: ${player.profileName} — ${songPath} (${payload.scorePercent.toFixed(2)}%)`);
-                    await this.HandleSongCompleted(payload);
-                }
+            if (player.screenName === "ScreenEvaluation") {
+                const match = await this._findMatchId(songPath, player.profileName);
+
+                if (!match)
+                    continue;
+
+                const payload: CreateScoreDto = {
+                    playerId: match.players.find(p => p.playerName == player.profileName).id,
+                    songId: match.rounds.find(r => r.song.title == songPath).song.id,
+                    percentage: player.score,
+                    isFailed: false,
+                };
+
+                await this.AddScoreToMatchById(match.id, payload);
             }
         }
     }
 
-    async HandleSongCompleted(payload: SongCompletedPayload) {
-        const song = await this.getSongByNameUseCase.execute(path.basename(payload.songPath));
-
-        if (!song) {
-            console.warn(`[StandingManager] Song not found for path: ${payload.songPath}`);
-            return;
-        }
-
-        const player = await this.getPlayerByNameUseCase.execute(payload.playerName);
-
-        if (!player) {
-            console.warn(`[StandingManager] Player not found: ${payload.playerName}`);
-            return;
-        }
-
-        const matches = await this.getMatchesUseCase.execute();
+    private async _findMatchId(songPath: string, playerName: string): Promise<Match | null> {
+        const matches = await this.matchService.findAll();
+        
         const match = matches.find(
             (m) =>
-                m.rounds?.some((r) => r.song?.id === song.id) &&
-                m.players?.some((p) => p.id === player.id),
+                m.rounds?.some((r) => r.song?.title === songPath) &&
+                m.players?.some((p) => p.playerName === playerName),
         );
 
         if (!match) {
-            console.warn(`[StandingManager] No match found for song "${song.title}" and player "${player.playerName}"`);
-            return;
+            console.warn(`[StandingManager] No match found for song "${songPath}" and player "${playerName}"`);
+            return null;
         }
 
-        const newScore = new CreateScoreDto();
-        newScore.playerId = player.id;
-        newScore.songId = song.id;
-        newScore.percentage = payload.scorePercent;
-        newScore.isFailed = payload.isFailed;
-
-        const actualScoreEntity = await this.createScoreUseCase.execute(newScore);
-
-        await this.AddScoreToMatch(match, actualScoreEntity);
-    }
-
-    private normalizePercent(value: number | undefined): number {
-        if (value === undefined || !Number.isFinite(value)) return 0;
-        const scaled = value <= 1 ? value * 100 : value;
-        return Math.max(0, Math.min(100, scaled));
+        return match;
     }
 }
