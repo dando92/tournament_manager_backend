@@ -6,7 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { WebSocket, Server as WsServer } from 'ws';
 import { Match } from '@persistence/entities';
-import { GetTournamentByPhaseUseCase } from '@tournament/use-cases/tournaments/get-tournament-by-phase.use-case';
+import { TournamentService } from '@tournament/services/tournament.service';
 
 @WebSocketGateway({
   path: "/matchupdatehub",
@@ -18,7 +18,7 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: WsServer;
 
-  constructor(private readonly getTournamentByPhaseUseCase: GetTournamentByPhaseUseCase) {}
+  constructor(private readonly tournamentService: TournamentService) {}
 
   handleConnection(client: WebSocket) {
     console.log(`Client connected to match gateway`);
@@ -43,7 +43,7 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const phaseId = (await match.phase)?.id;
-    const tournament = phaseId ? await this.getTournamentByPhaseUseCase.execute(phaseId) : null;
+    const tournament = phaseId ? await this.tournamentService.findByPhase(phaseId) : null;
 
     const msg = { matchId: match.id, phaseId, tournamentId: tournament?.id };
 

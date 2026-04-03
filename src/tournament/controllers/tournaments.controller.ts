@@ -2,89 +2,71 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards, 
 import { Tournament } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 import { JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
-import { CreateTournamentUseCase } from '../use-cases/tournaments/create-tournament.use-case';
-import { GetTournamentsUseCase } from '../use-cases/tournaments/get-tournaments.use-case';
-import { GetPublicTournamentsUseCase } from '../use-cases/tournaments/get-public-tournaments.use-case';
-import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
-import { UpdateTournamentUseCase } from '../use-cases/tournaments/update-tournament.use-case';
-import { DeleteTournamentUseCase } from '../use-cases/tournaments/delete-tournament.use-case';
-import { AssignTournamentHelperUseCase } from '../use-cases/tournaments/assign-tournament-helper.use-case';
-import { RemoveTournamentHelperUseCase } from '../use-cases/tournaments/remove-tournament-helper.use-case';
-import { GetTournamentSongsUseCase } from '../use-cases/tournaments/get-tournament-songs.use-case';
-import { AddSongToTournamentUseCase } from '../use-cases/tournaments/add-song-to-tournament.use-case';
-import { RemoveSongFromTournamentUseCase } from '../use-cases/tournaments/remove-song-from-tournament.use-case';
-import { IsHelperOfAnyUseCase } from '../use-cases/tournaments/is-helper-of-any.use-case';
-import { GetMyTournamentRolesUseCase, MyTournamentRoles } from '../use-cases/tournaments/get-my-tournament-roles.use-case';
-import { GetLobbiesUseCase } from '../use-cases/tournaments/get-lobbies.use-case';
-import { ConnectLobbyUseCase } from '../use-cases/tournaments/connect-lobby.use-case';
-import { DisconnectLobbyUseCase } from '../use-cases/tournaments/disconnect-lobby.use-case';
+import { TournamentService, MyTournamentRoles } from '../services/tournament.service';
+import { TournamentManager } from '../services/tournament.manager';
+import { LobbyManager } from '../services/lobby-manager.service';
 
 @Controller('tournaments')
 export class TournamentsController {
     constructor(
-        private readonly createTournamentUseCase: CreateTournamentUseCase,
-        private readonly getTournamentsUseCase: GetTournamentsUseCase,
-        private readonly getPublicTournamentsUseCase: GetPublicTournamentsUseCase,
-        private readonly getTournamentUseCase: GetTournamentUseCase,
-        private readonly updateTournamentUseCase: UpdateTournamentUseCase,
-        private readonly deleteTournamentUseCase: DeleteTournamentUseCase,
-        private readonly assignTournamentHelperUseCase: AssignTournamentHelperUseCase,
-        private readonly removeTournamentHelperUseCase: RemoveTournamentHelperUseCase,
-        private readonly getTournamentSongsUseCase: GetTournamentSongsUseCase,
-        private readonly addSongToTournamentUseCase: AddSongToTournamentUseCase,
-        private readonly removeSongFromTournamentUseCase: RemoveSongFromTournamentUseCase,
-        private readonly isHelperOfAnyUseCase: IsHelperOfAnyUseCase,
-        private readonly getMyTournamentRolesUseCase: GetMyTournamentRolesUseCase,
-        private readonly getLobbiesUseCase: GetLobbiesUseCase,
-        private readonly connectLobbyUseCase: ConnectLobbyUseCase,
-        private readonly disconnectLobbyUseCase: DisconnectLobbyUseCase,
+        private readonly tournamentService: TournamentService,
+        private readonly tournamentManager: TournamentManager,
+        private readonly lobbyManager: LobbyManager,
     ) {}
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateTournamentDto, @Request() req): Promise<Tournament> {
-        return await this.createTournamentUseCase.execute(dto, req.user?.id);
+        const tournament = await this.tournamentService.create(dto, req.user?.id);
+        if (dto.syncstartUrl) {
+            this.lobbyManager.OnTournamentCreated(tournament.id, dto.syncstartUrl);
+        }
+        return tournament;
     }
 
     @UseGuards(OptionalJwtAuthGuard)
     @Get()
     async findAll(@Request() req): Promise<Tournament[]> {
-        return await this.getTournamentsUseCase.execute(req.user?.id, req.user?.isAdmin, req.user?.isTournamentCreator);
+        return this.tournamentService.findAll(req.user?.id, req.user?.isAdmin);
     }
 
     @Get('public')
     async findAllPublic(): Promise<Tournament[]> {
-        return this.getPublicTournamentsUseCase.execute();
+        return this.tournamentService.findAllPublic();
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('is-helper')
     async getIsHelper(@Request() req): Promise<{ isHelper: boolean }> {
-        const isHelper = await this.isHelperOfAnyUseCase.execute(req.user.id);
+        const isHelper = await this.tournamentService.isHelperOfAny(req.user.id);
         return { isHelper };
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('my-roles')
     async getMyRoles(@Request() req): Promise<MyTournamentRoles> {
-        return this.getMyTournamentRolesUseCase.execute(req.user.id);
+        return this.tournamentService.getMyRoles(req.user.id);
     }
 
     @Get(':id')
     findOne(@Param('id') id: number): Promise<Tournament | null> {
-        return this.getTournamentUseCase.execute(id);
+        return this.tournamentService.findOne(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Patch(':id')
     async update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateTournamentDto): Promise<Tournament> {
-        return this.updateTournamentUseCase.execute(Number(id), dto);
+        const { tournament, previousSyncstartUrl } = await this.tournamentService.update(Number(id), dto);
+        if (dto.syncstartUrl !== undefined && dto.syncstartUrl !== previousSyncstartUrl) {
+            this.lobbyManager.OnTournamentUrlChanged(Number(id), dto.syncstartUrl);
+        }
+        return tournament;
     }
 
     @UseGuards(JwtAuthGuard, AdminGuard)
     @Delete(':id')
     remove(@Param('id') id: number): Promise<void> {
-        return this.deleteTournamentUseCase.execute(id);
+        return this.tournamentService.delete(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
@@ -93,7 +75,7 @@ export class TournamentsController {
         @Param('id') id: number,
         @Body() body: { accountId: string },
     ): Promise<Tournament> {
-        return this.assignTournamentHelperUseCase.execute(id, body.accountId);
+        return this.tournamentManager.addHelper(Number(id), body.accountId);
     }
 
     @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
@@ -102,42 +84,36 @@ export class TournamentsController {
         @Param('id') id: number,
         @Param('accountId') accountId: string,
     ): Promise<Tournament> {
-        return this.removeTournamentHelperUseCase.execute(id, accountId);
+        return this.tournamentManager.removeHelper(Number(id), accountId);
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Get(':id/songs')
     async getSongs(@Param('id') id: number) {
-        return this.getTournamentSongsUseCase.execute(id);
+        return (await this.tournamentService.findOne(id)).songs;
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Post(':id/songs/:songId')
-    async addSong(
-        @Param('id') id: number,
-        @Param('songId') songId: number,
-    ) {
-        await this.addSongToTournamentUseCase.execute(id, Number(songId));
+    async addSong(@Param('id') id: number, @Param('songId') songId: number) {
+        await this.tournamentManager.addSong(Number(id), Number(songId));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Delete(':id/songs/:songId')
-    async removeSong(
-        @Param('id') id: number,
-        @Param('songId') songId: number,
-    ) {
-        await this.removeSongFromTournamentUseCase.execute(id, Number(songId));
+    async removeSong(@Param('id') id: number, @Param('songId') songId: number) {
+        await this.tournamentManager.removeSong(Number(id), Number(songId));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Get(':id/lobbies')
     getLobbies(@Param('id') id: number) {
-        return this.getLobbiesUseCase.execute(Number(id));
+        return this.lobbyManager.GetLobbies(Number(id));
     }
 
     @Get(':id/lobbies/status')
     getLobbiesStatus(@Param('id') id: number) {
-        return this.getLobbiesUseCase.execute(Number(id));
+        return this.lobbyManager.GetLobbies(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
@@ -146,14 +122,14 @@ export class TournamentsController {
         @Param('id') id: number,
         @Body() body: { name?: string; lobbyCode: string; password?: string },
     ) {
-        const lobbyId = await this.connectLobbyUseCase.execute(Number(id), body.lobbyCode, body.password ?? '', body.name);
+        const lobbyId = await this.lobbyManager.ConnectLobby(Number(id), body.name || body.lobbyCode, body.lobbyCode, body.password ?? '');
         return { id: lobbyId };
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Delete(':id/lobbies/:lobbyId/disconnect')
     disconnectLobby(@Param('id') id: number, @Param('lobbyId') lobbyId: string) {
-        this.disconnectLobbyUseCase.execute(Number(id), lobbyId);
+        this.lobbyManager.DisconnectLobby(Number(id), lobbyId);
         return { ok: true };
     }
 }

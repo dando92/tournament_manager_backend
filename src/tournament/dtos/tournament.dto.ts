@@ -4,6 +4,7 @@ import {
     IsString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Account } from '@persistence/entities';
 
 export class CreateTournamentDto {
     /**
@@ -35,4 +36,9 @@ export class UpdateTournamentDto {
     @IsString()
     @ApiProperty({ description: 'WebSocket URL of the syncstart server for this tournament.', required: false })
     syncstartUrl: string;
+
+    // Internal use by TournamentManager — not validated from HTTP body
+    helpers?: Account[];
+    songToAdd?: number;
+    songToRemove?: number;
 }

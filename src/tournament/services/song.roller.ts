@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Division, Song } from '@persistence/entities';
 import { DivisionService } from './division.service';
-import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
+import { TournamentService } from './tournament.service';
 
 @Injectable()
 export class SongRoller {
@@ -9,7 +9,7 @@ export class SongRoller {
         @Inject()
         private readonly divisionService: DivisionService,
         @Inject()
-        private readonly getTournamentUseCase: GetTournamentUseCase) { }
+        private readonly tournamentService: TournamentService) { }
 
     async RollSongs(tournamentId: number, divisionId: number, group: string, levels: string): Promise<number[]> {
         const songs: number[] = [];
@@ -33,7 +33,7 @@ export class SongRoller {
             return 0;
         }
 
-        const tournament = await this.getTournamentUseCase.execute(tournamentId);
+        const tournament = await this.tournamentService.findOne(tournamentId);
 
         if (!tournament) {
             return 0;

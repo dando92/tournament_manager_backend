@@ -7,7 +7,7 @@ import { GetSongUseCase } from '../use-cases/songs/get-song.use-case';
 import { UpdateSongUseCase } from '../use-cases/songs/update-song.use-case';
 import { DeleteSongUseCase } from '../use-cases/songs/delete-song.use-case';
 import { GetScoresBySongUseCase } from '../use-cases/scores/get-scores-by-song.use-case';
-import { GetTournamentUseCase } from '../use-cases/tournaments/get-tournament.use-case';
+import { TournamentService } from '../services/tournament.service';
 
 @Controller('songs')
 export class SongsController {
@@ -18,7 +18,7 @@ export class SongsController {
         private readonly updateSongUseCase: UpdateSongUseCase,
         private readonly deleteSongUseCase: DeleteSongUseCase,
         private readonly getScoresBySongUseCase: GetScoresBySongUseCase,
-        private readonly getTournamentUseCase: GetTournamentUseCase,
+        private readonly tournamentService: TournamentService,
     ) {}
 
     @Post()
@@ -27,12 +27,8 @@ export class SongsController {
     }
 
     @Get()
-    async findAll(@Query('tournamentId') tournamentId?: number): Promise<Song[]> {
-        if (tournamentId) {
-            const tournament = await this.getTournamentUseCase.execute(Number(tournamentId));
-            return await tournament.songs;
-        }
-        return await this.getSongsUseCase.execute();
+    async findAll(@Query('tournamentId') tournamentId: number): Promise<Song[]> {
+        return (await this.tournamentService.findOne(tournamentId)).songs;
     }
 
     @Get(':id')

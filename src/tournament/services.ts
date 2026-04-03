@@ -8,6 +8,8 @@ import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemP
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { BracketManager } from "@bracket/bracket.manager";
 import { LobbyManager } from "./services/lobby-manager.service";
+import { TournamentService } from "./services/tournament.service";
+import { TournamentManager } from "./services/tournament.manager";
 import { PlayerService } from "@player/player.service";
 import { PlayerManager } from "@player/player.manager";
 import { DivisionService } from './services/division.service';
@@ -56,25 +58,6 @@ import { GetMatchAssignmentUseCase } from '@match/use-cases/match-assignments/ge
 import { UpdateMatchAssignmentUseCase } from '@match/use-cases/match-assignments/update-match-assignment.use-case';
 import { DeleteMatchAssignmentUseCase } from '@match/use-cases/match-assignments/delete-match-assignment.use-case';
 
-// Tournament use cases
-import { CreateTournamentUseCase } from './use-cases/tournaments/create-tournament.use-case';
-import { GetTournamentsUseCase } from './use-cases/tournaments/get-tournaments.use-case';
-import { GetPublicTournamentsUseCase } from './use-cases/tournaments/get-public-tournaments.use-case';
-import { GetTournamentUseCase } from './use-cases/tournaments/get-tournament.use-case';
-import { UpdateTournamentUseCase } from './use-cases/tournaments/update-tournament.use-case';
-import { DeleteTournamentUseCase } from './use-cases/tournaments/delete-tournament.use-case';
-import { AssignTournamentHelperUseCase } from './use-cases/tournaments/assign-tournament-helper.use-case';
-import { RemoveTournamentHelperUseCase } from './use-cases/tournaments/remove-tournament-helper.use-case';
-import { GetTournamentSongsUseCase } from './use-cases/tournaments/get-tournament-songs.use-case';
-import { AddSongToTournamentUseCase } from './use-cases/tournaments/add-song-to-tournament.use-case';
-import { RemoveSongFromTournamentUseCase } from './use-cases/tournaments/remove-song-from-tournament.use-case';
-import { IsHelperOfAnyUseCase } from './use-cases/tournaments/is-helper-of-any.use-case';
-import { GetMyTournamentRolesUseCase } from './use-cases/tournaments/get-my-tournament-roles.use-case';
-import { GetTournamentByDivisionUseCase } from './use-cases/tournaments/get-tournament-by-division.use-case';
-import { GetTournamentByPhaseUseCase } from './use-cases/tournaments/get-tournament-by-phase.use-case';
-import { GetLobbiesUseCase } from './use-cases/tournaments/get-lobbies.use-case';
-import { ConnectLobbyUseCase } from './use-cases/tournaments/connect-lobby.use-case';
-import { DisconnectLobbyUseCase } from './use-cases/tournaments/disconnect-lobby.use-case';
 
 // Phase use cases
 import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
@@ -93,6 +76,8 @@ export { ScoringSystemProvider };
 export { BracketSystemProvider };
 export { BracketManager };
 export { LobbyManager };
+export { TournamentService };
+export { TournamentManager };
 export { PlayerService };
 export { PlayerManager };
 export { DivisionService };
@@ -135,24 +120,6 @@ export { GetMatchAssignmentUseCase };
 export { UpdateMatchAssignmentUseCase };
 export { DeleteMatchAssignmentUseCase };
 
-export { CreateTournamentUseCase };
-export { GetTournamentsUseCase };
-export { GetPublicTournamentsUseCase };
-export { GetTournamentUseCase };
-export { UpdateTournamentUseCase };
-export { DeleteTournamentUseCase };
-export { AssignTournamentHelperUseCase };
-export { RemoveTournamentHelperUseCase };
-export { GetTournamentSongsUseCase };
-export { AddSongToTournamentUseCase };
-export { RemoveSongFromTournamentUseCase };
-export { IsHelperOfAnyUseCase };
-export { GetMyTournamentRolesUseCase };
-export { GetTournamentByDivisionUseCase };
-export { GetTournamentByPhaseUseCase };
-export { GetLobbiesUseCase };
-export { ConnectLobbyUseCase };
-export { DisconnectLobbyUseCase };
 
 export { CreatePhaseUseCase };
 export { GetPhasesUseCase };
@@ -220,25 +187,8 @@ export const Services = [
     UpdateMatchAssignmentUseCase,
     DeleteMatchAssignmentUseCase,
 
-    // Tournament use cases
-    CreateTournamentUseCase,
-    GetTournamentsUseCase,
-    GetPublicTournamentsUseCase,
-    GetTournamentUseCase,
-    UpdateTournamentUseCase,
-    DeleteTournamentUseCase,
-    AssignTournamentHelperUseCase,
-    RemoveTournamentHelperUseCase,
-    GetTournamentSongsUseCase,
-    AddSongToTournamentUseCase,
-    RemoveSongFromTournamentUseCase,
-    IsHelperOfAnyUseCase,
-    GetMyTournamentRolesUseCase,
-    GetTournamentByDivisionUseCase,
-    GetTournamentByPhaseUseCase,
-    GetLobbiesUseCase,
-    ConnectLobbyUseCase,
-    DisconnectLobbyUseCase,
+    TournamentService,
+    TournamentManager,
 
     // Phase use cases
     CreatePhaseUseCase,

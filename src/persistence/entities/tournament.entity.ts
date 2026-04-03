@@ -27,10 +27,10 @@ export class Tournament {
   @OneToMany(() => Division, (division) => division.tournament, { eager: true, cascade: true })
   divisions: Division[]
 
-  @ManyToOne(() => Account, { nullable: true, eager: false })
+  @ManyToOne(() => Account, { nullable: true, eager: true })
   owner: Account;
 
-  @ManyToMany(() => Account, { eager: false })
+  @ManyToMany(() => Account, { eager: true })
   @JoinTable()
   helpers: Account[];
 
