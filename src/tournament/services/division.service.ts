@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Division, Player, Tournament } from '@persistence/entities';
 import { CreateDivisionDto, UpdateDivisionDto } from '../dtos';
+import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
 @Injectable()
 export class DivisionService {
@@ -11,6 +12,7 @@ export class DivisionService {
         private readonly divisionRepository: Repository<Division>,
         @InjectRepository(Tournament)
         private readonly tournamentRepository: Repository<Tournament>,
+        private readonly uiUpdateGateway: UiUpdateGateway,
     ) {}
 
     async create(dto: CreateDivisionDto): Promise<Division> {
@@ -19,7 +21,9 @@ export class DivisionService {
         const division = new Division();
         division.name = dto.name;
         division.tournament = tournament;
-        return this.divisionRepository.save(division);
+        const savedDivision = await this.divisionRepository.save(division);
+        await this.uiUpdateGateway.emitTournamentUpdate(dto.tournamentId);
+        return savedDivision;
     }
 
     async findAll(tournamentId?: number): Promise<Division[]> {
@@ -99,7 +103,12 @@ export class DivisionService {
     }
 
     async findOneBasic(id: number): Promise<Division | null> {
-        return this.divisionRepository.findOneBy({ id });
+        return this.divisionRepository.findOne({
+            where: { id },
+            relations: {
+                tournament: true,
+            },
+        });
     }
 
     async update(id: number, dto: UpdateDivisionDto): Promise<Division> {
@@ -116,7 +125,10 @@ export class DivisionService {
     }
 
     async delete(id: number): Promise<void> {
+        const division = await this.findOneBasic(id);
+        const tournamentId = division?.tournament?.id;
         await this.divisionRepository.delete(id);
+        await this.uiUpdateGateway.emitTournamentUpdate(tournamentId);
     }
 
     async getPlayers(id: number): Promise<Player[]> {

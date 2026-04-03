@@ -7,8 +7,8 @@ import { KingOfTheHill } from "@bracket/KingOfTheHill";
 import { MatchService } from "@match/services/match.service";
 import { DivisionService } from "@tournament/services/division.service";
 import { DeleteStandingUseCase } from "@tournament/use-cases/standings/delete-standing.use-case";
-import { CreatePhaseUseCase } from "@tournament/use-cases/phases/create-phase.use-case";
 import { MatchManager } from "@match/services/match.manager";
+import { PhaseService } from "@tournament/services/phase.service";
 
 @Injectable()
 export class BracketSystemProvider {
@@ -23,10 +23,10 @@ export class BracketSystemProvider {
         @Inject()
         private readonly deleteStandingUseCase: DeleteStandingUseCase,
         @Inject()
-        private readonly createPhaseUseCase: CreatePhaseUseCase,
+        private readonly phaseService: PhaseService,
     ) {
-        const args: [MatchService, MatchManager, DivisionService, DeleteStandingUseCase, CreatePhaseUseCase] =
-            [matchService, matchManager, divisionService, deleteStandingUseCase, createPhaseUseCase];
+        const args: [MatchService, MatchManager, DivisionService, DeleteStandingUseCase, PhaseService] =
+            [matchService, matchManager, divisionService, deleteStandingUseCase, phaseService];
 
         const all: IBracketSystem[] = [
             new DoubleElimination(...args),

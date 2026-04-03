@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Match, Phase, Player } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
+import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
 @Injectable()
 export class MatchService {
@@ -13,6 +14,7 @@ export class MatchService {
         private readonly phaseRepository: Repository<Phase>,
         @InjectRepository(Player)
         private readonly playerRepository: Repository<Player>,
+        private readonly uiUpdateGateway: UiUpdateGateway,
     ) {}
 
     async create(dto: CreateMatchDto): Promise<Match> {
@@ -39,9 +41,10 @@ export class MatchService {
         }
         match.subtitle = dto.subtitle;
 
-        await this.matchRepository.save(match);
+        const savedMatch = await this.matchRepository.save(match);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(dto.phaseId);
 
-        return match;
+        return savedMatch;
     }
 
     async findAll(): Promise<Match[]> {
@@ -114,12 +117,16 @@ export class MatchService {
         delete (dto as any).sourcePaths;
 
         this.matchRepository.merge(match, dto);
-        return await this.matchRepository.save(match);
+        const updatedMatch = await this.matchRepository.save(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(updatedMatch.id);
+        return updatedMatch;
     }
 
     async delete(id: number): Promise<void> {
         const match = await this.findOneBasic(id);
         if (!match) return;
+        const phase = await match.phase;
+        const phaseId = phase?.id;
 
         const sourcePathIds: number[] = (match.sourcePaths ?? []).map(Number);
         if (sourcePathIds.length > 0) {
@@ -127,9 +134,11 @@ export class MatchService {
             for (const source of sourceMatches) {
                 source.targetPaths = (source.targetPaths ?? []).filter(t => Number(t) !== id);
                 await this.matchRepository.save(source);
+                await this.uiUpdateGateway.emitMatchUpdateByMatchId(source.id);
             }
         }
 
         await this.matchRepository.remove(match);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);
     }
 }

@@ -4,7 +4,7 @@ import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } 
 import { Match, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "./scoring-systems/ScoringSystemProvider";
 import * as path from 'path';
-import { MatchGateway } from '@match/gateways/match.gateway';
+import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '../itg-online.types';
 import { CreateStandingUseCase } from '../use-cases/standings/create-standing.use-case';
@@ -33,7 +33,7 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
-        private readonly matchGateway: MatchGateway,
+        private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
         private readonly bracketManager: BracketManager,
     ) { }
@@ -115,11 +115,11 @@ export class StandingManager implements ILobbyStateObserver {
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
@@ -185,11 +185,11 @@ export class StandingManager implements ILobbyStateObserver {
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
@@ -256,11 +256,11 @@ export class StandingManager implements ILobbyStateObserver {
 
             for (const targetMatchId of match.targetPaths) {
                 const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.matchGateway.OnMatchUpdate(targetMatch);
+                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
             }
         }
 
-        await this.matchGateway.OnMatchUpdate(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }

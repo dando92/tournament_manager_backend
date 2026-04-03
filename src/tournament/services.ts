@@ -12,6 +12,7 @@ import { TournamentManager } from "./services/tournament.manager";
 import { PlayerService } from "@player/player.service";
 import { PlayerManager } from "@player/player.manager";
 import { DivisionService } from './services/division.service';
+import { PhaseService } from './services/phase.service';
 
 // Round use cases
 import { CreateRoundUseCase } from './use-cases/rounds/create-round.use-case';
@@ -32,9 +33,6 @@ import { CreateStandingUseCase } from './use-cases/standings/create-standing.use
 import { UpdateStandingUseCase } from './use-cases/standings/update-standing.use-case';
 import { DeleteStandingUseCase } from './use-cases/standings/delete-standing.use-case';
 
-// Phase use cases
-import { CreatePhaseUseCase } from './use-cases/phases/create-phase.use-case';
-
 export { UserService as AccountService };
 export { MatchManager };
 export { MatchService };
@@ -49,6 +47,7 @@ export { TournamentManager };
 export { PlayerService };
 export { PlayerManager };
 export { DivisionService };
+export { PhaseService };
 
 export { CreateRoundUseCase };
 export { UpdateRoundUseCase };
@@ -65,8 +64,6 @@ export { CreateStandingUseCase };
 export { UpdateStandingUseCase };
 export { DeleteStandingUseCase };
 
-export { CreatePhaseUseCase };
-
 export const Services = [
     UserService,
     MatchService,
@@ -81,6 +78,7 @@ export const Services = [
     PlayerManager,
 
     DivisionService,
+    PhaseService,
 
     // Round use cases
     CreateRoundUseCase,
@@ -103,7 +101,4 @@ export const Services = [
 
     TournamentService,
     TournamentManager,
-
-    // Phase use cases
-    CreatePhaseUseCase,
 ];

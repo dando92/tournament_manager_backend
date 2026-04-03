@@ -6,10 +6,10 @@ import { UpdateMatchDto } from "@tournament/dtos";
 import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
 import { DivisionService } from "@tournament/services/division.service";
 import { DeleteStandingUseCase } from "@tournament/use-cases/standings/delete-standing.use-case";
-import { CreatePhaseUseCase } from "@tournament/use-cases/phases/create-phase.use-case";
 import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
+import { PhaseService } from "@tournament/services/phase.service";
 
 export class IBracketSystem {
     constructor(
@@ -22,7 +22,7 @@ export class IBracketSystem {
         @Inject()
         protected readonly deleteStandingUseCase: DeleteStandingUseCase,
         @Inject()
-        protected readonly createPhaseUseCase: CreatePhaseUseCase,
+        protected readonly phaseService: PhaseService,
     ) {
     }
 
@@ -39,7 +39,7 @@ export class IBracketSystem {
         const phaseDto = new CreatePhaseDto();
         phaseDto.name = `Bracket ${phaseNumber}`;
         phaseDto.divisionId = division.id;
-        const phase = await this.createPhaseUseCase.execute(phaseDto);
+        const phase = await this.phaseService.create(phaseDto);
         phase.matches = [];
 
         await this.createBracket(players, playerPerMatch, division, phase);
