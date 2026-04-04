@@ -27,4 +27,16 @@ export class PhaseService {
         await this.uiUpdateGateway.emitDivisionUpdateByDivisionId(dto.divisionId);
         return savedPhase;
     }
+
+    async delete(id: number): Promise<void> {
+        const phase = await this.phaseRepository.findOne({
+            where: { id },
+            relations: { division: true },
+        });
+
+        if (!phase) throw new NotFoundException(`Phase with ID ${id} not found`);
+
+        await this.phaseRepository.delete(id);
+        await this.uiUpdateGateway.emitDivisionUpdateByDivisionId(phase.division.id);
+    }
 }
