@@ -282,7 +282,7 @@ export class StandingManager implements ILobbyStateObserver {
                     playerId: match.players.find(p => p.playerName == player.profileName).id,
                     songId: match.rounds.find(r => r.song.title == songPath).song.id,
                     percentage: player.score,
-                    isFailed: false,
+                    isFailed: player.isFailed ?? false,
                 };
 
                 await this.AddScoreToMatchById(match.id, payload);

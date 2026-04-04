@@ -75,6 +75,7 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
         playerId: p.playerId,
         scorePercent: p.score ?? 0,
         exScore: p.exScore,
+        isFailed: p.isFailed ?? false,
         judgments: p.judgments
           ? {
               fantasticPlus: p.judgments.fantasticPlus,

@@ -24,6 +24,7 @@ export type LobbyPlayer = {
   judgments?: Judgments;
   score?: number;
   exScore?: number;
+  isFailed?: boolean;
   songProgression?: {
     currentTime: number;
     totalTime: number;
