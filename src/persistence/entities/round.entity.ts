@@ -19,8 +19,6 @@ export class Round {
   @OneToMany(() => Standing, (standing) => standing.round, { cascade: true })
   standings: Standing[]
 
-  disabledPlayerIds: number[];
-
   @ManyToOne(() => Match, (match) => match.rounds, { onDelete: 'CASCADE' })
   match: Match;
 

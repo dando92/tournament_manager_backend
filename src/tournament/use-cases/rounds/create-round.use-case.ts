@@ -17,6 +17,8 @@ export class CreateRoundUseCase {
 
     async execute(dto: CreateRoundDto): Promise<Round> {
         const newRound = new Round();
+        newRound.standings = [];
+        newRound.matchAssignments = [];
 
         const match = await this.matchRepo.findOneBy({ id: dto.matchId });
         if (!match) throw new Error(`Match with id ${dto.matchId} not found. Insert round failed`);

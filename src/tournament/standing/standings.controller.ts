@@ -1,35 +1,16 @@
 import { Body, Controller, Delete, Param, Post, Put } from '@nestjs/common';
-import { AddStandingToMatchDto, CreateScoreDto, UpdateRoundDto } from '../dtos';
+import { AddStandingToMatchDto, CreateScoreDto } from '../dtos';
 import { Match } from '@persistence/entities';
-import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
 import { StandingManager } from './standing.manager';
-import { MatchManager } from '@match/services/match.manager';
 
 @Controller('standings')
 export class StandingsController {
     constructor(
-        private readonly updateRoundUseCase: UpdateRoundUseCase,
         private readonly standingManager: StandingManager,
-        private readonly matchManager: MatchManager,
     ) {}
 
     @Post('matches/:matchId')
     async addStanding(@Param('matchId') matchId: number, @Body() dto: AddStandingToMatchDto): Promise<Match> {
-        if (dto.isFailed && dto.percentage == -1) {
-            const match = await this.matchManager.GetMatch(matchId);
-            const round = match.rounds.find(round => round.song.id == dto.songId);
-
-            if (round.disabledPlayerIds == null) {
-                round.disabledPlayerIds = [];
-            }
-
-            round.disabledPlayerIds.push(dto.playerId);
-
-            const roundDto = new UpdateRoundDto();
-            roundDto.disabledPlayerIds = round.disabledPlayerIds;
-            await this.updateRoundUseCase.execute(round.id, roundDto);
-        }
-
         const score = new CreateScoreDto();
         score.isFailed = dto.isFailed;
         score.percentage = dto.percentage;
