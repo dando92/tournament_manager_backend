@@ -2,7 +2,8 @@ import { UserService } from '../user/services/user.service';
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
 import { SongRoller } from "./services/song.roller";
-import { StandingManager } from "./services/standing.manager";
+import { StandingManager } from "./standing/standing.manager";
+import { StandingService } from "./standing/standing.service";
 import { ScoringSystemProvider } from "./services/scoring-systems/ScoringSystemProvider";
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { BracketManager } from "@bracket/bracket.manager";
@@ -27,11 +28,6 @@ import { UpdateScoreUseCase } from './use-cases/scores/update-score.use-case';
 // Song use cases
 import { CreateSongUseCase } from './use-cases/songs/create-song.use-case';
 import { DeleteSongUseCase } from './use-cases/songs/delete-song.use-case';
-
-// Standing use cases
-import { CreateStandingUseCase } from './use-cases/standings/create-standing.use-case';
-import { UpdateStandingUseCase } from './use-cases/standings/update-standing.use-case';
-import { DeleteStandingUseCase } from './use-cases/standings/delete-standing.use-case';
 
 export { UserService as AccountService };
 export { MatchManager };
@@ -60,9 +56,7 @@ export { UpdateScoreUseCase };
 export { CreateSongUseCase };
 export { DeleteSongUseCase };
 
-export { CreateStandingUseCase };
-export { UpdateStandingUseCase };
-export { DeleteStandingUseCase };
+export { StandingService };
 
 export const Services = [
     UserService,
@@ -70,6 +64,7 @@ export const Services = [
     MatchManager,
     SongRoller,
     StandingManager,
+    StandingService,
     ScoringSystemProvider,
     BracketSystemProvider,
     BracketManager,
@@ -93,11 +88,6 @@ export const Services = [
     // Song use cases
     CreateSongUseCase,
     DeleteSongUseCase,
-
-    // Standing use cases
-    CreateStandingUseCase,
-    UpdateStandingUseCase,
-    DeleteStandingUseCase,
 
     TournamentService,
     TournamentManager,

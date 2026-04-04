@@ -4,7 +4,7 @@ import { MatchesController } from '@match/controllers/matches.controller';
 import { PlayersController } from '@player/players.controller';
 import { TournamentsController } from './controllers/tournaments.controller';
 import { SongsController } from './controllers/songs.controller';
-import { StandingsController } from './controllers/standings.controller';
+import { StandingsController } from './standing/standings.controller';
 import { BracketController } from '@bracket/bracket.controller';
 
 export const Controllers = [

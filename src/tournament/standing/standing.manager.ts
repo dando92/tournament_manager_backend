@@ -1,29 +1,22 @@
 import { Injectable, Inject } from "@nestjs/common";
-import { SongCompletedPayload } from "../live-score.types"
-import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } from '../../tournament/dtos';
+import { SongCompletedPayload } from "../live-score.types";
+import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } from '../dtos';
 import { Match, Score } from '@persistence/entities';
-import { ScoringSystemProvider } from "./scoring-systems/ScoringSystemProvider";
-import * as path from 'path';
+import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystemProvider";
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '../itg-online.types';
-import { CreateStandingUseCase } from '../use-cases/standings/create-standing.use-case';
-import { UpdateStandingUseCase } from '../use-cases/standings/update-standing.use-case';
-import { DeleteStandingUseCase } from '../use-cases/standings/delete-standing.use-case';
 import { CreateScoreUseCase } from '../use-cases/scores/create-score.use-case';
 import { UpdateScoreUseCase } from '../use-cases/scores/update-score.use-case';
 import { MatchService } from '@match/services/match.service';
 import { BracketManager } from '@bracket/bracket.manager';
+import { StandingService } from './standing.service';
 
 @Injectable()
 export class StandingManager implements ILobbyStateObserver {
     constructor(
         @Inject()
-        private readonly createStandingUseCase: CreateStandingUseCase,
-        @Inject()
-        private readonly updateStandingUseCase: UpdateStandingUseCase,
-        @Inject()
-        private readonly deleteStandingUseCase: DeleteStandingUseCase,
+        private readonly standingService: StandingService,
         @Inject()
         private readonly createScoreUseCase: CreateScoreUseCase,
         @Inject()
@@ -39,7 +32,7 @@ export class StandingManager implements ILobbyStateObserver {
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
-        const match = await this.matchService.getMatch(matchId)
+        const match = await this.matchService.getMatch(matchId);
 
         if (!match) {
             console.warn(`[StandingManager] No match found with id "${matchId}"`);
@@ -66,13 +59,16 @@ export class StandingManager implements ILobbyStateObserver {
             const updateStanding = new UpdateStandingDto();
             updateStanding.scoreId = score.id;
             updateStanding.points = 0;
+            await this.standingService.update(alreadyExistentStanding.id, updateStanding);
+            alreadyExistentStanding.score = score;
+            alreadyExistentStanding.points = 0;
         } else {
             const newStanding = new CreateStandingDto();
             newStanding.roundId = round.id;
             newStanding.scoreId = score.id;
             newStanding.points = 0;
 
-            const standing = await this.createStandingUseCase.execute(newStanding);
+            const standing = await this.standingService.create(newStanding);
             round.standings.push(standing);
         }
 
@@ -90,7 +86,7 @@ export class StandingManager implements ILobbyStateObserver {
             round.standings.forEach(async standing => {
                 const dto = new UpdateStandingDto();
                 dto.points = standing.points;
-                await this.updateStandingUseCase.execute(standing.id, dto);
+                await this.standingService.update(standing.id, dto);
             });
         }
 
@@ -160,7 +156,7 @@ export class StandingManager implements ILobbyStateObserver {
                 const standing = round.standings[i];
 
                 if (standing.score.player.id == playerId && standing.score.song.id == songId) {
-                    await this.deleteStandingUseCase.execute(standing.id);
+                    await this.standingService.delete(standing.id);
                     index = i;
                 }
             }
@@ -172,7 +168,7 @@ export class StandingManager implements ILobbyStateObserver {
                     const standing = round.standings[i];
                     const dto = new UpdateStandingDto();
                     dto.points = 0;
-                    await this.updateStandingUseCase.execute(standing.id, dto);
+                    await this.standingService.update(standing.id, dto);
                     standing.points = 0;
                 }
             }
@@ -243,7 +239,7 @@ export class StandingManager implements ILobbyStateObserver {
         for (const s of round.standings) {
             const dto = new UpdateStandingDto();
             dto.points = s.points;
-            await this.updateStandingUseCase.execute(s.id, dto);
+            await this.standingService.update(s.id, dto);
         }
 
         if (wasComplete && match.targetPaths?.length) {
@@ -292,7 +288,7 @@ export class StandingManager implements ILobbyStateObserver {
 
     private async _findMatchId(songPath: string, playerName: string): Promise<Match | null> {
         const matches = await this.matchService.findAll();
-        
+
         const match = matches.find(
             (m) =>
                 m.rounds?.some((r) => r.song?.title === songPath) &&

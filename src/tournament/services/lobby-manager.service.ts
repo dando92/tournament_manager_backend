@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 import { Tournament } from '@persistence/entities';
 import { LobbyStatePayload } from '../itg-online.types';
 import { SyncStartConnector } from './syncstart-connector';
-import { StandingManager } from './standing.manager';
+import { StandingManager } from '../standing/standing.manager';
 import { ItgOnlineProxyGateway } from '../gateways/itg-online-proxy.gateway';
 
 interface LobbyMeta {

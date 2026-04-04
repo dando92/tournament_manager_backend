@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Param, Post, Put } from '@nestjs/common';
 import { AddStandingToMatchDto, CreateScoreDto, UpdateRoundDto } from '../dtos';
 import { Match } from '@persistence/entities';
 import { UpdateRoundUseCase } from '../use-cases/rounds/update-round.use-case';
-import { StandingManager } from '../services/standing.manager';
+import { StandingManager } from './standing.manager';
 import { MatchManager } from '@match/services/match.manager';
 
 @Controller('standings')

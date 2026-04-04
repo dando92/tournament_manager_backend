@@ -5,7 +5,7 @@ import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from '@
 import { CreateRoundDto, UpdateRoundDto } from './dtos/round.dto';
 import { CreateScoreDto, UpdateScoreDto } from './dtos/score.dto';
 import { CreateSongDto, UpdateSongDto } from './dtos/song.dto';
-import { CreateStandingDto, UpdateStandingDto } from './dtos/standing.dto';
+import { CreateStandingDto, UpdateStandingDto } from './standing/standing.dto';
 
 import { CreateTournamentDto, UpdateTournamentDto } from './dtos/tournament.dto';
 import { CreateMatchAssignmentDto, UpdateMatchAssignmentDto } from '@match/dtos/match_assignment.dto';

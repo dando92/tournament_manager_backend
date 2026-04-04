@@ -3,9 +3,8 @@ import { CreateDivisionDto } from "@tournament/dtos";
 import { CreateMatchDto } from "@tournament/dtos";
 import { UpdateMatchDto } from "@tournament/dtos";
 
-import { Match, Player, Standing, Division, Phase } from "@persistence/entities";
+import { Match, Player, Division, Phase } from "@persistence/entities";
 import { DivisionService } from "@tournament/services/division.service";
-import { DeleteStandingUseCase } from "@tournament/use-cases/standings/delete-standing.use-case";
 import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
@@ -19,8 +18,6 @@ export class IBracketSystem {
         protected readonly matchManager: MatchManager,
         @Inject()
         protected readonly divisionService: DivisionService,
-        @Inject()
-        protected readonly deleteStandingUseCase: DeleteStandingUseCase,
         @Inject()
         protected readonly phaseService: PhaseService,
     ) {
@@ -99,22 +96,6 @@ export class IBracketSystem {
     }
 
     protected async RemovePlayerFromMatch(player: Player, matchId: number) {
-        const match = await this.matchManager.GetMatch(matchId);
-        const standings: Standing[] = [];
-
-        for (const round of match.rounds) {
-            for (const standing of round.standings) {
-                if (standing.score.player.id == player.id) {
-                    standings.push(standing);
-                }
-
-            }
-        }
-
-        for (const standing of standings) {
-            this.deleteStandingUseCase.execute(standing.id);
-        }
-
-        this.matchManager.RemovePlayersFromMatch(matchId, [player.id]);
+        await this.matchManager.RemovePlayersFromMatch(matchId, [player.id]);
     }
 }

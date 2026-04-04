@@ -3,7 +3,7 @@ import {
     IsNumber,
     IsOptional,
 } from 'class-validator';
-import { Score, Round }  from '@persistence/entities';
+import { Score, Round } from '@persistence/entities';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStandingDto {
@@ -24,7 +24,7 @@ export class CreateStandingDto {
     @IsNotEmpty()
     @IsNumber()
     roundId: number;
-    
+
     @ApiProperty({ description: 'The score value', example: 1, required: true })
     @IsNotEmpty()
     @IsNumber()

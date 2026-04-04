@@ -7,6 +7,7 @@ import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { CreateRoundUseCase } from '@tournament/use-cases/rounds/create-round.use-case';
 import { DeleteRoundUseCase } from '@tournament/use-cases/rounds/delete-round.use-case';
 import { MatchService } from '@match/services/match.service';
+import { StandingService } from '@tournament/standing/standing.service';
 
 @Injectable()
 export class MatchManager {
@@ -19,6 +20,8 @@ export class MatchManager {
         private readonly deleteRoundUseCase: DeleteRoundUseCase,
         @Inject()
         private readonly songExtractor: SongRoller,
+        @Inject()
+        private readonly standingService: StandingService,
         @Inject()
         private readonly uiUpdateGateway: UiUpdateGateway
     ) {
@@ -82,6 +85,15 @@ export class MatchManager {
     async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
+
+        for (const round of match.rounds ?? []) {
+            for (const standing of round.standings ?? []) {
+                if (playerIdsToRemove.includes(standing.score.player.id)) {
+                    await this.standingService.delete(standing.id);
+                }
+            }
+        }
+
         const remainingPlayerIds = match.players
             .filter(player => !playerIdsToRemove.includes(player.id))
             .map(player => player.id);

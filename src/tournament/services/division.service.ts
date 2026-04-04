@@ -46,7 +46,18 @@ export class DivisionService {
                 tournament: true,
                 players: true,
                 phases: {
-                    matches: true,
+                    matches: {
+                        players: true,
+                        rounds: {
+                            song: true,
+                            standings: {
+                                score: {
+                                    player: true,
+                                    song: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         });
