@@ -2,19 +2,10 @@ import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Request,
 import { ConfigService } from '@nestjs/config';
 
 import { UserService } from '../services';
-import { CreateUserPlayerDto } from '../dtos';
+import { CreateUserPlayerDto, UserProfileDto } from '../dtos';
 
 import { JwtAuthGuard, AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
 import { Account } from '@persistence/entities';
-
-type CurrentUserProfileDto = {
-    id: string;
-    username: string;
-    nationality: string;
-    grooveStatsApi: string;
-    profilePicture: string;
-    player: Account['player'] | null;
-};
 
 type AdminUserDto = {
     id: string;
@@ -30,7 +21,7 @@ export class UserController {
         private readonly configService: ConfigService,
     ) { }
 
-    private toCurrentUserProfileDto(account: Account): CurrentUserProfileDto {
+    private toCurrentUserProfileDto(account: Account): UserProfileDto {
         return {
             id: account.id,
             username: account.username,

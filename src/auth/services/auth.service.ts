@@ -8,15 +8,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { Account } from '@persistence/entities';
-
-export interface CurrentUserDto {
-    id: string;
-    username: string;
-    nationality: string;
-    grooveStatsApi: string;
-    profilePicture: string;
-    player: Account['player'] | null;
-}
+import { UserProfileDto } from '../../user/dtos';
 
 export interface AuthPermissionsDto {
     isAdmin: boolean;
@@ -70,7 +62,7 @@ export class AuthService {
         };
     }
 
-    async getMe(userId: string): Promise<CurrentUserDto> {
+    async getMe(userId: string): Promise<UserProfileDto> {
         if (userId === 'local-admin') {
             return {
                 id: 'local-admin',
