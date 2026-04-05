@@ -7,6 +7,7 @@ import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { MatchService } from '@match/services/match.service';
 import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
+import { MatchListDto } from '@match/dtos/match-list.dto';
 
 @Injectable()
 export class MatchManager {
@@ -34,6 +35,48 @@ export class MatchManager {
 
     async DeleteMatch(id: number): Promise<void> {
         return await this.matchService.delete(id);
+    }
+
+    async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
+        const matches = await this.matchService.findByDivisionForView(divisionId);
+        return matches.map((match) => ({
+            id: match.id,
+            name: match.name,
+            subtitle: match.subtitle,
+            notes: match.notes,
+            scoringSystem: match.scoringSystem,
+            players: (match.players ?? []).map((player) => ({
+                id: player.id,
+                playerName: player.playerName,
+            })),
+            rounds: (match.rounds ?? []).map((round) => ({
+                id: round.id,
+                song: {
+                    id: round.song.id,
+                    title: round.song.title,
+                },
+                standings: (round.standings ?? []).map((standing) => ({
+                    id: standing.id,
+                    points: standing.points,
+                    score: {
+                        id: standing.score.id,
+                        percentage: standing.score.percentage,
+                        isFailed: standing.score.isFailed,
+                        player: {
+                            id: standing.score.player.id,
+                            playerName: standing.score.player.playerName,
+                        },
+                        song: {
+                            id: round.song.id,
+                            title: round.song.title,
+                        },
+                    },
+                })),
+            })),
+            targetPaths: match.targetPaths ?? [],
+            sourcePaths: match.sourcePaths ?? [],
+            phaseId: (match as Match & { phase?: { id?: number } }).phase?.id,
+        }));
     }
 
     async UpdateMatchPaths(matchId: number, dto: UpdateMatchDto): Promise<Match> {

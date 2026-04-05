@@ -76,16 +76,15 @@ export class MatchService {
                 },
             },
             relations: {
+                phase: true,
                 players: true,
                 rounds: {
                     song: true,
                     standings: {
                         score: {
                             player: true,
-                            song: true,
                         },
                     },
-                    matchAssignments: true,
                 },
             },
         });

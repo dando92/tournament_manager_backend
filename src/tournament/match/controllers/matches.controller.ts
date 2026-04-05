@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
+import { MatchListDto } from '@match/dtos/match-list.dto';
 import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { MatchManager } from '@match/services/match.manager';
@@ -32,8 +33,8 @@ export class MatchesController {
     }
 
     @Get('division/:divisionId')
-    findByDivision(@Param('divisionId') divisionId: number): Promise<Match[]> {
-        return this.matchService.findByDivisionForView(Number(divisionId));
+    findByDivision(@Param('divisionId') divisionId: number): Promise<MatchListDto[]> {
+        return this.matchManager.FindMatchesForDivision(Number(divisionId));
     }
 
     @Get(':id')
