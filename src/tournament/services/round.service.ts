@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Round, Match, Song } from '@persistence/entities';
-import { UpdateRoundDto } from '../../dtos';
+import { Match, Round, Song } from '@persistence/entities';
+import { CreateRoundDto, UpdateRoundDto } from '../dtos';
 
 @Injectable()
-export class UpdateRoundUseCase {
+export class RoundService {
     constructor(
         @InjectRepository(Round)
         private readonly roundsRepo: Repository<Round>,
@@ -15,7 +15,24 @@ export class UpdateRoundUseCase {
         private readonly songRepo: Repository<Song>,
     ) {}
 
-    async execute(id: number, dto: UpdateRoundDto): Promise<Round> {
+    async create(dto: CreateRoundDto): Promise<Round> {
+        const match = await this.matchRepo.findOneBy({ id: dto.matchId });
+        if (!match) throw new NotFoundException(`Match with id ${dto.matchId} not found. Insert round failed`);
+
+        const song = await this.songRepo.findOneBy({ id: dto.songId });
+        if (!song) throw new NotFoundException(`Song with id ${dto.songId} not found. Insert round failed`);
+
+        const newRound = new Round();
+        newRound.standings = [];
+        newRound.matchAssignments = [];
+        newRound.match = match;
+        newRound.song = song;
+
+        await this.roundsRepo.save(newRound);
+        return newRound;
+    }
+
+    async update(id: number, dto: UpdateRoundDto): Promise<Round> {
         const round = await this.roundsRepo.findOneBy({ id });
         if (!round) throw new NotFoundException(`Round with id ${id} not found. Update round failed`);
 
@@ -34,6 +51,10 @@ export class UpdateRoundUseCase {
         }
 
         this.roundsRepo.merge(round, dto);
-        return await this.roundsRepo.save(round);
+        return this.roundsRepo.save(round);
+    }
+
+    async delete(id: number): Promise<void> {
+        await this.roundsRepo.delete(id);
     }
 }

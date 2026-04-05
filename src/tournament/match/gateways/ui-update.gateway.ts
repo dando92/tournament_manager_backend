@@ -5,9 +5,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { WebSocket, Server as WsServer } from 'ws';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Division, Match, Phase } from '@persistence/entities';
-import { Repository } from 'typeorm';
+import { UiUpdateContextService } from '@match/services/ui-update-context.service';
 
 type TournamentUpdatePayload = {
   tournamentId: number;
@@ -42,12 +40,7 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
   server: WsServer;
 
   constructor(
-    @InjectRepository(Division)
-    private readonly divisionRepository: Repository<Division>,
-    @InjectRepository(Phase)
-    private readonly phaseRepository: Repository<Phase>,
-    @InjectRepository(Match)
-    private readonly matchRepository: Repository<Match>,
+    private readonly uiUpdateContextService: UiUpdateContextService,
   ) {}
 
   handleConnection(_client: WebSocket) {
@@ -77,20 +70,8 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
   async emitDivisionUpdateByDivisionId(divisionId: number | null | undefined) {
     if (!divisionId) return;
 
-    const data = await this.divisionRepository
-      .createQueryBuilder('division')
-      .leftJoin('division.tournament', 'tournament')
-      .select('tournament.id', 'tournamentId')
-      .addSelect('division.id', 'divisionId')
-      .where('division.id = :divisionId', { divisionId })
-      .getRawOne<DivisionUpdatePayload>();
-
-    if (!data?.tournamentId || !data?.divisionId) return;
-
-    const payload: DivisionUpdatePayload = {
-      tournamentId: Number(data.tournamentId),
-      divisionId: Number(data.divisionId),
-    };
+    const payload = await this.uiUpdateContextService.getDivisionUpdatePayload(divisionId);
+    if (!payload) return;
 
     this.broadcast('DivisionUpdate', payload);
   }
@@ -98,23 +79,8 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
   async emitPhaseUpdateByPhaseId(phaseId: number | null | undefined) {
     if (!phaseId) return;
 
-    const data = await this.phaseRepository
-      .createQueryBuilder('phase')
-      .leftJoin('phase.division', 'division')
-      .leftJoin('division.tournament', 'tournament')
-      .select('tournament.id', 'tournamentId')
-      .addSelect('division.id', 'divisionId')
-      .addSelect('phase.id', 'phaseId')
-      .where('phase.id = :phaseId', { phaseId })
-      .getRawOne<PhaseUpdatePayload>();
-
-    if (!data?.tournamentId || !data?.divisionId || !data?.phaseId) return;
-
-    const payload: PhaseUpdatePayload = {
-      tournamentId: Number(data.tournamentId),
-      divisionId: Number(data.divisionId),
-      phaseId: Number(data.phaseId),
-    };
+    const payload = await this.uiUpdateContextService.getPhaseUpdatePayload(phaseId);
+    if (!payload) return;
 
     this.broadcast('PhaseUpdate', payload);
   }
@@ -122,26 +88,8 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
   async emitMatchUpdateByMatchId(matchId: number | null | undefined) {
     if (!matchId) return;
 
-    const data = await this.matchRepository
-      .createQueryBuilder('match')
-      .leftJoin('match.phase', 'phase')
-      .leftJoin('phase.division', 'division')
-      .leftJoin('division.tournament', 'tournament')
-      .select('tournament.id', 'tournamentId')
-      .addSelect('division.id', 'divisionId')
-      .addSelect('phase.id', 'phaseId')
-      .addSelect('match.id', 'matchId')
-      .where('match.id = :matchId', { matchId })
-      .getRawOne<MatchUpdatePayload>();
-
-    if (!data?.tournamentId || !data?.divisionId || !data?.phaseId || !data?.matchId) return;
-
-    const payload: MatchUpdatePayload = {
-      tournamentId: Number(data.tournamentId),
-      divisionId: Number(data.divisionId),
-      phaseId: Number(data.phaseId),
-      matchId: Number(data.matchId),
-    };
+    const payload = await this.uiUpdateContextService.getMatchUpdatePayload(matchId);
+    if (!payload) return;
 
     this.broadcast('MatchUpdate', payload);
   }

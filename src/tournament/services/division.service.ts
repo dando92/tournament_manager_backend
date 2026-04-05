@@ -147,4 +147,13 @@ export class DivisionService {
         if (!division) throw new NotFoundException(`Division ${id} not found`);
         return division.players ?? [];
     }
+
+    async updatePlayers(id: number, players: Player[], seeding: number[]): Promise<void> {
+        const division = await this.findPlayersOnly(id);
+        if (!division) throw new NotFoundException(`Division ${id} not found`);
+
+        division.players = players;
+        division.seeding = seeding;
+        await this.divisionRepository.save(division);
+    }
 }

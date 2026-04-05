@@ -1,23 +1,21 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, ValidationPipe } from '@nestjs/common';
 import { Song } from '@persistence/entities';
 import { CreateSongDto } from '../dtos';
-import { CreateSongUseCase } from '../use-cases/songs/create-song.use-case';
-import { DeleteSongUseCase } from '../use-cases/songs/delete-song.use-case';
-import { GetScoresBySongUseCase } from '../use-cases/scores/get-scores-by-song.use-case';
+import { ScoreService } from '../services/score.service';
+import { SongService } from '../services/song.service';
 import { TournamentService } from '../services/tournament.service';
 
 @Controller('songs')
 export class SongsController {
     constructor(
-        private readonly createSongUseCase: CreateSongUseCase,
-        private readonly deleteSongUseCase: DeleteSongUseCase,
-        private readonly getScoresBySongUseCase: GetScoresBySongUseCase,
+        private readonly songService: SongService,
+        private readonly scoreService: ScoreService,
         private readonly tournamentService: TournamentService,
     ) {}
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateSongDto): Promise<Song> {
-        return await this.createSongUseCase.execute(dto);
+        return await this.songService.create(dto);
     }
 
     @Get()
@@ -27,11 +25,11 @@ export class SongsController {
 
     @Get(':id/scores')
     findScores(@Param('id') id: number) {
-        return this.getScoresBySongUseCase.execute(id);
+        return this.scoreService.findBySongId(id);
     }
 
     @Delete(':id')
     remove(@Param('id') id: number): Promise<void> {
-        return this.deleteSongUseCase.execute(id);
+        return this.songService.delete(id);
     }
 }

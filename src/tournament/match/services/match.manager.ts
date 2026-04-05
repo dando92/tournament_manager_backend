@@ -4,9 +4,8 @@ import { UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { SongRoller } from '@tournament/services/song.roller';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
-import { CreateRoundUseCase } from '@tournament/use-cases/rounds/create-round.use-case';
-import { DeleteRoundUseCase } from '@tournament/use-cases/rounds/delete-round.use-case';
 import { MatchService } from '@match/services/match.service';
+import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
 
 @Injectable()
@@ -15,13 +14,11 @@ export class MatchManager {
         @Inject()
         private readonly matchService: MatchService,
         @Inject()
-        private readonly createRoundUseCase: CreateRoundUseCase,
-        @Inject()
-        private readonly deleteRoundUseCase: DeleteRoundUseCase,
-        @Inject()
         private readonly songExtractor: SongRoller,
         @Inject()
         private readonly standingService: StandingService,
+        @Inject()
+        private readonly roundService: RoundService,
         @Inject()
         private readonly uiUpdateGateway: UiUpdateGateway
     ) {
@@ -161,7 +158,7 @@ export class MatchManager {
             return;
         }
 
-        await this.deleteRoundUseCase.execute(round.id);
+        await this.roundService.delete(round.id);
         match.rounds = match.rounds.filter(round => round.id == round.id);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
     }
@@ -185,7 +182,7 @@ export class MatchManager {
     }
 
     private async AddSongToMatch(match: Match, songId: number): Promise<void> {
-        const round = await this.createRoundUseCase.execute(this.GetRoundDto(match, songId));
+        const round = await this.roundService.create(this.GetRoundDto(match, songId));
 
         delete round.match;
 

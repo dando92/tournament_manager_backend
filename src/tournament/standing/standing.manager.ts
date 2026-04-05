@@ -6,10 +6,9 @@ import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystem
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '../itg-online.types';
-import { CreateScoreUseCase } from '../use-cases/scores/create-score.use-case';
-import { UpdateScoreUseCase } from '../use-cases/scores/update-score.use-case';
 import { MatchService } from '@match/services/match.service';
 import { BracketManager } from '@bracket/bracket.manager';
+import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
 
 @Injectable()
@@ -18,11 +17,9 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly standingService: StandingService,
         @Inject()
-        private readonly createScoreUseCase: CreateScoreUseCase,
-        @Inject()
-        private readonly updateScoreUseCase: UpdateScoreUseCase,
-        @Inject()
         private readonly matchService: MatchService,
+        @Inject()
+        private readonly scoreService: ScoreService,
         @Inject()
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
@@ -39,7 +36,7 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
-        const actualScoreEntity = await this.createScoreUseCase.execute(score);
+        const actualScoreEntity = await this.scoreService.create(score);
 
         return await this.AddScoreToMatch(match, actualScoreEntity);
     }
@@ -228,7 +225,7 @@ export class StandingManager implements ILobbyStateObserver {
         const updateScoreDto = new UpdateScoreDto();
         updateScoreDto.percentage = percentage;
         updateScoreDto.isFailed = isFailed;
-        await this.updateScoreUseCase.execute(standing.score.id, updateScoreDto);
+        await this.scoreService.update(standing.score.id, updateScoreDto);
 
         standing.score.percentage = percentage;
         standing.score.isFailed = isFailed;
