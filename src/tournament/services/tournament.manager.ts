@@ -36,12 +36,11 @@ export class TournamentManager {
 
     async findOverview(tournamentId: number): Promise<TournamentOverviewDto> {
         const divisions = await this.divisionService.findOverviewData(tournamentId);
-
         const divisionCount = divisions.length;
         const playerCount = divisions.reduce((count, division) => count + (division.players?.length ?? 0), 0);
         const matchCount = divisions.reduce(
             (count, division) =>
-                count + (division.phases ?? []).reduce((sum, phase) => sum + (phase.matches?.length ?? 0), 0),
+                count + (division.phases ?? []).reduce((phaseCount, phase) => phaseCount + (phase.matches?.length ?? 0), 0),
             0,
         );
 
@@ -59,7 +58,7 @@ export class TournamentManager {
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
                     name: phase.name,
-                    matches: (phase.matches ?? []).map((match) => ({ id: match.id })),
+                    matchCount: phase.matches?.length ?? 0,
                 })),
             })),
         };

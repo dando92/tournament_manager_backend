@@ -28,6 +28,15 @@ export class PhaseService {
         return savedPhase;
     }
 
+    async findOverviewDataForDivision(divisionId: number): Promise<Phase[]> {
+        return this.phaseRepository.find({
+            where: { division: { id: divisionId } },
+            relations: {
+                matches: true,
+            },
+        });
+    }
+
     async delete(id: number): Promise<void> {
         const phase = await this.phaseRepository.findOne({
             where: { id },

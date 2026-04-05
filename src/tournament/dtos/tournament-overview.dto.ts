@@ -6,7 +6,7 @@ export type TournamentOverviewDivisionPlayerDto = {
 export type TournamentOverviewDivisionPhaseDto = {
     id: number;
     name: string;
-    matches: { id: number }[];
+    matchCount: number;
 };
 
 export type TournamentOverviewDivisionDto = {
