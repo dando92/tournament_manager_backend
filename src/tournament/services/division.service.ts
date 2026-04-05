@@ -63,6 +63,18 @@ export class DivisionService {
         });
     }
 
+    async findOverviewData(tournamentId: number): Promise<Division[]> {
+        return this.divisionRepository.find({
+            where: { tournament: { id: tournamentId } },
+            relations: {
+                players: true,
+                phases: {
+                    matches: true,
+                },
+            },
+        });
+    }
+
     async findOneForView(id: number): Promise<Division | null> {
         return this.divisionRepository.findOne({
             where: { id },

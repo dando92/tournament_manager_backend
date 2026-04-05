@@ -66,6 +66,31 @@ export class MatchService {
         });
     }
 
+    async findByDivisionForView(divisionId: number): Promise<Match[]> {
+        return this.matchRepository.find({
+            where: {
+                phase: {
+                    division: {
+                        id: divisionId,
+                    },
+                },
+            },
+            relations: {
+                players: true,
+                rounds: {
+                    song: true,
+                    standings: {
+                        score: {
+                            player: true,
+                            song: true,
+                        },
+                    },
+                    matchAssignments: true,
+                },
+            },
+        });
+    }
+
     async findOneForView(id: number): Promise<Match | null> {
         return await this.matchRepository.findOne({
             where: { id },

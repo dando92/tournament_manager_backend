@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Delete, Request, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Tournament } from '@persistence/entities';
-import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
+import { CreateTournamentDto, UpdateTournamentDto, TournamentOverviewDto } from '../dtos';
 import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
 import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
@@ -33,6 +33,11 @@ export class TournamentsController {
     @Get('my-roles')
     async getMyRoles(@Request() req): Promise<MyTournamentRoles> {
         return this.tournamentService.getMyRoles(req.user.id);
+    }
+
+    @Get(':id/overview')
+    findOverview(@Param('id') id: number): Promise<TournamentOverviewDto> {
+        return this.tournamentManager.findOverview(Number(id));
     }
 
     @Get(':id')

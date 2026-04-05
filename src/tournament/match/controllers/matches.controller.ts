@@ -31,6 +31,11 @@ export class MatchesController {
         return match;
     }
 
+    @Get('division/:divisionId')
+    findByDivision(@Param('divisionId') divisionId: number): Promise<Match[]> {
+        return this.matchService.findByDivisionForView(Number(divisionId));
+    }
+
     @Get(':id')
     findOne(@Param('id') id: number): Promise<Match | null> {
         return this.matchService.getMatch(id);
