@@ -90,6 +90,15 @@ export class TournamentsController {
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/lobbies/create')
+    async createLobby(
+        @Param('id') id: number,
+        @Body() body: { name?: string; password?: string },
+    ) {
+        return this.lobbyManager.CreateLobby(Number(id), body.name ?? '', body.password ?? '');
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Delete(':id/lobbies/:lobbyId/disconnect')
     disconnectLobby(@Param('id') id: number, @Param('lobbyId') lobbyId: string) {
         this.lobbyManager.DisconnectLobby(Number(id), lobbyId);

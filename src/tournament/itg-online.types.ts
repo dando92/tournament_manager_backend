@@ -47,10 +47,27 @@ export type LobbyStatePayload = {
 export type LobbyPlayerDto = {
   name: string;
   playerId: string;
+  screenName: LobbyPlayer['screenName'];
+  ready: boolean;
+};
+
+export type LobbyStateDto = {
+  songTitle: string;
+  songPath: string;
+  spectators: string[];
+  players: LobbyPlayerDto[];
+};
+
+export type LiveMatchPlayerDto = {
+  name: string;
+  playerId: string;
   scorePercent: number;
   exScore?: number;
-  health?: number;
   isFailed?: boolean;
+  songProgression?: {
+    currentTime: number;
+    totalTime: number;
+  };
   judgments?: {
     fantasticPlus: number;
     fantastics: number;
@@ -65,8 +82,8 @@ export type LobbyPlayerDto = {
   };
 };
 
-export type LobbyStateDto = {
+export type LiveMatchStateDto = {
   songTitle: string;
   songPath: string;
-  players: LobbyPlayerDto[];
+  players: LiveMatchPlayerDto[];
 };

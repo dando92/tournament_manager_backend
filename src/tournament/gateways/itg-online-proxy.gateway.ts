@@ -1,17 +1,30 @@
 import {
+  OnGatewayConnection,
+  OnGatewayInit,
   WebSocketGateway,
   WebSocketServer,
-  OnGatewayInit,
-  OnGatewayConnection,
 } from '@nestjs/websockets';
-import { WebSocket, Server as WsServer } from 'ws';
+import { Server as WsServer, WebSocket } from 'ws';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
-import { LobbyStatePayload, LobbyStateDto, LobbyPlayerDto } from '../itg-online.types';
+import {
+  LiveMatchPlayerDto,
+  LiveMatchStateDto,
+  LobbyPlayerDto,
+  LobbyStateDto,
+  LobbyStatePayload,
+} from '../itg-online.types';
 
-export type { LobbyStateDto, LobbyPlayerDto };
+export type { LiveMatchStateDto, LobbyPlayerDto, LobbyStateDto };
 
-type LobbyMeta = { tournamentId: number; lobbyId: string; lobbyName: string; lobbyCode: string };
-type CachedLobbyState = LobbyMeta & { payload: LobbyStatePayload };
+type LobbyMeta = {
+  tournamentId: number;
+  lobbyId: string;
+  lobbyName: string;
+  lobbyCode: string;
+};
+
+type CachedLobbyState = LobbyMeta & { data: LobbyStateDto };
+type CachedLiveMatchState = LobbyMeta & { data: LiveMatchStateDto };
 
 @WebSocketGateway({
   path: '/scoreupdatehub',
@@ -19,78 +32,182 @@ type CachedLobbyState = LobbyMeta & { payload: LobbyStatePayload };
     origin: '*',
   },
 })
-export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection, ILobbyStateObserver {
+export class ItgOnlineProxyGateway
+  implements OnGatewayInit, OnGatewayConnection, ILobbyStateObserver
+{
   @WebSocketServer()
   server: WsServer;
 
-  // keyed by lobbyId — tracks all active (registered) lobbies
   private activeLobbyMeta = new Map<string, LobbyMeta>();
-  // keyed by lobbyId — only populated once lobby state arrives (connected)
   private lastLobbyStates = new Map<string, CachedLobbyState>();
+  private lastLiveMatchStates = new Map<string, CachedLiveMatchState>();
 
   afterInit() {}
 
-  RegisterLobby(tournamentId: number, lobbyId: string, lobbyName: string, lobbyCode: string): void {
-    this.activeLobbyMeta.set(lobbyId, { tournamentId, lobbyId, lobbyName, lobbyCode });
-    this.broadcast('OnLobbyActive', { tournamentId, lobbyId, lobbyName, lobbyCode });
+  RegisterLobby(
+    tournamentId: number,
+    lobbyId: string,
+    lobbyName: string,
+    lobbyCode: string,
+  ): void {
+    this.activeLobbyMeta.set(lobbyId, {
+      tournamentId,
+      lobbyId,
+      lobbyName,
+      lobbyCode,
+    });
+    this.broadcast('OnLobbyActive', {
+      tournamentId,
+      lobbyId,
+      lobbyName,
+      lobbyCode,
+    });
   }
 
   UnregisterLobby(lobbyId: string): void {
     this.activeLobbyMeta.delete(lobbyId);
     this.lastLobbyStates.delete(lobbyId);
+    this.lastLiveMatchStates.delete(lobbyId);
   }
 
   handleConnection(client: WebSocket) {
-    console.log(`[ItgOnlineProxyGateway] Frontend client connected (total: ${this.server.clients.size})`);
-    // Send active lobby info so client knows which lobbies exist
-    this.activeLobbyMeta.forEach(({ tournamentId, lobbyId, lobbyName, lobbyCode }) => {
-      this.sendToClient(client, 'OnLobbyActive', { tournamentId, lobbyId, lobbyName, lobbyCode });
-    });
-    // Send last known state for connected lobbies
-    this.lastLobbyStates.forEach(({ tournamentId, lobbyId, lobbyName, lobbyCode, payload }) => {
-      if (payload.players.length > 0) {
-        this.sendToClient(client, 'OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(payload) });
-      }
-    });
+    console.log(
+      `[ItgOnlineProxyGateway] Frontend client connected (total: ${this.server.clients.size})`,
+    );
+
+    this.activeLobbyMeta.forEach(
+      ({ tournamentId, lobbyId, lobbyName, lobbyCode }) => {
+        this.sendToClient(client, 'OnLobbyActive', {
+          tournamentId,
+          lobbyId,
+          lobbyName,
+          lobbyCode,
+        });
+      },
+    );
+
+    this.lastLobbyStates.forEach(
+      ({ tournamentId, lobbyId, lobbyName, lobbyCode, data }) => {
+        this.sendToClient(client, 'OnLobbyState', {
+          tournamentId,
+          lobbyId,
+          lobbyName,
+          lobbyCode,
+          ...data,
+        });
+      },
+    );
+
+    this.lastLiveMatchStates.forEach(
+      ({ tournamentId, lobbyId, lobbyName, lobbyCode, data }) => {
+        this.sendToClient(client, 'OnLiveMatchState', {
+          tournamentId,
+          lobbyId,
+          lobbyName,
+          lobbyCode,
+          ...data,
+        });
+      },
+    );
   }
 
-  async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, lobbyId: string, lobbyName: string): Promise<void> {
+  async OnLobbyStateChanged(
+    tournamentId: number,
+    lobbyState: LobbyStatePayload,
+    lobbyId: string,
+    lobbyName: string,
+  ): Promise<void> {
     const lobbyCode = this.activeLobbyMeta.get(lobbyId)?.lobbyCode ?? '';
-    this.lastLobbyStates.set(lobbyId, { tournamentId, lobbyId, lobbyName, lobbyCode, payload: lobbyState });
-    this.broadcast('OnLobbyState', { tournamentId, lobbyId, lobbyName, lobbyCode, ...this.toDto(lobbyState) });
+    const lobbyStateDto = this.toLobbyStateDto(lobbyState);
+
+    this.lastLobbyStates.set(lobbyId, {
+      tournamentId,
+      lobbyId,
+      lobbyName,
+      lobbyCode,
+      data: lobbyStateDto,
+    });
+    this.broadcast('OnLobbyState', {
+      tournamentId,
+      lobbyId,
+      lobbyName,
+      lobbyCode,
+      ...lobbyStateDto,
+    });
+
+    if (lobbyState.players.some((player) => player.screenName === 'ScreenGameplay')) {
+      const liveMatchStateDto = this.toLiveMatchStateDto(lobbyState);
+      this.lastLiveMatchStates.set(lobbyId, {
+        tournamentId,
+        lobbyId,
+        lobbyName,
+        lobbyCode,
+        data: liveMatchStateDto,
+      });
+      this.broadcast('OnLiveMatchState', {
+        tournamentId,
+        lobbyId,
+        lobbyName,
+        lobbyCode,
+        ...liveMatchStateDto,
+      });
+      return;
+    }
+
+    this.lastLiveMatchStates.delete(lobbyId);
   }
 
   OnLobbyDisconnected(tournamentId: number, lobbyId: string): void {
     this.activeLobbyMeta.delete(lobbyId);
     this.lastLobbyStates.delete(lobbyId);
+    this.lastLiveMatchStates.delete(lobbyId);
     this.broadcast('OnLobbyDisconnected', { tournamentId, lobbyId });
   }
 
-  private toDto(lobby: LobbyStatePayload): LobbyStateDto {
+  private toLobbyStateDto(lobby: LobbyStatePayload): LobbyStateDto {
     return {
       songTitle: lobby.songInfo?.title ?? '',
       songPath: lobby.songInfo?.songPath ?? '',
-      players: lobby.players.map((p) => ({
-        name: p.profileName,
-        playerId: p.playerId,
-        scorePercent: p.score ?? 0,
-        exScore: p.exScore,
-        isFailed: p.isFailed ?? false,
-        judgments: p.judgments
-          ? {
-              fantasticPlus: p.judgments.fantasticPlus,
-              fantastics: p.judgments.fantastics,
-              excellents: p.judgments.excellents,
-              greats: p.judgments.greats,
-              decents: p.judgments.decents ?? 0,
-              wayOffs: p.judgments.wayOffs ?? 0,
-              misses: p.judgments.misses,
-              minesHit: p.judgments.minesHit,
-              holdsHeld: p.judgments.holdsHeld,
-              totalHolds: p.judgments.totalHolds,
-            }
-          : undefined,
-      })),
+      spectators: lobby.spectators,
+      players: lobby.players.map(
+        (player): LobbyPlayerDto => ({
+          name: player.profileName,
+          playerId: player.playerId,
+          screenName: player.screenName,
+          ready: player.ready,
+        }),
+      ),
+    };
+  }
+
+  private toLiveMatchStateDto(lobby: LobbyStatePayload): LiveMatchStateDto {
+    return {
+      songTitle: lobby.songInfo?.title ?? '',
+      songPath: lobby.songInfo?.songPath ?? '',
+      players: lobby.players.map(
+        (player): LiveMatchPlayerDto => ({
+          name: player.profileName,
+          playerId: player.playerId,
+          scorePercent: player.score ?? 0,
+          exScore: player.exScore,
+          isFailed: player.isFailed ?? false,
+          songProgression: player.songProgression,
+          judgments: player.judgments
+            ? {
+                fantasticPlus: player.judgments.fantasticPlus,
+                fantastics: player.judgments.fantastics,
+                excellents: player.judgments.excellents,
+                greats: player.judgments.greats,
+                decents: player.judgments.decents ?? 0,
+                wayOffs: player.judgments.wayOffs ?? 0,
+                misses: player.judgments.misses,
+                minesHit: player.judgments.minesHit,
+                holdsHeld: player.judgments.holdsHeld,
+                totalHolds: player.judgments.totalHolds,
+              }
+            : undefined,
+        }),
+      ),
     };
   }
 
@@ -102,7 +219,9 @@ export class ItgOnlineProxyGateway implements OnGatewayInit, OnGatewayConnection
 
   private broadcast(event: string, data: unknown) {
     const msg = JSON.stringify({ event, data });
-    console.log(`[ItgOnlineProxyGateway] Broadcasting ${event} to ${this.server.clients.size} client(s)`);
+    console.log(
+      `[ItgOnlineProxyGateway] Broadcasting ${event} to ${this.server.clients.size} client(s)`,
+    );
     this.server.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(msg);

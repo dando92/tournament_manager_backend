@@ -46,19 +46,35 @@ export class LobbyManager implements OnModuleInit {
         }
 
         const lobbyId = randomUUID();
-        this.gateway.RegisterLobby(tournamentId, lobbyId, name, lobbyCode);
 
         try {
-            await connector.ConnectLobby(lobbyCode, password);
+            const { lobbyCode: resolvedLobbyCode, initialState } = await connector.ConnectLobby(lobbyCode, password);
+            this.lobbyCodeMeta.set(resolvedLobbyCode, { tournamentId, lobbyId, lobbyName: name });
+            this.gateway.RegisterLobby(tournamentId, lobbyId, name, resolvedLobbyCode);
+            await this._notifyLobbyState(resolvedLobbyCode, initialState);
         } catch (err) {
             console.error(`[LobbyManager] ConnectLobby failed (tournament=${tournamentId} lobbyCode=${lobbyCode}): ${err?.message ?? err}`);
-            this.gateway.UnregisterLobby(lobbyId);
             throw err;
         }
 
-        this.lobbyCodeMeta.set(lobbyCode, { tournamentId, lobbyId, lobbyName: name });
         console.log(`[LobbyManager] ConnectLobby succeeded (tournament=${tournamentId} lobbyCode=${lobbyCode} lobbyId=${lobbyId})`);
         return lobbyId;
+    }
+
+    async CreateLobby(tournamentId: number, name: string, password: string): Promise<{ lobbyId: string; lobbyCode: string }> {
+        const connector = this.connectors.get(tournamentId);
+        if (!connector) {
+            throw new Error(`No SyncStart connector for tournament=${tournamentId}. Ensure the tournament has a syncstartUrl set.`);
+        }
+
+        const lobbyId = randomUUID();
+        const { lobbyCode, initialState } = await connector.CreateLobby(password);
+        const lobbyName = name || lobbyCode;
+        this.lobbyCodeMeta.set(lobbyCode, { tournamentId, lobbyId, lobbyName });
+        this.gateway.RegisterLobby(tournamentId, lobbyId, lobbyName, lobbyCode);
+        await this._notifyLobbyState(lobbyCode, initialState);
+        console.log(`[LobbyManager] CreateLobby succeeded (tournament=${tournamentId} lobbyCode=${lobbyCode} lobbyId=${lobbyId})`);
+        return { lobbyId, lobbyCode };
     }
 
     DisconnectLobby(tournamentId: number, lobbyId: string): void {
@@ -103,6 +119,10 @@ export class LobbyManager implements OnModuleInit {
     }
 
     private async _onLobbyState(lobbyCode: string, payload: LobbyStatePayload): Promise<void> {
+        await this._notifyLobbyState(lobbyCode, payload);
+    }
+
+    private async _notifyLobbyState(lobbyCode: string, payload: LobbyStatePayload): Promise<void> {
         const meta = this.lobbyCodeMeta.get(lobbyCode);
         if (!meta) return;
         const { tournamentId, lobbyId, lobbyName } = meta;
