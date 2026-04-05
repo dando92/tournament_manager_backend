@@ -48,6 +48,10 @@ export class UserService {
         return this.accountRepo.find({ relations: ['player'] });
     }
 
+    async findById(accountId: string): Promise<Account | null> {
+        return this.accountRepo.findOneBy({ id: accountId });
+    }
+
     async updateProfile(accountId: string, profile: { playerName?: string; nationality?: string; grooveStatsApi?: string; profilePicture?: string }): Promise<Account> {
         const account = await this.accountRepo.findOne({ where: { id: accountId }, relations: ['player'] });
         if (profile.nationality !== undefined) account.nationality = profile.nationality;

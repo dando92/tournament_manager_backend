@@ -9,6 +9,19 @@ import * as bcrypt from 'bcrypt';
 
 import { Account } from '@persistence/entities';
 
+export interface CurrentUserDto {
+    id: string;
+    username: string;
+    nationality: string;
+    grooveStatsApi: string;
+    profilePicture: string;
+    player: Account['player'] | null;
+}
+
+export interface AuthPermissionsDto {
+    isAdmin: boolean;
+    isTournamentCreator: boolean;
+}
 
 @Injectable()
 export class AuthService {
@@ -57,20 +70,50 @@ export class AuthService {
         };
     }
 
-    async getMe(userId: string): Promise<Account | Partial<Account>> {
+    async getMe(userId: string): Promise<CurrentUserDto> {
         if (userId === 'local-admin') {
             return {
                 id: 'local-admin',
                 username: 'admin',
-                email: '',
-                isAdmin: true,
-                isTournamentCreator: true,
+                nationality: '',
+                grooveStatsApi: '',
+                profilePicture: '',
                 player: null,
-            } as Partial<Account>;
+            };
         }
-        return this.accountRepo.findOne({
+        const account = await this.accountRepo.findOne({
             where: { id: userId },
             relations: ['player'],
         });
+        return {
+            id: account.id,
+            username: account.username,
+            nationality: account.nationality,
+            grooveStatsApi: account.grooveStatsApi,
+            profilePicture: account.profilePicture,
+            player: account.player ?? null,
+        };
+    }
+
+    async getPermissions(userId: string): Promise<AuthPermissionsDto> {
+        if (userId === 'local-admin') {
+            return {
+                isAdmin: true,
+                isTournamentCreator: true,
+            };
+        }
+
+        const account = await this.accountRepo.findOne({
+            where: { id: userId },
+            select: {
+                isAdmin: true,
+                isTournamentCreator: true,
+            },
+        });
+
+        return {
+            isAdmin: account?.isAdmin ?? false,
+            isTournamentCreator: account?.isTournamentCreator ?? false,
+        };
     }
 }

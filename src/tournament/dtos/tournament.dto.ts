@@ -6,6 +6,32 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Account } from '@persistence/entities';
 
+export class TournamentHelperDto {
+    @ApiProperty({ example: 'd9c42b76-3c5f-4d2f-8f4c-32a2d93b24ff', description: 'Helper account id.' })
+    id: string;
+
+    @ApiProperty({ example: 'momo', description: 'Helper username.' })
+    username: string;
+}
+
+export class TournamentResponseDto {
+    @ApiProperty({ example: 1, description: 'Tournament id.' })
+    id: number;
+
+    @ApiProperty({ example: 'UEFA Euro 2024', description: 'The name of the tournament.' })
+    name: string;
+
+    @ApiProperty({
+        description: 'WebSocket URL of the syncstart server for this tournament.',
+        required: false,
+        example: 'ws://syncservice.groovestats.com:1337',
+    })
+    syncstartUrl?: string;
+
+    @ApiProperty({ type: () => [TournamentHelperDto], description: 'Tournament helpers.' })
+    helpers: TournamentHelperDto[];
+}
+
 export class CreateTournamentDto {
     /**
      * The name of the tournament.

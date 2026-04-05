@@ -5,6 +5,23 @@ import { UserService } from '../services';
 import { CreateUserPlayerDto } from '../dtos';
 
 import { JwtAuthGuard, AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
+import { Account } from '@persistence/entities';
+
+type CurrentUserProfileDto = {
+    id: string;
+    username: string;
+    nationality: string;
+    grooveStatsApi: string;
+    profilePicture: string;
+    player: Account['player'] | null;
+};
+
+type AdminUserDto = {
+    id: string;
+    username: string;
+    isAdmin: boolean;
+    isTournamentCreator: boolean;
+};
 
 @Controller('user')
 export class UserController {
@@ -13,18 +30,40 @@ export class UserController {
         private readonly configService: ConfigService,
     ) { }
 
+    private toCurrentUserProfileDto(account: Account): CurrentUserProfileDto {
+        return {
+            id: account.id,
+            username: account.username,
+            nationality: account.nationality,
+            grooveStatsApi: account.grooveStatsApi,
+            profilePicture: account.profilePicture,
+            player: account.player ?? null,
+        };
+    }
+
+    private toAdminUserDto(account: Account): AdminUserDto {
+        return {
+            id: account.id,
+            username: account.username,
+            isAdmin: account.isAdmin,
+            isTournamentCreator: account.isTournamentCreator,
+        };
+    }
+
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateUserPlayerDto) {
         if (this.configService.get<string>('AUTH_MODE') === 'local') {
             throw new ForbiddenException('Registration is disabled in local mode');
         }
-        return await this.service.create(dto);
+        const account = await this.service.create(dto);
+        return this.toCurrentUserProfileDto(account);
     }
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
     @Get()
     async findAll() {
-        return this.service.findAll();
+        const accounts = await this.service.findAll();
+        return accounts.map((account) => this.toAdminUserDto(account));
     }
 
     @UseGuards(JwtAuthGuard)
@@ -35,7 +74,8 @@ export class UserController {
         @Request() req,
     ) {
         if (req.user.id !== id) throw new ForbiddenException();
-        return this.service.updateProfile(id, body);
+        const account = await this.service.updateProfile(id, body);
+        return this.toCurrentUserProfileDto(account);
     }
 
     @UseGuards(JwtAuthGuard, AdminGuard)
@@ -44,6 +84,7 @@ export class UserController {
         @Param('id') id: string,
         @Body() body: { isAdmin?: boolean; isTournamentCreator?: boolean },
     ) {
-        return this.service.updateFlags(id, body);
+        const account = await this.service.updateFlags(id, body);
+        return this.toAdminUserDto(account);
     }
 }

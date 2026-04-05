@@ -23,4 +23,10 @@ export class AuthController {
     async getMe(@Request() req) {
         return this.authService.getMe(req.user.id);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('permissions')
+    async getPermissions(@Request() req) {
+        return this.authService.getPermissions(req.user.id);
+    }
 }

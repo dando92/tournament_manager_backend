@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Delete, Request, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Tournament } from '@persistence/entities';
-import { CreateTournamentDto, UpdateTournamentDto, TournamentOverviewDto } from '../dtos';
+import { CreateTournamentDto, UpdateTournamentDto, TournamentOverviewDto, TournamentResponseDto } from '../dtos';
 import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
 import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
@@ -16,8 +16,8 @@ export class TournamentsController {
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
     @Post()
-    async create(@Body(new ValidationPipe()) dto: CreateTournamentDto, @Request() req): Promise<Tournament> {
-        const tournament = await this.tournamentService.create(dto, req.user?.id);
+    async create(@Body(new ValidationPipe()) dto: CreateTournamentDto, @Request() req): Promise<TournamentResponseDto> {
+        const tournament = await this.tournamentManager.create(dto, req.user?.id);
         if (dto.syncstartUrl) {
             this.lobbyManager.OnTournamentCreated(tournament.id, dto.syncstartUrl);
         }
@@ -41,14 +41,14 @@ export class TournamentsController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: number): Promise<Tournament | null> {
-        return this.tournamentService.findOne(Number(id));
+    async findOne(@Param('id') id: number): Promise<TournamentResponseDto | null> {
+        return this.tournamentManager.findOne(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Patch(':id')
-    async update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateTournamentDto): Promise<Tournament> {
-        const { tournament, previousSyncstartUrl } = await this.tournamentService.update(Number(id), dto);
+    async update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateTournamentDto): Promise<TournamentResponseDto> {
+        const { tournament, previousSyncstartUrl } = await this.tournamentManager.update(Number(id), dto);
         if (dto.syncstartUrl !== undefined && dto.syncstartUrl !== previousSyncstartUrl) {
             this.lobbyManager.OnTournamentUrlChanged(Number(id), dto.syncstartUrl);
         }
@@ -60,7 +60,7 @@ export class TournamentsController {
     async addHelper(
         @Param('id') id: number,
         @Body() body: { accountId: string },
-    ): Promise<Tournament> {
+    ): Promise<TournamentResponseDto> {
         return this.tournamentManager.addHelper(Number(id), body.accountId);
     }
 
@@ -69,7 +69,7 @@ export class TournamentsController {
     async removeHelper(
         @Param('id') id: number,
         @Param('accountId') accountId: string,
-    ): Promise<Tournament> {
+    ): Promise<TournamentResponseDto> {
         return this.tournamentManager.removeHelper(Number(id), accountId);
     }
 

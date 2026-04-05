@@ -1,37 +1,67 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tournament, Account } from '@persistence/entities';
-import { TournamentOverviewDto } from '../dtos';
+import { Tournament } from '@persistence/entities';
+import { CreateTournamentDto, TournamentOverviewDto, TournamentResponseDto, UpdateTournamentDto } from '../dtos';
 import { DivisionService } from './division.service';
 import { TournamentService } from './tournament.service';
+import { UserService } from '../../user/services/user.service';
 
 @Injectable()
 export class TournamentManager {
     constructor(
-        @InjectRepository(Account)
-        private readonly accountRepository: Repository<Account>,
         private readonly divisionService: DivisionService,
         private readonly tournamentService: TournamentService,
+        private readonly userService: UserService,
     ) {}
 
-    async addHelper(tournamentId: number, accountId: string): Promise<Tournament> {
+    private toResponseDto(tournament: Tournament): TournamentResponseDto {
+        return {
+            id: tournament.id,
+            name: tournament.name,
+            syncstartUrl: tournament.syncstartUrl,
+            helpers: (tournament.helpers ?? []).map((helper) => ({
+                id: helper.id,
+                username: helper.username,
+            })),
+        };
+    }
+
+    async create(dto: CreateTournamentDto, ownerId?: string): Promise<TournamentResponseDto> {
+        const tournament = await this.tournamentService.create(dto, ownerId);
+        return this.toResponseDto(tournament);
+    }
+
+    async findOne(tournamentId: number): Promise<TournamentResponseDto | null> {
+        const tournament = await this.tournamentService.findOne(tournamentId);
+        return tournament ? this.toResponseDto(tournament) : null;
+    }
+
+    async update(tournamentId: number, dto: UpdateTournamentDto): Promise<{ tournament: TournamentResponseDto; previousSyncstartUrl: string | undefined }> {
+        const result = await this.tournamentService.update(tournamentId, dto);
+        return {
+            tournament: this.toResponseDto(result.tournament),
+            previousSyncstartUrl: result.previousSyncstartUrl,
+        };
+    }
+
+    async addHelper(tournamentId: number, accountId: string): Promise<TournamentResponseDto> {
         const tournament = await this.tournamentService.findOne(tournamentId);
         if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
 
-        const account = await this.accountRepository.findOneBy({ id: accountId });
+        const account = await this.userService.findById(accountId);
         if (!account) throw new NotFoundException(`Account ${accountId} not found`);
 
         const helpers = [...(tournament.helpers ?? []), account];
-        return (await this.tournamentService.update(tournamentId, { helpers })).tournament;
+        const updated = await this.tournamentService.update(tournamentId, { helpers });
+        return this.toResponseDto(updated.tournament);
     }
 
-    async removeHelper(tournamentId: number, accountId: string): Promise<Tournament> {
+    async removeHelper(tournamentId: number, accountId: string): Promise<TournamentResponseDto> {
         const tournament = await this.tournamentService.findOne(tournamentId);
         if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
 
         const helpers = (tournament.helpers ?? []).filter(h => h.id !== accountId);
-        return (await this.tournamentService.update(tournamentId, { helpers })).tournament;
+        const updated = await this.tournamentService.update(tournamentId, { helpers });
+        return this.toResponseDto(updated.tournament);
     }
 
     async findOverview(tournamentId: number): Promise<TournamentOverviewDto> {
