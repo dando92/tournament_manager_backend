@@ -1,11 +1,15 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
 import { Division, Player } from '@persistence/entities';
-import { CreateDivisionDto, UpdateDivisionDto } from '../dtos';
+import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto } from '../dtos';
+import { DivisionManager } from '../services/division.manager';
 import { DivisionService } from '../services/division.service';
 
 @Controller('divisions')
 export class DivisionsController {
-    constructor(private readonly divisionService: DivisionService) {}
+    constructor(
+        private readonly divisionService: DivisionService,
+        private readonly divisionManager: DivisionManager,
+    ) {}
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateDivisionDto): Promise<Division> {
@@ -15,6 +19,16 @@ export class DivisionsController {
     @Get()
     async findAll(@Query('tournamentId') tournamentId?: string): Promise<Division[]> {
         return this.divisionService.findAll(tournamentId ? Number(tournamentId) : undefined);
+    }
+
+    @Get(':id/summary')
+    async findSummary(@Param('id') id: number): Promise<DivisionSummaryDto> {
+        return this.divisionManager.findSummary(Number(id));
+    }
+
+    @Get(':id/standings')
+    async findStandings(@Param('id') id: number): Promise<DivisionStandingRowDto[]> {
+        return this.divisionManager.findStandings(Number(id));
     }
 
     @Get(':id')

@@ -13,6 +13,7 @@ import { TournamentManager } from "./services/tournament.manager";
 import { PlayerService } from "@player/player.service";
 import { PlayerManager } from "@player/player.manager";
 import { DivisionService } from './services/division.service';
+import { DivisionManager } from './services/division.manager';
 import { PhaseService } from './services/phase.service';
 import { SongService } from './services/song.service';
 import { ScoreService } from './services/score.service';
@@ -33,6 +34,7 @@ export { TournamentManager };
 export { PlayerService };
 export { PlayerManager };
 export { DivisionService };
+export { DivisionManager };
 export { PhaseService };
 export { SongService };
 export { ScoreService };
@@ -56,6 +58,7 @@ export const Services = [
     PlayerManager,
 
     DivisionService,
+    DivisionManager,
     PhaseService,
     SongService,
     ScoreService,

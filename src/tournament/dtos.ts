@@ -9,6 +9,8 @@ import { CreateStandingDto, UpdateStandingDto } from './standing/standing.dto';
 
 import { CreateTournamentDto, UpdateTournamentDto } from './dtos/tournament.dto';
 import { TournamentOverviewDto, TournamentOverviewDivisionDto, TournamentOverviewDivisionPhaseDto, TournamentOverviewDivisionPlayerDto } from './dtos/tournament-overview.dto';
+import { DivisionSummaryDto, DivisionSummaryPhaseDto, DivisionSummaryPlayerDto } from './dtos/division-summary.dto';
+import { DivisionStandingRowDto } from './dtos/division-standings.dto';
 import { CreateMatchAssignmentDto, UpdateMatchAssignmentDto } from '@match/dtos/match_assignment.dto';
 import { CreateSetupDto, UpdateSetupDto } from './dtos/setup.dto';
 import { CreateAccountDto, UpdateAcountDto  } from './dtos/acount.dto'
@@ -25,6 +27,8 @@ export { CreateStandingDto, UpdateStandingDto };
 
 export { CreateTournamentDto, UpdateTournamentDto };
 export { TournamentOverviewDto, TournamentOverviewDivisionDto, TournamentOverviewDivisionPhaseDto, TournamentOverviewDivisionPlayerDto };
+export { DivisionSummaryDto, DivisionSummaryPhaseDto, DivisionSummaryPlayerDto };
+export { DivisionStandingRowDto };
 export { CreateMatchAssignmentDto, UpdateMatchAssignmentDto };
 export { CreateSetupDto, UpdateSetupDto };
 export { CreateAccountDto, UpdateAcountDto };

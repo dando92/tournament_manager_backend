@@ -39,6 +39,37 @@ export class DivisionService {
         return division;
     }
 
+    async findOneForSummary(id: number): Promise<Division | null> {
+        return this.divisionRepository.findOne({
+            where: { id },
+            relations: {
+                players: true,
+                phases: {
+                    matches: true,
+                },
+            },
+        });
+    }
+
+    async findOneForStandings(id: number): Promise<Division | null> {
+        return this.divisionRepository.findOne({
+            where: { id },
+            relations: {
+                phases: {
+                    matches: {
+                        rounds: {
+                            standings: {
+                                score: {
+                                    player: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
     async findAllForTournamentCards(tournamentId: number): Promise<Division[]> {
         return this.divisionRepository.find({
             where: { tournament: { id: tournamentId } },
@@ -79,20 +110,16 @@ export class DivisionService {
         return this.divisionRepository.findOne({
             where: { id },
             relations: {
-                tournament: true,
                 players: true,
                 phases: {
                     matches: {
-                        players: true,
                         rounds: {
                             song: true,
                             standings: {
                                 score: {
                                     player: true,
-                                    song: true,
                                 },
                             },
-                            matchAssignments: true,
                         },
                     },
                 },
