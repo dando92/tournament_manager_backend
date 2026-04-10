@@ -12,7 +12,7 @@ import {
   LobbyPlayerDto,
   LobbyStateDto,
   LobbyStatePayload,
-} from '../itg-online.types';
+} from '@syncstart/index';
 
 export type { LiveMatchStateDto, LobbyPlayerDto, LobbyStateDto };
 
@@ -23,8 +23,7 @@ type LobbyMeta = {
   lobbyCode: string;
 };
 
-type CachedLobbyState = LobbyMeta & { data: LobbyStateDto };
-type CachedLiveMatchState = LobbyMeta & { data: LiveMatchStateDto };
+type CachedLobbyPayload = LobbyMeta & { payload: LobbyStatePayload };
 
 @WebSocketGateway({
   path: '/scoreupdatehub',
@@ -38,9 +37,7 @@ export class ItgOnlineProxyGateway
   @WebSocketServer()
   server: WsServer;
 
-  private activeLobbyMeta = new Map<string, LobbyMeta>();
-  private lastLobbyStates = new Map<string, CachedLobbyState>();
-  private lastLiveMatchStates = new Map<string, CachedLiveMatchState>();
+  private lastLobbyPayloads = new Map<string, CachedLobbyPayload>();
 
   afterInit() {}
 
@@ -50,12 +47,6 @@ export class ItgOnlineProxyGateway
     lobbyName: string,
     lobbyCode: string,
   ): void {
-    this.activeLobbyMeta.set(lobbyId, {
-      tournamentId,
-      lobbyId,
-      lobbyName,
-      lobbyCode,
-    });
     this.broadcast('OnLobbyActive', {
       tournamentId,
       lobbyId,
@@ -65,9 +56,7 @@ export class ItgOnlineProxyGateway
   }
 
   UnregisterLobby(lobbyId: string): void {
-    this.activeLobbyMeta.delete(lobbyId);
-    this.lastLobbyStates.delete(lobbyId);
-    this.lastLiveMatchStates.delete(lobbyId);
+    this.lastLobbyPayloads.delete(lobbyId);
   }
 
   handleConnection(client: WebSocket) {
@@ -75,37 +64,31 @@ export class ItgOnlineProxyGateway
       `[ItgOnlineProxyGateway] Frontend client connected (total: ${this.server.clients.size})`,
     );
 
-    this.activeLobbyMeta.forEach(
-      ({ tournamentId, lobbyId, lobbyName, lobbyCode }) => {
+    this.lastLobbyPayloads.forEach(
+      ({ tournamentId, lobbyId, lobbyName, lobbyCode, payload }) => {
         this.sendToClient(client, 'OnLobbyActive', {
           tournamentId,
           lobbyId,
           lobbyName,
           lobbyCode,
         });
-      },
-    );
-
-    this.lastLobbyStates.forEach(
-      ({ tournamentId, lobbyId, lobbyName, lobbyCode, data }) => {
+        const lobbyStateDto = this.toLobbyStateDto(payload);
         this.sendToClient(client, 'OnLobbyState', {
           tournamentId,
           lobbyId,
           lobbyName,
           lobbyCode,
-          ...data,
+          ...lobbyStateDto,
         });
-      },
-    );
 
-    this.lastLiveMatchStates.forEach(
-      ({ tournamentId, lobbyId, lobbyName, lobbyCode, data }) => {
+        if (!this.hasGameplayState(payload)) return;
+        const liveMatchStateDto = this.toLiveMatchStateDto(payload);
         this.sendToClient(client, 'OnLiveMatchState', {
           tournamentId,
           lobbyId,
           lobbyName,
           lobbyCode,
-          ...data,
+          ...liveMatchStateDto,
         });
       },
     );
@@ -114,19 +97,19 @@ export class ItgOnlineProxyGateway
   async OnLobbyStateChanged(
     tournamentId: number,
     lobbyState: LobbyStatePayload,
-    lobbyId: string,
+    lobbyCode: string,
     lobbyName: string,
   ): Promise<void> {
-    const lobbyCode = this.activeLobbyMeta.get(lobbyId)?.lobbyCode ?? '';
-    const lobbyStateDto = this.toLobbyStateDto(lobbyState);
-
-    this.lastLobbyStates.set(lobbyId, {
+    const lobbyId = lobbyCode;
+    this.lastLobbyPayloads.set(lobbyId, {
       tournamentId,
       lobbyId,
       lobbyName,
       lobbyCode,
-      data: lobbyStateDto,
+      payload: lobbyState,
     });
+
+    const lobbyStateDto = this.toLobbyStateDto(lobbyState);
     this.broadcast('OnLobbyState', {
       tournamentId,
       lobbyId,
@@ -135,15 +118,8 @@ export class ItgOnlineProxyGateway
       ...lobbyStateDto,
     });
 
-    if (lobbyState.players.some((player) => player.screenName === 'ScreenGameplay')) {
+    if (this.hasGameplayState(lobbyState)) {
       const liveMatchStateDto = this.toLiveMatchStateDto(lobbyState);
-      this.lastLiveMatchStates.set(lobbyId, {
-        tournamentId,
-        lobbyId,
-        lobbyName,
-        lobbyCode,
-        data: liveMatchStateDto,
-      });
       this.broadcast('OnLiveMatchState', {
         tournamentId,
         lobbyId,
@@ -153,15 +129,16 @@ export class ItgOnlineProxyGateway
       });
       return;
     }
-
-    this.lastLiveMatchStates.delete(lobbyId);
   }
 
-  OnLobbyDisconnected(tournamentId: number, lobbyId: string): void {
-    this.activeLobbyMeta.delete(lobbyId);
-    this.lastLobbyStates.delete(lobbyId);
-    this.lastLiveMatchStates.delete(lobbyId);
-    this.broadcast('OnLobbyDisconnected', { tournamentId, lobbyId });
+  OnLobbyDisconnected(tournamentId: number, lobbyCode: string): void {
+    const lobbyId = lobbyCode;
+    this.lastLobbyPayloads.delete(lobbyId);
+    this.broadcast('OnLobbyDisconnected', { tournamentId, lobbyId, lobbyCode });
+  }
+
+  private hasGameplayState(lobby: LobbyStatePayload): boolean {
+    return lobby.players.some((player) => player.screenName === 'ScreenGameplay');
   }
 
   private toLobbyStateDto(lobby: LobbyStatePayload): LobbyStateDto {

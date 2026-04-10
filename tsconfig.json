@@ -18,6 +18,7 @@
       "@match-manager/*" : ["./src/match-manager/*"],
       "@persistence/*": ["./src/persistence/*"],
       "@player/*" : ["./src/tournament/player/*"],
+      "@syncstart/*" : ["./src/syncstart/*"],
       "@tournament/*" : ["./src/tournament/*"],
       "@user/*" : ["./src/user/*"]
     },

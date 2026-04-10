@@ -1,11 +1,10 @@
 import { Injectable, Inject } from "@nestjs/common";
-import { SongCompletedPayload } from "../live-score.types";
 import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } from '../dtos';
 import { Match, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystemProvider";
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
-import { LobbyStatePayload } from '../itg-online.types';
+import { LobbyStatePayload } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
 import { BracketManager } from '@bracket/bracket.manager';
 import { ScoreService } from '../services/score.service';
@@ -258,7 +257,7 @@ export class StandingManager implements ILobbyStateObserver {
         return match;
     }
 
-    async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, _lobbyId: string, _lobbyName: string): Promise<void> {
+    async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, _lobbyCode: string, _lobbyName: string): Promise<void> {
         const songPath = lobbyState.songInfo?.songPath ?? null;
 
         if (!songPath) return;

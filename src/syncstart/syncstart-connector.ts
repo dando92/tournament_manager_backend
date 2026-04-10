@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { LobbyStatePayload } from '../itg-online.types';
+import { LobbyStatePayload } from './itg-online.types';
 
 type ConnectMode =
   | { type: 'spectate'; lobbyCode: string }

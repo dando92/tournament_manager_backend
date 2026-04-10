@@ -1,10 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
 import { Tournament } from '@persistence/entities';
-import { LobbyStatePayload } from '../itg-online.types';
-import { SyncStartConnector } from './syncstart-connector';
+import { LobbyStatePayload, SyncStartConnector } from '@syncstart/index';
 import { StandingManager } from '../standing/standing.manager';
 import { ItgOnlineProxyGateway } from '../gateways/itg-online-proxy.gateway';
 
@@ -19,7 +17,7 @@ export class LobbyManager implements OnModuleInit {
     // One SyncStartConnector per tournament
     private connectors = new Map<number, SyncStartConnector>();
 
-    // lobbyCode → lobby metadata (tournamentId, lobbyId, lobbyName)
+    // lobbyCode → lobby metadata (lobbyId is the lobbyCode)
     private lobbyCodeMeta = new Map<string, LobbyMeta>();
 
     constructor(
@@ -45,20 +43,18 @@ export class LobbyManager implements OnModuleInit {
             throw new Error(`No SyncStart connector for tournament=${tournamentId}. Ensure the tournament has a syncstartUrl set.`);
         }
 
-        const lobbyId = randomUUID();
-
         try {
             const { lobbyCode: resolvedLobbyCode, initialState } = await connector.ConnectLobby(lobbyCode, password);
+            const lobbyId = resolvedLobbyCode;
             this.lobbyCodeMeta.set(resolvedLobbyCode, { tournamentId, lobbyId, lobbyName: name });
             this.gateway.RegisterLobby(tournamentId, lobbyId, name, resolvedLobbyCode);
             await this._notifyLobbyState(resolvedLobbyCode, initialState);
+            console.log(`[LobbyManager] ConnectLobby succeeded (tournament=${tournamentId} lobbyCode=${resolvedLobbyCode} lobbyId=${lobbyId})`);
+            return lobbyId;
         } catch (err) {
             console.error(`[LobbyManager] ConnectLobby failed (tournament=${tournamentId} lobbyCode=${lobbyCode}): ${err?.message ?? err}`);
             throw err;
         }
-
-        console.log(`[LobbyManager] ConnectLobby succeeded (tournament=${tournamentId} lobbyCode=${lobbyCode} lobbyId=${lobbyId})`);
-        return lobbyId;
     }
 
     async CreateLobby(tournamentId: number, name: string, password: string): Promise<{ lobbyId: string; lobbyCode: string }> {
@@ -67,8 +63,8 @@ export class LobbyManager implements OnModuleInit {
             throw new Error(`No SyncStart connector for tournament=${tournamentId}. Ensure the tournament has a syncstartUrl set.`);
         }
 
-        const lobbyId = randomUUID();
         const { lobbyCode, initialState } = await connector.CreateLobby(password);
+        const lobbyId = lobbyCode;
         const lobbyName = name || lobbyCode;
         this.lobbyCodeMeta.set(lobbyCode, { tournamentId, lobbyId, lobbyName });
         this.gateway.RegisterLobby(tournamentId, lobbyId, lobbyName, lobbyCode);
@@ -78,13 +74,14 @@ export class LobbyManager implements OnModuleInit {
     }
 
     DisconnectLobby(tournamentId: number, lobbyId: string): void {
-        const lobbyCode = this._findLobbyCode(tournamentId, lobbyId);
-        if (!lobbyCode) return;
+        const lobbyCode = lobbyId.toUpperCase();
+        const meta = this.lobbyCodeMeta.get(lobbyCode);
+        if (!meta || meta.tournamentId !== tournamentId) return;
 
         const connector = this.connectors.get(tournamentId);
         connector?.DisconnectLobby(lobbyCode);
         this.lobbyCodeMeta.delete(lobbyCode);
-        this.gateway.OnLobbyDisconnected(tournamentId, lobbyId);
+        this.gateway.OnLobbyDisconnected(tournamentId, lobbyCode);
     }
 
     OnTournamentCreated(tournamentId: number, syncstartUrl: string): void {
@@ -125,17 +122,17 @@ export class LobbyManager implements OnModuleInit {
     private async _notifyLobbyState(lobbyCode: string, payload: LobbyStatePayload): Promise<void> {
         const meta = this.lobbyCodeMeta.get(lobbyCode);
         if (!meta) return;
-        const { tournamentId, lobbyId, lobbyName } = meta;
-        await this.standingManager.OnLobbyStateChanged(tournamentId, payload, lobbyId, lobbyName);
-        await this.gateway.OnLobbyStateChanged(tournamentId, payload, lobbyId, lobbyName);
+        const { tournamentId, lobbyName } = meta;
+        await this.standingManager.OnLobbyStateChanged(tournamentId, payload, lobbyCode, lobbyName);
+        await this.gateway.OnLobbyStateChanged(tournamentId, payload, lobbyCode, lobbyName);
     }
 
     private _onForcedDisconnect(lobbyCode: string): void {
         const meta = this.lobbyCodeMeta.get(lobbyCode);
         if (!meta) return;
-        const { tournamentId, lobbyId } = meta;
+        const { tournamentId } = meta;
         this.lobbyCodeMeta.delete(lobbyCode);
-        this.gateway.OnLobbyDisconnected(tournamentId, lobbyId);
+        this.gateway.OnLobbyDisconnected(tournamentId, lobbyCode);
         console.log(`[LobbyManager] Forced disconnect for lobbyCode=${lobbyCode} tournament=${tournamentId}`);
     }
 
@@ -146,18 +143,10 @@ export class LobbyManager implements OnModuleInit {
         for (const [lobbyCode, meta] of this.lobbyCodeMeta) {
             if (meta.tournamentId !== tournamentId) continue;
             connector.DisconnectLobby(lobbyCode);
-            this.gateway.OnLobbyDisconnected(tournamentId, meta.lobbyId);
+            this.gateway.OnLobbyDisconnected(tournamentId, lobbyCode);
             this.lobbyCodeMeta.delete(lobbyCode);
         }
         this.connectors.delete(tournamentId);
     }
 
-    private _findLobbyCode(tournamentId: number, lobbyId: string): string | undefined {
-        for (const [lobbyCode, meta] of this.lobbyCodeMeta) {
-            if (meta.tournamentId === tournamentId && meta.lobbyId === lobbyId) {
-                return lobbyCode;
-            }
-        }
-        return undefined;
-    }
 }
