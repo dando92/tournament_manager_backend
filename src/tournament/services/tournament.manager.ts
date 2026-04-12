@@ -1,10 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Tournament } from '@persistence/entities';
-import { CreateTournamentDto, TournamentOverviewDto, TournamentResponseDto, UpdateTournamentDto } from '../dtos';
+import { Participant, Player, Tournament } from '@persistence/entities';
+import {
+    CreateParticipantDto,
+    CreateTournamentDto,
+    ImportParticipantEntryDto,
+    TournamentOverviewDto,
+    TournamentResponseDto,
+    UpdateTournamentDto,
+} from '../dtos';
 import { DivisionService } from './division.service';
 import { TournamentService } from './tournament.service';
 import { UserService } from '../../user/services/user.service';
 import { ParticipantService } from './participant.service';
+import { PlayerService } from '@player/player.service';
 
 @Injectable()
 export class TournamentManager {
@@ -13,7 +21,24 @@ export class TournamentManager {
         private readonly tournamentService: TournamentService,
         private readonly userService: UserService,
         private readonly participantService: ParticipantService,
+        private readonly playerService: PlayerService,
     ) {}
+
+    private normalizeName(value: string): string {
+        return value.trim().toLowerCase();
+    }
+
+    private toParticipantDto(participant: Participant) {
+        return {
+            id: participant.id,
+            roles: participant.roles ?? [],
+            status: participant.status,
+            player: {
+                id: participant.player.id,
+                playerName: participant.player.playerName,
+            },
+        };
+    }
 
     private toResponseDto(tournament: Tournament): TournamentResponseDto {
         return {
@@ -70,6 +95,85 @@ export class TournamentManager {
         await this.participantService.removeStaff(tournamentId, accountId);
         const updated = await this.tournamentService.findOne(tournamentId);
         return this.toResponseDto(updated);
+    }
+
+    async listParticipants(tournamentId: number) {
+        const participants = await this.participantService.listForTournament(tournamentId);
+        return participants.map((participant) => this.toParticipantDto(participant));
+    }
+
+    async createParticipant(tournamentId: number, dto: CreateParticipantDto) {
+        const trimmedName = dto.playerName?.trim();
+        if (!dto.playerId && !trimmedName) {
+            throw new NotFoundException('playerId or playerName is required');
+        }
+
+        let player: Player | null = null;
+        if (dto.playerId) {
+            player = await this.playerService.findById(dto.playerId);
+            if (!player) throw new NotFoundException(`Player ${dto.playerId} not found`);
+        } else if (trimmedName) {
+            const allPlayers = await this.playerService.findAll();
+            player = allPlayers.find((candidate) => this.normalizeName(candidate.playerName) === this.normalizeName(trimmedName)) ?? null;
+            if (!player) {
+                player = await this.playerService.create(trimmedName);
+            }
+        }
+
+        const participant = await this.participantService.ensureForPlayer(tournamentId, player!.id, ['competitor']);
+        return this.toParticipantDto(participant);
+    }
+
+    async removeParticipant(tournamentId: number, participantId: number): Promise<void> {
+        await this.participantService.removeFromTournament(tournamentId, participantId);
+    }
+
+    async addParticipantStaffRole(tournamentId: number, participantId: number) {
+        const participant = await this.participantService.addStaffRole(tournamentId, participantId);
+        return this.toParticipantDto(participant);
+    }
+
+    async removeParticipantStaffRole(tournamentId: number, participantId: number) {
+        const participant = await this.participantService.removeStaffRole(tournamentId, participantId);
+        return this.toParticipantDto(participant);
+    }
+
+    async previewParticipantImport(tournamentId: number, playerNames: string[]) {
+        const participants = await this.participantService.listForTournament(tournamentId);
+        const players = await this.playerService.findAll();
+        const playerByNormalizedName = new Map(players.map((player) => [this.normalizeName(player.playerName), player]));
+        const participantPlayerIds = new Set(participants.map((participant) => participant.player.id));
+
+        return [...new Set(playerNames.map((name) => name.trim()).filter(Boolean))].map((name) => {
+            const matchedPlayer = playerByNormalizedName.get(this.normalizeName(name)) ?? null;
+            return {
+                name,
+                matchedPlayer: matchedPlayer ? { id: matchedPlayer.id, playerName: matchedPlayer.playerName } : null,
+                alreadyParticipant: matchedPlayer ? participantPlayerIds.has(matchedPlayer.id) : false,
+            };
+        });
+    }
+
+    async importParticipants(tournamentId: number, entries: ImportParticipantEntryDto[]) {
+        const imported = [];
+
+        for (const entry of entries) {
+            const trimmedName = entry.name.trim();
+            if (!trimmedName) continue;
+
+            let player: Player | null = null;
+            if (entry.playerId) {
+                player = await this.playerService.findById(entry.playerId);
+                if (!player) throw new NotFoundException(`Player ${entry.playerId} not found`);
+            } else {
+                player = await this.playerService.create(trimmedName);
+            }
+
+            const participant = await this.participantService.ensureForPlayer(tournamentId, player.id, ['competitor']);
+            imported.push(this.toParticipantDto(participant));
+        }
+
+        return imported;
     }
 
     async findOverview(tournamentId: number): Promise<TournamentOverviewDto> {

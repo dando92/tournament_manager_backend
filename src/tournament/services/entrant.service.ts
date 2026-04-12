@@ -62,6 +62,19 @@ export class EntrantService {
         await this.entrantRepository.save(entrant);
     }
 
+    async removeSinglesEntrantByParticipant(divisionId: number, participantId: number): Promise<void> {
+        const entrant = await this.entrantRepository
+            .createQueryBuilder('entrant')
+            .leftJoinAndSelect('entrant.participants', 'participant')
+            .where('entrant.divisionId = :divisionId', { divisionId })
+            .andWhere('participant.id = :participantId', { participantId })
+            .getOne();
+
+        if (!entrant) return;
+        entrant.status = 'withdrawn';
+        await this.entrantRepository.save(entrant);
+    }
+
     async updateSeeding(divisionId: number, entrantIds: number[]): Promise<void> {
         const entrants = await this.entrantRepository.find({
             where: { division: { id: divisionId } },

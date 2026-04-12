@@ -1,6 +1,14 @@
 import { Body, Controller, Get, Param, Patch, Post, Delete, Request, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Tournament } from '@persistence/entities';
-import { CreateTournamentDto, UpdateTournamentDto, TournamentOverviewDto, TournamentResponseDto } from '../dtos';
+import {
+    CreateParticipantDto,
+    CreateTournamentDto,
+    ImportParticipantsDto,
+    ImportParticipantsPreviewDto,
+    UpdateTournamentDto,
+    TournamentOverviewDto,
+    TournamentResponseDto,
+} from '../dtos';
 import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
 import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
@@ -53,6 +61,66 @@ export class TournamentsController {
             this.lobbyManager.OnTournamentUrlChanged(Number(id), dto.syncstartUrl);
         }
         return tournament;
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Get(':id/participants')
+    async listParticipants(@Param('id') id: number) {
+        return this.tournamentManager.listParticipants(Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/participants')
+    async createParticipant(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: CreateParticipantDto,
+    ) {
+        return this.tournamentManager.createParticipant(Number(id), dto);
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Delete(':id/participants/:participantId')
+    async removeParticipant(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ): Promise<void> {
+        return this.tournamentManager.removeParticipant(Number(id), Number(participantId));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/participants/import-preview')
+    async previewParticipantImport(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: ImportParticipantsPreviewDto,
+    ) {
+        return this.tournamentManager.previewParticipantImport(Number(id), dto.playerNames);
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/participants/import')
+    async importParticipants(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: ImportParticipantsDto,
+    ) {
+        return this.tournamentManager.importParticipants(Number(id), dto.entries);
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
+    @Post(':id/participants/:participantId/staff')
+    async addParticipantStaffRole(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ) {
+        return this.tournamentManager.addParticipantStaffRole(Number(id), Number(participantId));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
+    @Delete(':id/participants/:participantId/staff')
+    async removeParticipantStaffRole(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ) {
+        return this.tournamentManager.removeParticipantStaffRole(Number(id), Number(participantId));
     }
 
     @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)

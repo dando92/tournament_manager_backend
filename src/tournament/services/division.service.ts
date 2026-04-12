@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Division, Entrant, Tournament } from '@persistence/entities';
+import { Division, Entrant, Participant, Tournament } from '@persistence/entities';
 import { CreateDivisionDto, UpdateDivisionDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
@@ -224,5 +224,35 @@ export class DivisionService {
         const division = await this.findEntrantsOnly(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
         return division.entrants ?? [];
+    }
+
+    async getAvailableParticipants(id: number): Promise<Participant[]> {
+        const division = await this.divisionRepository.findOne({
+            where: { id },
+            relations: {
+                tournament: {
+                    participants: {
+                        player: true,
+                        account: true,
+                    },
+                },
+                entrants: {
+                    participants: true,
+                },
+            },
+        });
+        if (!division) throw new NotFoundException(`Division ${id} not found`);
+
+        const activeParticipantIds = new Set(
+            (division.entrants ?? [])
+                .filter((entrant) => entrant.status === 'active')
+                .flatMap((entrant) => entrant.participants ?? [])
+                .map((participant) => participant.id),
+        );
+
+        return (division.tournament.participants ?? [])
+            .filter((participant) => participant.status !== 'withdrawn')
+            .filter((participant) => !activeParticipantIds.has(participant.id))
+            .sort((left, right) => left.player.playerName.localeCompare(right.player.playerName));
     }
 }

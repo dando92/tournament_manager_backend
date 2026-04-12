@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Account, Participant, ParticipantRole, Player, Tournament } from '@persistence/entities';
+import { EntrantService } from './entrant.service';
 
 @Injectable()
 export class ParticipantService {
@@ -14,7 +15,17 @@ export class ParticipantService {
         private readonly playerRepository: Repository<Player>,
         @InjectRepository(Account)
         private readonly accountRepository: Repository<Account>,
+        private readonly entrantService: EntrantService,
     ) {}
+
+    async listForTournament(tournamentId: number): Promise<Participant[]> {
+        const participants = await this.participantRepository.find({
+            where: { tournament: { id: tournamentId } },
+            relations: { player: true, account: true },
+        });
+
+        return participants.sort((left, right) => left.player.playerName.localeCompare(right.player.playerName));
+    }
 
     async ensureForPlayer(tournamentId: number, playerId: number, roles: ParticipantRole[] = ['competitor']): Promise<Participant> {
         const participant = await this.participantRepository.findOne({
@@ -69,6 +80,50 @@ export class ParticipantService {
         participant.roles = (participant.roles ?? []).filter((role) => role !== 'staff');
         if (participant.roles.length === 0) participant.roles = ['unknown'];
         await this.participantRepository.save(participant);
+    }
+
+    async removeFromTournament(tournamentId: number, participantId: number): Promise<void> {
+        const participant = await this.participantRepository.findOne({
+            where: { id: participantId, tournament: { id: tournamentId } },
+            relations: {
+                tournament: true,
+                player: true,
+                entrants: {
+                    division: true,
+                },
+            },
+        });
+
+        if (!participant) return;
+
+        for (const entrant of participant.entrants ?? []) {
+            await this.entrantService.removeSinglesEntrantByParticipant(entrant.division.id, participant.id);
+        }
+
+        await this.participantRepository.remove(participant);
+    }
+
+    async addStaffRole(tournamentId: number, participantId: number): Promise<Participant> {
+        const participant = await this.participantRepository.findOne({
+            where: { id: participantId, tournament: { id: tournamentId } },
+            relations: { tournament: true, player: true, account: true },
+        });
+        if (!participant) throw new NotFoundException(`Participant ${participantId} not found`);
+
+        participant.roles = this.mergeRoles(participant.roles, ['staff']);
+        return this.participantRepository.save(participant);
+    }
+
+    async removeStaffRole(tournamentId: number, participantId: number): Promise<Participant> {
+        const participant = await this.participantRepository.findOne({
+            where: { id: participantId, tournament: { id: tournamentId } },
+            relations: { tournament: true, player: true, account: true },
+        });
+        if (!participant) throw new NotFoundException(`Participant ${participantId} not found`);
+
+        participant.roles = (participant.roles ?? []).filter((role) => role !== 'staff');
+        if (participant.roles.length === 0) participant.roles = ['unknown'];
+        return this.participantRepository.save(participant);
     }
 
     async listStaff(tournamentId: number): Promise<Participant[]> {

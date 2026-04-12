@@ -53,6 +53,27 @@ export class DivisionsController {
         return this.divisionService.getEntrants(id);
     }
 
+    @Get(':id/available-participants')
+    async getAvailableParticipants(@Param('id') id: number) {
+        return this.divisionService.getAvailableParticipants(Number(id));
+    }
+
+    @Post(':id/participants/:participantId')
+    async addParticipantToDivision(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ): Promise<Entrant> {
+        return this.entrantService.addSinglesEntrant(Number(id), Number(participantId));
+    }
+
+    @Delete(':id/participants/:participantId')
+    async removeParticipantFromDivision(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ): Promise<void> {
+        return this.entrantService.removeSinglesEntrantByParticipant(Number(id), Number(participantId));
+    }
+
     @Patch(':id/entrant-seeding')
     async updateEntrantSeeding(
         @Param('id') id: number,

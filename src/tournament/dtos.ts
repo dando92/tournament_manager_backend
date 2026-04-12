@@ -15,6 +15,7 @@ import { CreateMatchAssignmentDto, UpdateMatchAssignmentDto } from '@match/dtos/
 import { CreateSetupDto, UpdateSetupDto } from './dtos/setup.dto';
 import { CreateAccountDto, UpdateAcountDto  } from './dtos/acount.dto'
 import { CreateAccountPlayerDto, UpdateAccountPlayerDto } from './dtos/accountplayer.dto';
+import { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto, ImportParticipantsPreviewDto } from './dtos/participant-management.dto';
 
 export { CreateDivisionDto, UpdateDivisionDto, UpdateEntrantSeedingDto };
 export { CreatePhaseDto, UpdatePhaseDto };
@@ -33,3 +34,4 @@ export { CreateMatchAssignmentDto, UpdateMatchAssignmentDto };
 export { CreateSetupDto, UpdateSetupDto };
 export { CreateAccountDto, UpdateAcountDto };
 export { CreateAccountPlayerDto, UpdateAccountPlayerDto };
+export { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto, ImportParticipantsPreviewDto };
