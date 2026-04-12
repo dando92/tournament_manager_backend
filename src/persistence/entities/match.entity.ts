@@ -10,7 +10,7 @@ import {
 
 import { Round } from './round.entity'
 import { Phase } from './phase.entity'
-import { Player } from './player.entity'
+import { Entrant } from './entrant.entity'
 
 
 @Entity()
@@ -50,9 +50,9 @@ export class Match {
   @Column()
   scoringSystem: string;
 
-  @ManyToMany(() => Player, (player) => player.matches, { nullable: true })
+  @ManyToMany(() => Entrant, (entrant) => entrant.matches, { nullable: true })
   @JoinTable()
-  players?: Player[];
+  entrants?: Entrant[];
 
   @OneToMany(() => Round, (round) => round.match, { cascade: true  })
   rounds: Round[];

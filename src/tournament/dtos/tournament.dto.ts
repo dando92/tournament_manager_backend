@@ -4,13 +4,12 @@ import {
     IsString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Account } from '@persistence/entities';
 
-export class TournamentHelperDto {
-    @ApiProperty({ example: 'd9c42b76-3c5f-4d2f-8f4c-32a2d93b24ff', description: 'Helper account id.' })
+export class TournamentStaffDto {
+    @ApiProperty({ example: 'd9c42b76-3c5f-4d2f-8f4c-32a2d93b24ff', description: 'Staff account id.' })
     id: string;
 
-    @ApiProperty({ example: 'momo', description: 'Helper username.' })
+    @ApiProperty({ example: 'momo', description: 'Staff username.' })
     username: string;
 }
 
@@ -28,8 +27,8 @@ export class TournamentResponseDto {
     })
     syncstartUrl?: string;
 
-    @ApiProperty({ type: () => [TournamentHelperDto], description: 'Tournament helpers.' })
-    helpers: TournamentHelperDto[];
+    @ApiProperty({ type: () => [TournamentStaffDto], description: 'Tournament staff.' })
+    staff: TournamentStaffDto[];
 }
 
 export class CreateTournamentDto {
@@ -62,7 +61,4 @@ export class UpdateTournamentDto {
     @IsString()
     @ApiProperty({ description: 'WebSocket URL of the syncstart server for this tournament.', required: false })
     syncstartUrl?: string;
-
-    // Internal use by TournamentManager — not validated from HTTP body
-    helpers?: Account[];
 }

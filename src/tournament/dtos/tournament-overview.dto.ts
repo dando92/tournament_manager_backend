@@ -3,6 +3,22 @@ export type TournamentOverviewDivisionPlayerDto = {
     playerName: string;
 };
 
+export type TournamentOverviewParticipantDto = {
+    id: number;
+    roles: string[];
+    status: string;
+    player: TournamentOverviewDivisionPlayerDto;
+};
+
+export type TournamentOverviewEntrantDto = {
+    id: number;
+    name: string;
+    type: string;
+    seedNum: number | null;
+    status: string;
+    participants: TournamentOverviewParticipantDto[];
+};
+
 export type TournamentOverviewDivisionPhaseDto = {
     id: number;
     name: string;
@@ -12,7 +28,7 @@ export type TournamentOverviewDivisionPhaseDto = {
 export type TournamentOverviewDivisionDto = {
     id: number;
     name: string;
-    players: TournamentOverviewDivisionPlayerDto[];
+    entrants: TournamentOverviewEntrantDto[];
     phases: TournamentOverviewDivisionPhaseDto[];
 };
 

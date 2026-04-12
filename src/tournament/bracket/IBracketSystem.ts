@@ -3,7 +3,7 @@ import { CreateDivisionDto } from "@tournament/dtos";
 import { CreateMatchDto } from "@tournament/dtos";
 import { UpdateMatchDto } from "@tournament/dtos";
 
-import { Match, Player, Division, Phase } from "@persistence/entities";
+import { Entrant, Match, Division, Phase } from "@persistence/entities";
 import { DivisionService } from "@tournament/services/division.service";
 import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
@@ -31,7 +31,7 @@ export class IBracketSystem {
         throw new Error("Method 'Description' should be implemented.");
     }
 
-    async generateForDivision(division: Division, players: Player[], playerPerMatch: number = 2): Promise<void> {
+    async generateForDivision(division: Division, entrants: Entrant[], playerPerMatch: number = 2): Promise<void> {
         const phaseNumber = (division.phases?.length ?? 0) + 1;
         const phaseDto = new CreatePhaseDto();
         phaseDto.name = `Bracket ${phaseNumber}`;
@@ -39,10 +39,10 @@ export class IBracketSystem {
         const phase = await this.phaseService.create(phaseDto);
         phase.matches = [];
 
-        await this.createBracket(players, playerPerMatch, division, phase);
+        await this.createBracket(entrants, playerPerMatch, division, phase);
     }
 
-    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
+    protected async createBracket(_entrants: Entrant[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
         throw new Error("Method 'createBracket' should be implemented.");
     }
 
@@ -52,11 +52,11 @@ export class IBracketSystem {
         return p;
     }
 
-    protected async fillFirstWave(players: Player[], firstRound: Match[], playerPerMatch: number): Promise<void> {
-        for (let i = 0; i < players.length; i++) {
+    protected async fillFirstWave(entrants: Entrant[], firstRound: Match[], playerPerMatch: number): Promise<void> {
+        for (let i = 0; i < entrants.length; i++) {
             const matchIndex = Math.floor(i / playerPerMatch);
             if (matchIndex < firstRound.length) {
-                await this.AddPlayerToMatch(players[i], firstRound[matchIndex].id);
+                await this.AddEntrantToMatch(entrants[i], firstRound[matchIndex].id);
             }
         }
     }
@@ -91,11 +91,11 @@ export class IBracketSystem {
         return await this.matchService.create(dto);
     }
 
-    protected async AddPlayerToMatch(player: Player, matchId: number) {
-        return await this.matchManager.AddPlayerInMatch(matchId, player.id);
+    protected async AddEntrantToMatch(entrant: Entrant, matchId: number) {
+        return await this.matchManager.AddEntrantInMatch(matchId, entrant.id);
     }
 
-    protected async RemovePlayerFromMatch(player: Player, matchId: number) {
-        await this.matchManager.RemovePlayersFromMatch(matchId, [player.id]);
+    protected async RemoveEntrantFromMatch(entrant: Entrant, matchId: number) {
+        await this.matchManager.RemoveEntrantInMatch(matchId, entrant.id);
     }
 }

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Match, Phase, Player } from '@persistence/entities';
+import { Entrant, Match, Phase } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
@@ -12,8 +12,8 @@ export class MatchService {
         private readonly matchRepository: Repository<Match>,
         @InjectRepository(Phase)
         private readonly phaseRepository: Repository<Phase>,
-        @InjectRepository(Player)
-        private readonly playerRepository: Repository<Player>,
+        @InjectRepository(Entrant)
+        private readonly entrantRepository: Repository<Entrant>,
         private readonly uiUpdateGateway: UiUpdateGateway,
     ) {}
 
@@ -24,13 +24,16 @@ export class MatchService {
         if (!phase) throw new NotFoundException(`Phase with ID ${dto.phaseId} not found`);
         match.phase = Promise.resolve(phase);
 
-        match.players = [];
+        match.entrants = [];
 
-        if (dto.playerIds !== undefined) {
-            for (const playerId of dto.playerIds) {
-                const player = await this.playerRepository.findOneBy({ id: playerId });
-                if (!player) throw new NotFoundException(`Player with ID ${playerId} not found`);
-                match.players.push(player);
+        if (dto.entrantIds !== undefined) {
+            for (const entrantId of dto.entrantIds) {
+                const entrant = await this.entrantRepository.findOne({
+                    where: { id: entrantId },
+                    relations: { participants: { player: true } },
+                });
+                if (!entrant) throw new NotFoundException(`Entrant with ID ${entrantId} not found`);
+                match.entrants.push(entrant);
             }
         }
 
@@ -58,7 +61,7 @@ export class MatchService {
     async findAllForLobbyLookup(): Promise<Match[]> {
         return await this.matchRepository.find({
             relations: {
-                players: true,
+                entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
                 },
@@ -77,7 +80,7 @@ export class MatchService {
             },
             relations: {
                 phase: true,
-                players: true,
+                entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
                     standings: {
@@ -94,7 +97,7 @@ export class MatchService {
         return await this.matchRepository.findOne({
             where: { id },
             relations: {
-                players: true,
+                entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
                     standings: {
@@ -124,15 +127,18 @@ export class MatchService {
             delete dto.phaseId;
         }
 
-        if (dto.playerIds !== undefined) {
-            const players = [];
-            for (const playerId of dto.playerIds) {
-                const player = await this.playerRepository.findOneBy({ id: playerId });
-                if (!player) throw new NotFoundException(`Player with ID ${playerId} not found`);
-                players.push(player);
+        if (dto.entrantIds !== undefined) {
+            const entrants = [];
+            for (const entrantId of dto.entrantIds) {
+                const entrant = await this.entrantRepository.findOne({
+                    where: { id: entrantId },
+                    relations: { participants: { player: true } },
+                });
+                if (!entrant) throw new NotFoundException(`Entrant with ID ${entrantId} not found`);
+                entrants.push(entrant);
             }
-            match.players = players;
-            delete dto.playerIds;
+            match.entrants = entrants;
+            delete dto.entrantIds;
         }
 
         if (dto.targetPaths !== undefined) match.targetPaths = dto.targetPaths;

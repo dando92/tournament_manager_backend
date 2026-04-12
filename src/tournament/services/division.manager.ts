@@ -14,10 +14,21 @@ export class DivisionManager {
             id: division.id,
             name: division.name,
             playersPerMatch: division.playersPerMatch ?? null,
-            seeding: division.seeding ?? null,
-            players: (division.players ?? []).map((player) => ({
-                id: player.id,
-                playerName: player.playerName,
+            entrants: (division.entrants ?? []).map((entrant) => ({
+                id: entrant.id,
+                name: entrant.name,
+                type: entrant.type,
+                seedNum: entrant.seedNum ?? null,
+                status: entrant.status,
+                participants: (entrant.participants ?? []).map((participant) => ({
+                    id: participant.id,
+                    roles: participant.roles ?? [],
+                    status: participant.status,
+                    player: {
+                        id: participant.player.id,
+                        playerName: participant.player.playerName,
+                    },
+                })),
             })),
             phases: (division.phases ?? []).map((phase) => ({
                 id: phase.id,

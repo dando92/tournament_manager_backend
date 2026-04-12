@@ -11,6 +11,10 @@ import { Standing } from './entities/standing.entity';
 import { MatchAssignment } from './entities/match_assignment.entity';
 import { Setup } from './entities/setup.entity';
 import { Account } from './entities/account.entity';
+import { Participant } from './entities/participant.entity';
+import { Entrant } from './entities/entrant.entity';
+export type { ParticipantRole, ParticipantStatus } from './entities/participant.entity';
+export type { EntrantType, EntrantStatus } from './entities/entrant.entity';
 
 export { Division }
 export { Phase }
@@ -25,6 +29,8 @@ export { Standing }
 export { MatchAssignment }
 export { Setup }
 export { Account }
+export { Participant }
+export { Entrant }
 
 export const Entities = [
     Division,
@@ -40,4 +46,6 @@ export const Entities = [
     MatchAssignment,
     Setup,
     Account
+    ,Participant
+    ,Entrant
 ];

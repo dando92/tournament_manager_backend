@@ -4,6 +4,7 @@ import { CreateTournamentDto, TournamentOverviewDto, TournamentResponseDto, Upda
 import { DivisionService } from './division.service';
 import { TournamentService } from './tournament.service';
 import { UserService } from '../../user/services/user.service';
+import { ParticipantService } from './participant.service';
 
 @Injectable()
 export class TournamentManager {
@@ -11,6 +12,7 @@ export class TournamentManager {
         private readonly divisionService: DivisionService,
         private readonly tournamentService: TournamentService,
         private readonly userService: UserService,
+        private readonly participantService: ParticipantService,
     ) {}
 
     private toResponseDto(tournament: Tournament): TournamentResponseDto {
@@ -18,16 +20,22 @@ export class TournamentManager {
             id: tournament.id,
             name: tournament.name,
             syncstartUrl: tournament.syncstartUrl,
-            helpers: (tournament.helpers ?? []).map((helper) => ({
-                id: helper.id,
-                username: helper.username,
-            })),
+            staff: (tournament.participants ?? [])
+                .filter((participant) => participant.roles?.includes('staff') && participant.account)
+                .map((participant) => ({
+                    id: participant.account.id,
+                    username: participant.account.username,
+                })),
         };
     }
 
     async create(dto: CreateTournamentDto, ownerId?: string): Promise<TournamentResponseDto> {
         const tournament = await this.tournamentService.create(dto, ownerId);
-        return this.toResponseDto(tournament);
+        if (ownerId) {
+            await this.participantService.ensureStaff(tournament.id, ownerId);
+        }
+        const reloaded = await this.tournamentService.findOne(tournament.id);
+        return this.toResponseDto(reloaded ?? tournament);
     }
 
     async findOne(tournamentId: number): Promise<TournamentResponseDto | null> {
@@ -50,24 +58,27 @@ export class TournamentManager {
         const account = await this.userService.findById(accountId);
         if (!account) throw new NotFoundException(`Account ${accountId} not found`);
 
-        const helpers = [...(tournament.helpers ?? []), account];
-        const updated = await this.tournamentService.update(tournamentId, { helpers });
-        return this.toResponseDto(updated.tournament);
+        await this.participantService.ensureStaff(tournamentId, accountId);
+        const updated = await this.tournamentService.findOne(tournamentId);
+        return this.toResponseDto(updated);
     }
 
     async removeHelper(tournamentId: number, accountId: string): Promise<TournamentResponseDto> {
         const tournament = await this.tournamentService.findOne(tournamentId);
         if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
 
-        const helpers = (tournament.helpers ?? []).filter(h => h.id !== accountId);
-        const updated = await this.tournamentService.update(tournamentId, { helpers });
-        return this.toResponseDto(updated.tournament);
+        await this.participantService.removeStaff(tournamentId, accountId);
+        const updated = await this.tournamentService.findOne(tournamentId);
+        return this.toResponseDto(updated);
     }
 
     async findOverview(tournamentId: number): Promise<TournamentOverviewDto> {
         const divisions = await this.divisionService.findOverviewData(tournamentId);
         const divisionCount = divisions.length;
-        const playerCount = divisions.reduce((count, division) => count + (division.players?.length ?? 0), 0);
+        const playerCount = divisions.reduce(
+            (count, division) => count + (division.entrants?.filter((entrant) => entrant.status === 'active').length ?? 0),
+            0,
+        );
         const matchCount = divisions.reduce(
             (count, division) =>
                 count + (division.phases ?? []).reduce((phaseCount, phase) => phaseCount + (phase.matches?.length ?? 0), 0),
@@ -81,9 +92,21 @@ export class TournamentManager {
             divisions: divisions.map((division) => ({
                 id: division.id,
                 name: division.name,
-                players: (division.players ?? []).map((player) => ({
-                    id: player.id,
-                    playerName: player.playerName,
+                entrants: (division.entrants ?? []).map((entrant) => ({
+                    id: entrant.id,
+                    name: entrant.name,
+                    type: entrant.type,
+                    seedNum: entrant.seedNum ?? null,
+                    status: entrant.status,
+                    participants: (entrant.participants ?? []).map((participant) => ({
+                        id: participant.id,
+                        roles: participant.roles ?? [],
+                        status: participant.status,
+                        player: {
+                            id: participant.player.id,
+                            playerName: participant.player.playerName,
+                        },
+                    })),
                 })),
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
@@ -93,5 +116,4 @@ export class TournamentManager {
             })),
         };
     }
-
 }

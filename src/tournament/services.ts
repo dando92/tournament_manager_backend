@@ -14,6 +14,8 @@ import { PlayerService } from "@player/player.service";
 import { PlayerManager } from "@player/player.manager";
 import { DivisionService } from './services/division.service';
 import { DivisionManager } from './services/division.manager';
+import { ParticipantService } from './services/participant.service';
+import { EntrantService } from './services/entrant.service';
 import { PhaseService } from './services/phase.service';
 import { SongService } from './services/song.service';
 import { ScoreService } from './services/score.service';
@@ -35,6 +37,8 @@ export { PlayerService };
 export { PlayerManager };
 export { DivisionService };
 export { DivisionManager };
+export { ParticipantService };
+export { EntrantService };
 export { PhaseService };
 export { SongService };
 export { ScoreService };
@@ -59,6 +63,8 @@ export const Services = [
 
     DivisionService,
     DivisionManager,
+    ParticipantService,
+    EntrantService,
     PhaseService,
     SongService,
     ScoreService,

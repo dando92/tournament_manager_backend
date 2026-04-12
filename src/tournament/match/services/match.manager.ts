@@ -45,9 +45,21 @@ export class MatchManager {
             subtitle: match.subtitle,
             notes: match.notes,
             scoringSystem: match.scoringSystem,
-            players: (match.players ?? []).map((player) => ({
-                id: player.id,
-                playerName: player.playerName,
+            entrants: (match.entrants ?? []).map((entrant) => ({
+                id: entrant.id,
+                name: entrant.name,
+                type: entrant.type,
+                seedNum: entrant.seedNum ?? null,
+                status: entrant.status,
+                participants: (entrant.participants ?? []).map((participant) => ({
+                    id: participant.id,
+                    roles: participant.roles ?? [],
+                    status: participant.status,
+                    player: {
+                        id: participant.player.id,
+                        playerName: participant.player.playerName,
+                    },
+                })),
             })),
             rounds: (match.rounds ?? []).map((round) => ({
                 id: round.id,
@@ -134,28 +146,28 @@ export class MatchManager {
             }
         }
 
-        const remainingPlayerIds = match.players
-            .filter(player => !playerIdsToRemove.includes(player.id))
-            .map(player => player.id);
+        const remainingEntrantIds = (match.entrants ?? [])
+            .filter(entrant => !entrant.participants?.some(participant => playerIdsToRemove.includes(participant.player.id)))
+            .map(entrant => entrant.id);
         const dto = new UpdateMatchDto();
-        dto.playerIds = remainingPlayerIds;
+        dto.entrantIds = remainingEntrantIds;
         await this.matchService.update(matchId, dto);
     }
 
-    async AddPlayerInMatch(matchId: number, playerId: number): Promise<void> {
+    async AddEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
-        if (match.players.some(p => p.id === playerId)) return;
+        if ((match.entrants ?? []).some(entrant => entrant.id === entrantId)) return;
         const dto = new UpdateMatchDto();
-        dto.playerIds = [...match.players.map(p => p.id), playerId];
+        dto.entrantIds = [...(match.entrants ?? []).map(entrant => entrant.id), entrantId];
         await this.matchService.update(matchId, dto);
     }
 
-    async RemovePlayerInMatch(matchId: number, playerId: number): Promise<void> {
+    async RemoveEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
         const dto = new UpdateMatchDto();
-        dto.playerIds = match.players.filter(p => p.id !== playerId).map(p => p.id);
+        dto.entrantIds = (match.entrants ?? []).filter(entrant => entrant.id !== entrantId).map(entrant => entrant.id);
         await this.matchService.update(matchId, dto);
     }
 

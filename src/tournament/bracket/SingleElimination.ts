@@ -1,5 +1,5 @@
 import { IBracketSystem } from "@bracket/IBracketSystem";
-import { Division, Match, Phase, Player } from "@persistence/entities";
+import { Division, Entrant, Match, Phase } from "@persistence/entities";
 
 type PlayerInfo = {
     match: number;
@@ -15,9 +15,9 @@ export class SingleElimination extends IBracketSystem {
         return "SingleElimination";
     }
 
-    protected async createBracket(players: Player[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
-        const firstRound = await this.buildStructure(players.length, playerPerMatch, phase);
-        await this.fillFirstWave(players, firstRound, playerPerMatch);
+    protected async createBracket(entrants: Entrant[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
+        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase);
+        await this.fillFirstWave(entrants, firstRound, playerPerMatch);
     }
 
     private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase): Promise<Match[]> {

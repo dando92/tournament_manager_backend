@@ -1,53 +1,51 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Player } from '@persistence/entities';
+import { Entrant, Player } from '@persistence/entities';
 import { DivisionService } from '@tournament/services/division.service';
 import { PlayerService } from '@player/player.service';
+import { ParticipantService } from '@tournament/services/participant.service';
+import { EntrantService } from '@tournament/services/entrant.service';
 
 @Injectable()
 export class PlayerManager {
     constructor(
         private readonly playerService: PlayerService,
         private readonly divisionService: DivisionService,
+        private readonly participantService: ParticipantService,
+        private readonly entrantService: EntrantService,
     ) {}
 
     async assignPlayerToDivision(playerId: number, divisionId: number): Promise<void> {
-        const division = await this.divisionService.findPlayersOnly(divisionId);
+        const division = await this.divisionService.findEntrantsOnly(divisionId);
         if (!division) throw new NotFoundException(`Division ${divisionId} not found`);
 
-        const alreadyLinked = (division.players ?? []).some((player) => player.id === playerId);
+        const alreadyLinked = (division.entrants ?? []).some((entrant) =>
+            entrant.status === 'active' && entrant.participants?.some((participant) => participant.player.id === playerId),
+        );
         if (alreadyLinked) {
             return;
         }
 
-        const player = new Player();
-        player.id = playerId;
-
-        await this.divisionService.updatePlayers(
-            divisionId,
-            [...(division.players ?? []), player],
-            [...(division.seeding ?? []), playerId],
-        );
+        const participant = await this.participantService.ensureForPlayer(division.tournament.id, playerId, ['competitor']);
+        await this.entrantService.addSinglesEntrant(divisionId, participant.id);
     }
 
     async removePlayerFromDivision(playerId: number, divisionId: number): Promise<void> {
-        const division = await this.divisionService.findPlayersOnly(divisionId);
+        const division = await this.divisionService.findEntrantsOnly(divisionId);
         if (!division) throw new NotFoundException(`Division ${divisionId} not found`);
 
-        await this.divisionService.updatePlayers(
-            divisionId,
-            (division.players ?? []).filter((player) => player.id !== playerId),
-            (division.seeding ?? []).filter((seedId) => seedId !== playerId),
-        );
+        await this.entrantService.removeSinglesEntrantByPlayer(divisionId, playerId);
     }
 
     async addPlayersToDivision(
         playerNames: string[],
         divisionId: number,
-    ): Promise<{ players: Player[]; warnings: string[] }> {
+    ): Promise<{ entrants: Entrant[]; warnings: string[] }> {
         const normalized = [...new Set(playerNames.map((n) => n.trim().toLowerCase()).filter((n) => n.length > 0))];
 
-        const players: Player[] = [];
+        const entrants: Entrant[] = [];
         const warnings: string[] = [];
+        const division = await this.divisionService.findEntrantsOnly(divisionId);
+        if (!division) throw new NotFoundException(`Division ${divisionId} not found`);
 
         for (const name of normalized) {
             let player = await this.playerService.findByName(name);
@@ -56,10 +54,11 @@ export class PlayerManager {
             } else {
                 player = await this.playerService.create(name);
             }
-            await this.assignPlayerToDivision(player.id, divisionId);
-            players.push(player);
+            const participant = await this.participantService.ensureForPlayer(division.tournament.id, player.id, ['competitor']);
+            const entrant = await this.entrantService.addSinglesEntrant(divisionId, participant.id);
+            entrants.push(entrant);
         }
 
-        return { players, warnings };
+        return { entrants, warnings };
     }
 }

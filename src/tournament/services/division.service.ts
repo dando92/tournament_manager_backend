@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Division, Player, Tournament } from '@persistence/entities';
+import { Division, Entrant, Tournament } from '@persistence/entities';
 import { CreateDivisionDto, UpdateDivisionDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
@@ -43,7 +43,11 @@ export class DivisionService {
         return this.divisionRepository.findOne({
             where: { id },
             relations: {
-                players: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
                 phases: {
                     matches: true,
                 },
@@ -75,10 +79,18 @@ export class DivisionService {
             where: { tournament: { id: tournamentId } },
             relations: {
                 tournament: true,
-                players: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
                 phases: {
                     matches: {
-                        players: true,
+                        entrants: {
+                            participants: {
+                                player: true,
+                            },
+                        },
                         rounds: {
                             song: true,
                             standings: {
@@ -98,7 +110,11 @@ export class DivisionService {
         return this.divisionRepository.find({
             where: { tournament: { id: tournamentId } },
             relations: {
-                players: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
                 phases: {
                     matches: true,
                 },
@@ -110,9 +126,18 @@ export class DivisionService {
         return this.divisionRepository.findOne({
             where: { id },
             relations: {
-                players: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
                 phases: {
                     matches: {
+                        entrants: {
+                            participants: {
+                                player: true,
+                            },
+                        },
                         rounds: {
                             song: true,
                             standings: {
@@ -131,9 +156,18 @@ export class DivisionService {
         return this.divisionRepository.findOne({
             where: { id },
             relations: {
-                players: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
                 phases: {
                     matches: {
+                        entrants: {
+                            participants: {
+                                player: true,
+                            },
+                        },
                         rounds: {
                             song: true,
                         },
@@ -143,11 +177,16 @@ export class DivisionService {
         });
     }
 
-    async findPlayersOnly(id: number): Promise<Division | null> {
+    async findEntrantsOnly(id: number): Promise<Division | null> {
         return this.divisionRepository.findOne({
             where: { id },
             relations: {
-                players: true,
+                tournament: true,
+                entrants: {
+                    participants: {
+                        player: true,
+                    },
+                },
             },
         });
     }
@@ -181,18 +220,9 @@ export class DivisionService {
         await this.uiUpdateGateway.emitTournamentUpdate(tournamentId);
     }
 
-    async getPlayers(id: number): Promise<Player[]> {
-        const division = await this.findPlayersOnly(id);
+    async getEntrants(id: number): Promise<Entrant[]> {
+        const division = await this.findEntrantsOnly(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
-        return division.players ?? [];
-    }
-
-    async updatePlayers(id: number, players: Player[], seeding: number[]): Promise<void> {
-        const division = await this.findPlayersOnly(id);
-        if (!division) throw new NotFoundException(`Division ${id} not found`);
-
-        division.players = players;
-        division.seeding = seeding;
-        await this.divisionRepository.save(division);
+        return division.entrants ?? [];
     }
 }

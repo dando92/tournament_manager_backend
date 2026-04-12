@@ -9,7 +9,10 @@ export class PadRoller {
 
     async AutoRollPads(match: Match) {
         const rounds = match.rounds;
-        const players = match.players;
+        const players = (match.entrants ?? [])
+            .filter((entrant) => entrant.type === 'player')
+            .map((entrant) => entrant.participants?.[0]?.player)
+            .filter(Boolean);
         const setups: Setup[] = null;
 
         setups.sort((a, b) => a.position - b.position);

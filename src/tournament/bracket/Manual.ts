@@ -1,5 +1,5 @@
 import { IBracketSystem } from "@bracket/IBracketSystem";
-import { Division, Phase, Player } from "@persistence/entities";
+import { Division, Entrant, Phase } from "@persistence/entities";
 
 export class Manual extends IBracketSystem {
     getName(): string {
@@ -10,9 +10,9 @@ export class Manual extends IBracketSystem {
         return "First phase only";
     }
 
-    protected async createBracket(_players: Player[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
-        const matchCount = Math.ceil(_players.length / _playerPerMatch);
+    protected async createBracket(_entrants: Entrant[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
+        const matchCount = Math.ceil(_entrants.length / _playerPerMatch);
         const matches = await this.CreateMatchesInPhase("Match", _phase, matchCount);
-        await this.fillFirstWave(_players, matches, _playerPerMatch);
+        await this.fillFirstWave(_entrants, matches, _playerPerMatch);
     }
 }
