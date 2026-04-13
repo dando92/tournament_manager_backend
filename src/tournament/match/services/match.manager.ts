@@ -39,55 +39,59 @@ export class MatchManager {
 
     async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
         const matches = await this.matchService.findByDivisionForView(divisionId);
-        return matches.map((match) => ({
-            id: match.id,
-            name: match.name,
-            subtitle: match.subtitle,
-            notes: match.notes,
-            scoringSystem: match.scoringSystem,
-            entrants: (match.entrants ?? []).map((entrant) => ({
-                id: entrant.id,
-                name: entrant.name,
-                type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
-                status: entrant.status,
-                participants: (entrant.participants ?? []).map((participant) => ({
-                    id: participant.id,
-                    roles: participant.roles ?? [],
-                    status: participant.status,
-                    player: {
-                        id: participant.player.id,
-                        playerName: participant.player.playerName,
-                    },
-                })),
-            })),
-            rounds: (match.rounds ?? []).map((round) => ({
-                id: round.id,
-                song: {
-                    id: round.song.id,
-                    title: round.song.title,
-                },
-                standings: (round.standings ?? []).map((standing) => ({
-                    id: standing.id,
-                    points: standing.points,
-                    score: {
-                        id: standing.score.id,
-                        percentage: standing.score.percentage,
-                        isFailed: standing.score.isFailed,
+        return await Promise.all(matches.map(async (match) => {
+            const phase = await match.phase;
+
+            return {
+                id: match.id,
+                name: match.name,
+                subtitle: match.subtitle,
+                notes: match.notes,
+                scoringSystem: match.scoringSystem,
+                entrants: (match.entrants ?? []).map((entrant) => ({
+                    id: entrant.id,
+                    name: entrant.name,
+                    type: entrant.type,
+                    seedNum: entrant.seedNum ?? null,
+                    status: entrant.status,
+                    participants: (entrant.participants ?? []).map((participant) => ({
+                        id: participant.id,
+                        roles: participant.roles ?? [],
+                        status: participant.status,
                         player: {
-                            id: standing.score.player.id,
-                            playerName: standing.score.player.playerName,
+                            id: participant.player.id,
+                            playerName: participant.player.playerName,
                         },
-                        song: {
-                            id: round.song.id,
-                            title: round.song.title,
-                        },
-                    },
+                    })),
                 })),
-            })),
-            targetPaths: match.targetPaths ?? [],
-            sourcePaths: match.sourcePaths ?? [],
-            phaseId: (match as Match & { phase?: { id?: number } }).phase?.id,
+                rounds: (match.rounds ?? []).map((round) => ({
+                    id: round.id,
+                    song: {
+                        id: round.song.id,
+                        title: round.song.title,
+                    },
+                    standings: (round.standings ?? []).map((standing) => ({
+                        id: standing.id,
+                        points: standing.points,
+                        score: {
+                            id: standing.score.id,
+                            percentage: standing.score.percentage,
+                            isFailed: standing.score.isFailed,
+                            player: {
+                                id: standing.score.player.id,
+                                playerName: standing.score.player.playerName,
+                            },
+                            song: {
+                                id: round.song.id,
+                                title: round.song.title,
+                            },
+                        },
+                    })),
+                })),
+                targetPaths: match.targetPaths ?? [],
+                sourcePaths: match.sourcePaths ?? [],
+                phaseId: phase?.id,
+            };
         }));
     }
 
