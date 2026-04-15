@@ -3,14 +3,12 @@ import {
   Column,
   PrimaryGeneratedColumn,
   OneToMany,
-  ManyToMany,
   OneToOne } from 'typeorm';
 
 import { Score } from './score.entity'
-import { Match } from './match.entity';
 import { MatchAssignment } from './match_assignment.entity';
-import { Division } from './division.entity';
 import { Account } from './account.entity';
+import { Participant } from './participant.entity';
 
 @Entity()
 export class Player {
@@ -26,11 +24,8 @@ export class Player {
   @OneToMany(() => Score, (score) => score.player, { cascade: true })
   scores: Score[];
 
-  @ManyToMany(() => Match, (match) => match.players)
-  matches: Match[];
-
-  @ManyToMany(() => Division, (division) => division.players)
-  divisions: Division[];
+  @OneToMany(() => Participant, (participant) => participant.player)
+  participants: Participant[];
 
   @OneToMany(() => MatchAssignment, (matchAssignment) => matchAssignment.player)
   matchAssignments: MatchAssignment[];

@@ -152,6 +152,7 @@ export class ItgOnlineProxyGateway
           playerId: player.playerId,
           screenName: player.screenName,
           ready: player.ready,
+          isFailed: player.isFailed ?? false,
         }),
       ),
     };

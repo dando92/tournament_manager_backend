@@ -3,14 +3,11 @@ import {
   Column,
   PrimaryGeneratedColumn,
   OneToMany,
-  ManyToOne,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
 
 import { Division } from './division.entity';
-import { Account } from './account.entity';
 import { Song } from './song.entity';
+import { Participant } from './participant.entity';
 
 
 @Entity()
@@ -27,12 +24,9 @@ export class Tournament {
   @OneToMany(() => Division, (division) => division.tournament, { cascade: true })
   divisions: Division[]
 
-  @ManyToOne(() => Account, { nullable: true })
-  owner: Account;
+  @OneToMany(() => Participant, (participant) => participant.tournament, { cascade: true })
+  participants: Participant[];
 
-  @ManyToMany(() => Account)
-  @JoinTable()
-  helpers: Account[];
 
   @OneToMany(() => Song, (song) => song.tournament, { eager: false })
   songs: Promise<Song[]>;

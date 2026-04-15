@@ -39,43 +39,59 @@ export class MatchManager {
 
     async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
         const matches = await this.matchService.findByDivisionForView(divisionId);
-        return matches.map((match) => ({
-            id: match.id,
-            name: match.name,
-            subtitle: match.subtitle,
-            notes: match.notes,
-            scoringSystem: match.scoringSystem,
-            players: (match.players ?? []).map((player) => ({
-                id: player.id,
-                playerName: player.playerName,
-            })),
-            rounds: (match.rounds ?? []).map((round) => ({
-                id: round.id,
-                song: {
-                    id: round.song.id,
-                    title: round.song.title,
-                },
-                standings: (round.standings ?? []).map((standing) => ({
-                    id: standing.id,
-                    points: standing.points,
-                    score: {
-                        id: standing.score.id,
-                        percentage: standing.score.percentage,
-                        isFailed: standing.score.isFailed,
+        return await Promise.all(matches.map(async (match) => {
+            const phase = await match.phase;
+
+            return {
+                id: match.id,
+                name: match.name,
+                subtitle: match.subtitle,
+                notes: match.notes,
+                scoringSystem: match.scoringSystem,
+                entrants: (match.entrants ?? []).map((entrant) => ({
+                    id: entrant.id,
+                    name: entrant.name,
+                    type: entrant.type,
+                    seedNum: entrant.seedNum ?? null,
+                    status: entrant.status,
+                    participants: (entrant.participants ?? []).map((participant) => ({
+                        id: participant.id,
+                        roles: participant.roles ?? [],
+                        status: participant.status,
                         player: {
-                            id: standing.score.player.id,
-                            playerName: standing.score.player.playerName,
+                            id: participant.player.id,
+                            playerName: participant.player.playerName,
                         },
-                        song: {
-                            id: round.song.id,
-                            title: round.song.title,
-                        },
-                    },
+                    })),
                 })),
-            })),
-            targetPaths: match.targetPaths ?? [],
-            sourcePaths: match.sourcePaths ?? [],
-            phaseId: (match as Match & { phase?: { id?: number } }).phase?.id,
+                rounds: (match.rounds ?? []).map((round) => ({
+                    id: round.id,
+                    song: {
+                        id: round.song.id,
+                        title: round.song.title,
+                    },
+                    standings: (round.standings ?? []).map((standing) => ({
+                        id: standing.id,
+                        points: standing.points,
+                        score: {
+                            id: standing.score.id,
+                            percentage: standing.score.percentage,
+                            isFailed: standing.score.isFailed,
+                            player: {
+                                id: standing.score.player.id,
+                                playerName: standing.score.player.playerName,
+                            },
+                            song: {
+                                id: round.song.id,
+                                title: round.song.title,
+                            },
+                        },
+                    })),
+                })),
+                targetPaths: match.targetPaths ?? [],
+                sourcePaths: match.sourcePaths ?? [],
+                phaseId: phase?.id,
+            };
         }));
     }
 
@@ -134,28 +150,28 @@ export class MatchManager {
             }
         }
 
-        const remainingPlayerIds = match.players
-            .filter(player => !playerIdsToRemove.includes(player.id))
-            .map(player => player.id);
+        const remainingEntrantIds = (match.entrants ?? [])
+            .filter(entrant => !entrant.participants?.some(participant => playerIdsToRemove.includes(participant.player.id)))
+            .map(entrant => entrant.id);
         const dto = new UpdateMatchDto();
-        dto.playerIds = remainingPlayerIds;
+        dto.entrantIds = remainingEntrantIds;
         await this.matchService.update(matchId, dto);
     }
 
-    async AddPlayerInMatch(matchId: number, playerId: number): Promise<void> {
+    async AddEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
-        if (match.players.some(p => p.id === playerId)) return;
+        if ((match.entrants ?? []).some(entrant => entrant.id === entrantId)) return;
         const dto = new UpdateMatchDto();
-        dto.playerIds = [...match.players.map(p => p.id), playerId];
+        dto.entrantIds = [...(match.entrants ?? []).map(entrant => entrant.id), entrantId];
         await this.matchService.update(matchId, dto);
     }
 
-    async RemovePlayerInMatch(matchId: number, playerId: number): Promise<void> {
+    async RemoveEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
         const dto = new UpdateMatchDto();
-        dto.playerIds = match.players.filter(p => p.id !== playerId).map(p => p.id);
+        dto.entrantIds = (match.entrants ?? []).filter(entrant => entrant.id !== entrantId).map(entrant => entrant.id);
         await this.matchService.update(matchId, dto);
     }
 

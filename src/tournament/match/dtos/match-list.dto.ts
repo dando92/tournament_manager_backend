@@ -8,6 +8,22 @@ export type MatchListPlayerDto = {
     playerName: string;
 };
 
+export type MatchListParticipantDto = {
+    id: number;
+    roles: string[];
+    status: string;
+    player: MatchListPlayerDto;
+};
+
+export type MatchListEntrantDto = {
+    id: number;
+    name: string;
+    type: string;
+    seedNum: number | null;
+    status: string;
+    participants: MatchListParticipantDto[];
+};
+
 export type MatchListScoreDto = {
     id: number;
     percentage: number;
@@ -34,7 +50,7 @@ export type MatchListDto = {
     subtitle: string;
     notes: string;
     scoringSystem: string;
-    players: MatchListPlayerDto[];
+    entrants: MatchListEntrantDto[];
     rounds: MatchListRoundDto[];
     targetPaths: number[];
     sourcePaths: number[];

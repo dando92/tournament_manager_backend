@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards, ValidationPipe } from '@nestjs/common';
-import { Player } from '@persistence/entities';
+import { Entrant, Player } from '@persistence/entities';
 import { JwtAuthGuard } from '@auth/guards';
 import { PlayerService } from '@player/player.service';
 import { PlayerManager } from '@player/player.manager';
@@ -40,7 +40,7 @@ export class PlayersController {
     async bulkAddToDivision(
         @Param('divisionId') divisionId: number,
         @Body(new ValidationPipe()) dto: BulkAddPlayersToDivisionDto,
-    ): Promise<{ players: Player[]; warnings: string[] }> {
+    ): Promise<{ entrants: Entrant[]; warnings: string[] }> {
         return this.playerManager.addPlayersToDivision(dto.playerNames, divisionId);
     }
 }

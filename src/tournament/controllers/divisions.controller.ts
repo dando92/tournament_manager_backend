@@ -1,14 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
-import { Division, Player } from '@persistence/entities';
-import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto } from '../dtos';
+import { Division, Entrant } from '@persistence/entities';
+import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto, UpdateEntrantSeedingDto } from '../dtos';
 import { DivisionManager } from '../services/division.manager';
 import { DivisionService } from '../services/division.service';
+import { EntrantService } from '../services/entrant.service';
 
 @Controller('divisions')
 export class DivisionsController {
     constructor(
         private readonly divisionService: DivisionService,
         private readonly divisionManager: DivisionManager,
+        private readonly entrantService: EntrantService,
     ) {}
 
     @Post()
@@ -46,8 +48,37 @@ export class DivisionsController {
         return this.divisionService.delete(id);
     }
 
-    @Get(':id/players')
-    async getPlayers(@Param('id') id: number): Promise<Player[]> {
-        return this.divisionService.getPlayers(id);
+    @Get(':id/entrants')
+    async getEntrants(@Param('id') id: number): Promise<Entrant[]> {
+        return this.divisionService.getEntrants(id);
+    }
+
+    @Get(':id/available-participants')
+    async getAvailableParticipants(@Param('id') id: number) {
+        return this.divisionService.getAvailableParticipants(Number(id));
+    }
+
+    @Post(':id/participants/:participantId')
+    async addParticipantToDivision(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ): Promise<Entrant> {
+        return this.entrantService.addSinglesEntrant(Number(id), Number(participantId));
+    }
+
+    @Delete(':id/participants/:participantId')
+    async removeParticipantFromDivision(
+        @Param('id') id: number,
+        @Param('participantId') participantId: number,
+    ): Promise<void> {
+        return this.entrantService.removeSinglesEntrantByParticipant(Number(id), Number(participantId));
+    }
+
+    @Patch(':id/entrant-seeding')
+    async updateEntrantSeeding(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: UpdateEntrantSeedingDto,
+    ): Promise<void> {
+        return this.entrantService.updateSeeding(Number(id), dto.entrantIds);
     }
 }

@@ -21,7 +21,15 @@ export class MatchesController {
 
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreateMatchWithSongsDto): Promise<Match> {
-        const match = await this.matchService.create(dto.getCreateMatchDto());
+        const createMatchDto: CreateMatchDto = {
+            name: dto.name,
+            subtitle: dto.subtitle,
+            notes: dto.notes,
+            entrantIds: dto.entrantIds,
+            phaseId: dto.phaseId,
+            scoringSystem: dto.scoringSystem,
+        };
+        const match = await this.matchService.create(createMatchDto);
 
         if (dto.songIds) {
             return await this.matchManager.AddSongsToMatch(match, dto.songIds);

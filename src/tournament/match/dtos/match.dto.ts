@@ -6,7 +6,6 @@ import {
   IsString,
   IsBoolean,
 } from 'class-validator';
-import { Player } from '@persistence/entities';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMatchDto {
@@ -25,10 +24,10 @@ export class CreateMatchDto {
   @IsString()
   notes: string;
 
-  @ApiProperty({ description: 'The list of player ids participating to the match', example: [1, 2, 3] })
+  @ApiProperty({ description: 'The list of entrant ids participating in the match', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
-  playerIds?: number[];
+  entrantIds?: number[];
 
   @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
   @IsOptional()
@@ -50,7 +49,6 @@ export class CreateMatchDto {
   @IsString()
   scoringSystem: string;
 
-  players?: Player[];
 }
 
 export class UpdateMatchDto {
@@ -69,10 +67,10 @@ export class UpdateMatchDto {
   @IsString()
   notes: string;
 
-  @ApiProperty({ description: 'The list of player ids participating to the match', example: [1, 2, 3] })
+  @ApiProperty({ description: 'The list of entrant ids participating in the match', example: [1, 2, 3] })
   @IsOptional()
   @IsArray()
-  playerIds?: number[];
+  entrantIds?: number[];
 
   @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
   @IsOptional()
@@ -94,7 +92,6 @@ export class UpdateMatchDto {
   @IsString()
   scoringSystem: string;
 
-  players?: Player[];
 }
 
 export class CreateMatchWithSongsDto {
@@ -112,7 +109,7 @@ export class CreateMatchWithSongsDto {
 
   @IsOptional()
   @IsArray()
-  playerIds?: number[];
+  entrantIds?: number[];
 
   @IsNotEmpty()
   @IsNumber()
@@ -147,7 +144,7 @@ export class CreateMatchWithSongsDto {
         createDto.name = this.name;
         createDto.notes = this.notes;
         createDto.phaseId = this.phaseId;
-        createDto.playerIds = this.playerIds;
+        createDto.entrantIds = this.entrantIds;
         createDto.subtitle = this.subtitle;
         createDto.scoringSystem = this.scoringSystem;
         return createDto

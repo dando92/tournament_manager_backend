@@ -1,13 +1,13 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Tournament } from "@persistence/entities";
+import { Participant } from "@persistence/entities";
 
 @Injectable()
 export class TournamentOwnershipGuard implements CanActivate {
     constructor(
-        @InjectRepository(Tournament)
-        private tournamentRepo: Repository<Tournament>,
+        @InjectRepository(Participant)
+        private participantRepo: Repository<Participant>,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -19,10 +19,9 @@ export class TournamentOwnershipGuard implements CanActivate {
         const tournamentId = Number(request.params.id);
         if (isNaN(tournamentId)) return false;
 
-        const tournament = await this.tournamentRepo.findOne({
-            where: { id: tournamentId },
-            relations: ['owner'],
+        const participant = await this.participantRepo.findOne({
+            where: { tournament: { id: tournamentId }, account: { id: user.id } },
         });
-        return tournament?.owner?.id === user.id;
+        return participant?.roles?.includes('staff') ?? false;
     }
 }

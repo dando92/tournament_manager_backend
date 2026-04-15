@@ -36,10 +36,11 @@ export class UpdateDivisionDto {
   @Type(() => Number)
   playersPerMatch?: number;
 
-  @ApiProperty({ description: 'Ordered player IDs for seeding', required: false })
-  @IsOptional()
-  @IsArray()
-  seeding?: number[];
-
   tournament?: Tournament;
+}
+
+export class UpdateEntrantSeedingDto {
+  @ApiProperty({ description: 'Ordered entrant IDs for seeding', required: true })
+  @IsArray()
+  entrantIds: number[];
 }

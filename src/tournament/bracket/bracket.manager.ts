@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { MatchManager } from "@match/services/match.manager";
-import { Match, Player } from "@persistence/entities";
+import { Entrant, Match } from "@persistence/entities";
 import { UpdateDivisionDto } from "@tournament/dtos";
 import { DivisionService } from "@tournament/services/division.service";
 
@@ -27,17 +27,21 @@ export class BracketManager {
         if (!division) {
             throw new Error(`Division ${divisionId} not found`);
         }
-        const players = this.sortBySeed(
-            division?.players ?? [],
-            division?.seeding ?? []
+        const entrants = this.sortBySeed(
+            (division?.entrants ?? []).filter((entrant) => entrant.status === 'active' && entrant.type === 'player'),
+            (division?.entrants ?? []).map((entrant) => entrant.id).sort((a, b) => {
+                const left = division.entrants.find((entrant) => entrant.id === a)?.seedNum ?? Number.MAX_SAFE_INTEGER;
+                const right = division.entrants.find((entrant) => entrant.id === b)?.seedNum ?? Number.MAX_SAFE_INTEGER;
+                return left - right;
+            })
         );
         const system = this.bracketSystemProvider.getBracketSystem(bracketType);
-        await system.generateForDivision(division, players, playerPerMatch);
+        await system.generateForDivision(division, entrants, playerPerMatch);
         const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
         await this.divisionService.update(divisionId, updateDto);
     }
 
-    async revertPlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
+    async revertEntrants(match: Match, sortedEntrants: Entrant[]): Promise<void> {
         if (!match.targetPaths)
             return;
 
@@ -47,11 +51,11 @@ export class BracketManager {
             if (targetMatchId === 0)
                 continue;
 
-            await this.matchManager.RemovePlayerInMatch(match.targetPaths[i], sortedPlayers[i].id);
+            await this.matchManager.RemoveEntrantInMatch(match.targetPaths[i], sortedEntrants[i].id);
         }
     }
 
-    async advancePlayers(match: Match, sortedPlayers: Player[]): Promise<void> {
+    async advanceEntrants(match: Match, sortedEntrants: Entrant[]): Promise<void> {
         if (!match.targetPaths)
             return;
 
@@ -61,7 +65,7 @@ export class BracketManager {
             if (targetMatchId === 0)
                 continue;
 
-            await this.matchManager.AddPlayerInMatch(targetMatchId, sortedPlayers[i].id);
+            await this.matchManager.AddEntrantInMatch(targetMatchId, sortedEntrants[i].id);
         }
     }
 

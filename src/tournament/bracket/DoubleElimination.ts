@@ -1,5 +1,5 @@
 import { IBracketSystem } from "@bracket/IBracketSystem";
-import { Division, Match, Phase, Player } from "@persistence/entities";
+import { Division, Entrant, Match, Phase } from "@persistence/entities";
 
 export class DoubleElimination extends IBracketSystem {
     getName(): string {
@@ -10,13 +10,13 @@ export class DoubleElimination extends IBracketSystem {
         return "DoubleElimination";
     }
 
-    protected async createBracket(players: Player[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
+    protected async createBracket(entrants: Entrant[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
         if (playerPerMatch !== 2 && playerPerMatch !== 4 && playerPerMatch !== 8) {
             throw new Error(`DoubleElimination only supports playerPerMatch of 2, 4, or 8, got ${playerPerMatch}`);
         }
 
-        const firstRound = await this.buildStructure(players.length, playerPerMatch, phase);
-        await this.fillFirstWave(players, firstRound, playerPerMatch);
+        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase);
+        await this.fillFirstWave(entrants, firstRound, playerPerMatch);
     }
 
     private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase): Promise<Match[]> {
