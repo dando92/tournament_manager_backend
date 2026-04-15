@@ -61,6 +61,7 @@ export class DivisionService {
             relations: {
                 phases: {
                     matches: {
+                        matchResult: true,
                         rounds: {
                             standings: {
                                 score: {
@@ -86,6 +87,7 @@ export class DivisionService {
                 },
                 phases: {
                     matches: {
+                        matchResult: true,
                         entrants: {
                             participants: {
                                 player: true,
@@ -133,6 +135,7 @@ export class DivisionService {
                 },
                 phases: {
                     matches: {
+                        matchResult: true,
                         entrants: {
                             participants: {
                                 player: true,

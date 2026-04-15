@@ -44,6 +44,16 @@ export type MatchListRoundDto = {
     standings: MatchListStandingDto[];
 };
 
+export type MatchListResultEntryDto = {
+    playerId: number;
+    points: number;
+};
+
+export type MatchListResultDto = {
+    id: number;
+    playerPoints: MatchListResultEntryDto[];
+};
+
 export type MatchListDto = {
     id: number;
     name: string;
@@ -54,5 +64,6 @@ export type MatchListDto = {
     rounds: MatchListRoundDto[];
     targetPaths: number[];
     sourcePaths: number[];
+    matchResult?: MatchListResultDto | null;
     phaseId?: number;
 };
