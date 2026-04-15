@@ -2,7 +2,7 @@ import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateUserPlayerDto {
+export class CreateAccountPlayerDto {
     @ApiProperty({ example: 'johndoe', description: 'Username for the account' })
     @IsNotEmpty()
     @IsString()
@@ -34,7 +34,7 @@ export class CreateUserPlayerDto {
     playerName?: string;
 }
 
-export class UpdateUserPlayerDto {
+export class UpdateAccountPlayerDto {
     @ApiProperty({ example: 'johndoe', description: 'Username', required: false })
     @IsOptional()
     @IsString()

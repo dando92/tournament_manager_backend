@@ -6,7 +6,7 @@ import { AuthModule } from '@auth/auth.module';
 
 import { PersistenceModule } from '@persistence/persistence.module';
 import { TournamentModule } from '@tournament/tournament.module';
-import { AccountModule } from '@user/user.module';
+import { AccountModule } from '@account/account.module';
 
 import { Entities } from '@persistence/entities';
 

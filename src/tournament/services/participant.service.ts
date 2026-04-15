@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Account, Participant, ParticipantRole, Player, Tournament } from '@persistence/entities';
+import { Participant, ParticipantRole, Player, Tournament } from '@persistence/entities';
 import { EntrantService } from './entrant.service';
+import { AccountService } from '@account/services/account.service';
 
 @Injectable()
 export class ParticipantService {
@@ -13,9 +14,8 @@ export class ParticipantService {
         private readonly tournamentRepository: Repository<Tournament>,
         @InjectRepository(Player)
         private readonly playerRepository: Repository<Player>,
-        @InjectRepository(Account)
-        private readonly accountRepository: Repository<Account>,
         private readonly entrantService: EntrantService,
+        private readonly accountService: AccountService,
     ) {}
 
     async listForTournament(tournamentId: number): Promise<Participant[]> {
@@ -52,34 +52,20 @@ export class ParticipantService {
         return this.participantRepository.save(created);
     }
 
+    async ensureOwner(tournamentId: number, accountId: string): Promise<Participant> {
+        const account = await this.accountService.ensurePlayer(accountId);
+        const participant = await this.ensureForPlayer(tournamentId, account.player.id, ['owner']);
+        participant.account = account;
+        participant.roles = this.mergeRoles(participant.roles, ['owner']);
+        return this.participantRepository.save(participant);
+    }
+
     async ensureStaff(tournamentId: number, accountId: string): Promise<Participant> {
-        const account = await this.accountRepository.findOne({ where: { id: accountId }, relations: { player: true } });
-        if (!account) throw new NotFoundException(`Account ${accountId} not found`);
-
-        if (!account.player) {
-            const player = new Player();
-            player.playerName = account.username;
-            account.player = await this.playerRepository.save(player);
-            await this.accountRepository.save(account);
-        }
-
+        const account = await this.accountService.ensurePlayer(accountId);
         const participant = await this.ensureForPlayer(tournamentId, account.player.id, ['staff']);
         participant.account = account;
         participant.roles = this.mergeRoles(participant.roles, ['staff']);
         return this.participantRepository.save(participant);
-    }
-
-    async removeStaff(tournamentId: number, accountId: string): Promise<void> {
-        const participant = await this.participantRepository.findOne({
-            where: { tournament: { id: tournamentId }, account: { id: accountId } },
-            relations: { tournament: true, account: true, player: true },
-        });
-
-        if (!participant) return;
-
-        participant.roles = (participant.roles ?? []).filter((role) => role !== 'staff');
-        if (participant.roles.length === 0) participant.roles = ['unknown'];
-        await this.participantRepository.save(participant);
     }
 
     async removeFromTournament(tournamentId: number, participantId: number): Promise<void> {
@@ -110,6 +96,13 @@ export class ParticipantService {
         });
         if (!participant) throw new NotFoundException(`Participant ${participantId} not found`);
 
+        if (!participant.account) {
+            const linkedAccount = await this.accountService.findByPlayerId(participant.player.id);
+            if (linkedAccount) {
+                participant.account = linkedAccount;
+            }
+        }
+
         participant.roles = this.mergeRoles(participant.roles, ['staff']);
         return this.participantRepository.save(participant);
     }
@@ -138,7 +131,7 @@ export class ParticipantService {
         const participant = await this.participantRepository.findOne({
             where: { tournament: { id: tournamentId }, account: { id: accountId } },
         });
-        return participant?.roles?.includes('staff') ?? false;
+        return participant?.roles?.some((role) => role === 'owner' || role === 'staff') ?? false;
     }
 
     private mergeRoles(existing: ParticipantRole[] = [], incoming: ParticipantRole[]): ParticipantRole[] {

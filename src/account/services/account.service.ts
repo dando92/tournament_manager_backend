@@ -1,16 +1,13 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { genSalt, hash } from 'bcrypt';
 import { Repository } from "typeorm";
 
 import { Player, Account } from '@persistence/entities';
-import { CreateUserPlayerDto } from '../dtos';
-
-
-export type account = Account;
+import { CreateAccountPlayerDto } from '../dtos';
 
 @Injectable()
-export class UserService {
+export class AccountService {
     constructor(
         @InjectRepository(Account)
         private accountRepo: Repository<Account>,
@@ -18,7 +15,7 @@ export class UserService {
         private playerRepo: Repository<Player>,
     ) { }
 
-    async create(dto: CreateUserPlayerDto) {
+    async create(dto: CreateAccountPlayerDto) {
         const normalizedUsername = dto.username.toLowerCase();
         const existing = await this.accountRepo.findOneBy({ username: normalizedUsername });
         if (existing) {
@@ -50,6 +47,31 @@ export class UserService {
 
     async findById(accountId: string): Promise<Account | null> {
         return this.accountRepo.findOneBy({ id: accountId });
+    }
+
+    async findByPlayerId(playerId: number): Promise<Account | null> {
+        return this.accountRepo.findOne({
+            where: { player: { id: playerId } },
+            relations: ['player'],
+        });
+    }
+
+    async findByIdWithPlayer(accountId: string): Promise<Account | null> {
+        return this.accountRepo.findOne({ where: { id: accountId }, relations: ['player'] });
+    }
+
+    async ensurePlayer(accountId: string): Promise<Account> {
+        const account = await this.findByIdWithPlayer(accountId);
+        if (!account) throw new NotFoundException(`Account ${accountId} not found`);
+
+        if (!account.player) {
+            const player = new Player();
+            player.playerName = account.username;
+            account.player = await this.playerRepo.save(player);
+            await this.accountRepo.save(account);
+        }
+
+        return account;
     }
 
     async updateProfile(accountId: string, profile: { playerName?: string; nationality?: string; grooveStatsApi?: string; profilePicture?: string }): Promise<Account> {

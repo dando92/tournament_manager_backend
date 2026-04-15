@@ -1,17 +1,21 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '@auth/auth.module';
 import { PersistenceModule } from '@persistence/persistence.module';
 import { SyncStartModule } from '@syncstart/index';
+import { AccountModule } from '@account/account.module';
 import { Services } from './services';
 import { Controllers } from './controllers';
 import { Gateways } from './gateways';
-import { TournamentAccessGuard, TournamentOwnershipGuard, AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
+import { TournamentAccessGuard, AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
 
 @Module({
     imports: [
+        AuthModule,
         PersistenceModule,
-        SyncStartModule
+        SyncStartModule,
+        AccountModule,
     ],
-    providers: [...Gateways, ...Services, TournamentAccessGuard, TournamentOwnershipGuard, AdminGuard, CreatorOrAdminGuard],
+    providers: [...Gateways, ...Services, TournamentAccessGuard, AdminGuard, CreatorOrAdminGuard],
     controllers: [...Controllers]
 })
 export class TournamentModule {}

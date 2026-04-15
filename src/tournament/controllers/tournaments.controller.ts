@@ -9,7 +9,8 @@ import {
     TournamentOverviewDto,
     TournamentResponseDto,
 } from '../dtos';
-import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard, TournamentOwnershipGuard } from '@auth/guards';
+import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard } from '@auth/guards';
+import { AuthService } from '@auth/services/auth.service';
 import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
 import { LobbyManager } from '../services/lobby-manager.service';
@@ -17,6 +18,7 @@ import { LobbyManager } from '../services/lobby-manager.service';
 @Controller('tournaments')
 export class TournamentsController {
     constructor(
+        private readonly authService: AuthService,
         private readonly tournamentService: TournamentService,
         private readonly tournamentManager: TournamentManager,
         private readonly lobbyManager: LobbyManager,
@@ -40,7 +42,13 @@ export class TournamentsController {
     @UseGuards(JwtAuthGuard)
     @Get('my-roles')
     async getMyRoles(@Request() req): Promise<MyTournamentRoles> {
-        return this.tournamentService.getMyRoles(req.user.id);
+        const roles = await this.tournamentService.getMyRoles(req.user.id);
+        const permissions = await this.authService.getPermissions(req.user.id);
+        return {
+            ...roles,
+            isAdmin: permissions.isAdmin,
+            canCreateTournament: permissions.isTournamentCreator,
+        };
     }
 
     @Get(':id/overview')
@@ -105,7 +113,7 @@ export class TournamentsController {
         return this.tournamentManager.importParticipants(Number(id), dto.entries);
     }
 
-    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Post(':id/participants/:participantId/staff')
     async addParticipantStaffRole(
         @Param('id') id: number,
@@ -114,31 +122,13 @@ export class TournamentsController {
         return this.tournamentManager.addParticipantStaffRole(Number(id), Number(participantId));
     }
 
-    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Delete(':id/participants/:participantId/staff')
     async removeParticipantStaffRole(
         @Param('id') id: number,
         @Param('participantId') participantId: number,
     ) {
         return this.tournamentManager.removeParticipantStaffRole(Number(id), Number(participantId));
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
-    @Post(':id/helpers')
-    async addHelper(
-        @Param('id') id: number,
-        @Body() body: { accountId: string },
-    ): Promise<TournamentResponseDto> {
-        return this.tournamentManager.addHelper(Number(id), body.accountId);
-    }
-
-    @UseGuards(JwtAuthGuard, TournamentOwnershipGuard)
-    @Delete(':id/helpers/:accountId')
-    async removeHelper(
-        @Param('id') id: number,
-        @Param('accountId') accountId: string,
-    ): Promise<TournamentResponseDto> {
-        return this.tournamentManager.removeHelper(Number(id), accountId);
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
