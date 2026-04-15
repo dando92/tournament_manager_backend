@@ -261,7 +261,7 @@ export class StandingManager implements ILobbyStateObserver {
         if (!songPath) return;
 
         for (const player of lobbyState.players) {
-            if (player.screenName === "ScreenEvaluation") {
+            if (player.screenName === "ScreenEvaluationStage") {
                 const match = await this._findMatchId(songPath, player.profileName);
 
                 if (!match)

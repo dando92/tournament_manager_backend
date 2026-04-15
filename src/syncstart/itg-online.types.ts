@@ -19,7 +19,7 @@ export type Judgments = {
 export type LobbyPlayer = {
   playerId: 'P1' | 'P2';
   profileName: string;
-  screenName: 'NoScreen' | 'ScreenSelectMusic' | 'ScreenGameplay' | 'ScreenPlayerOptions' | 'ScreenEvaluation';
+  screenName: 'NoScreen' | 'ScreenSelectMusic' | 'ScreenGameplay' | 'ScreenPlayerOptions' | 'ScreenEvaluationStage';
   ready: boolean;
   judgments?: Judgments;
   score?: number;
@@ -49,6 +49,7 @@ export type LobbyPlayerDto = {
   playerId: string;
   screenName: LobbyPlayer['screenName'];
   ready: boolean;
+  isFailed?: boolean;
 };
 
 export type LobbyStateDto = {
