@@ -5,6 +5,9 @@ import { Tournament, Song } from '@persistence/entities';
 import { CreateTournamentDto, UpdateTournamentDto } from '../dtos';
 
 export interface MyTournamentRoles {
+    isAdmin: boolean;
+    canCreateTournament: boolean;
+    ownedTournamentIds: number[];
     staffTournamentIds: number[];
 }
 
@@ -71,16 +74,33 @@ export class TournamentService {
     }
 
     async getMyRoles(accountId: string): Promise<MyTournamentRoles> {
+        const ownedTournaments = await this.tournamentRepository
+            .createQueryBuilder('tournament')
+            .leftJoin('tournament.participants', 'participant')
+            .leftJoin('participant.account', 'participantAccount')
+            .leftJoin('participant.player', 'player')
+            .leftJoin('player.account', 'playerAccount')
+            .where('(participantAccount.id = :accountId OR playerAccount.id = :accountId)', { accountId })
+            .andWhere('participant.roles LIKE :ownerRole', { ownerRole: '%owner%' })
+            .select('tournament.id')
+            .getMany();
+
         const staffTournaments = await this.tournamentRepository
             .createQueryBuilder('tournament')
             .leftJoin('tournament.participants', 'participant')
-            .where('participant.accountId = :accountId', { accountId })
+            .leftJoin('participant.account', 'participantAccount')
+            .leftJoin('participant.player', 'player')
+            .leftJoin('player.account', 'playerAccount')
+            .where('(participantAccount.id = :accountId OR playerAccount.id = :accountId)', { accountId })
             .andWhere('participant.roles LIKE :staffRole', { staffRole: '%staff%' })
             .select('tournament.id')
             .getMany();
 
         return {
-            staffTournamentIds: staffTournaments.map(tournament => tournament.id),
+            isAdmin: false,
+            canCreateTournament: false,
+            ownedTournamentIds: ownedTournaments.map((tournament) => tournament.id),
+            staffTournamentIds: staffTournaments.map((tournament) => tournament.id),
         };
     }
 

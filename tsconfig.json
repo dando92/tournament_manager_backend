@@ -20,7 +20,7 @@
       "@player/*" : ["./src/tournament/player/*"],
       "@syncstart/*" : ["./src/syncstart/*"],
       "@tournament/*" : ["./src/tournament/*"],
-      "@user/*" : ["./src/user/*"]
+      "@account/*" : ["./src/account/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

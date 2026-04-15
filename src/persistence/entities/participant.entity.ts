@@ -12,7 +12,7 @@ import { Entrant } from './entrant.entity';
 import { Player } from './player.entity';
 import { Tournament } from './tournament.entity';
 
-export type ParticipantRole = 'competitor' | 'spectator' | 'staff' | 'unknown';
+export type ParticipantRole = 'competitor' | 'spectator' | 'owner' | 'staff' | 'unknown';
 export type ParticipantStatus = 'registered' | 'checked_in' | 'withdrawn' | 'unknown';
 
 @Entity()

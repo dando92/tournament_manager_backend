@@ -10,7 +10,6 @@ import {
 } from '../dtos';
 import { DivisionService } from './division.service';
 import { TournamentService } from './tournament.service';
-import { UserService } from '../../user/services/user.service';
 import { ParticipantService } from './participant.service';
 import { PlayerService } from '@player/player.service';
 
@@ -19,7 +18,6 @@ export class TournamentManager {
     constructor(
         private readonly divisionService: DivisionService,
         private readonly tournamentService: TournamentService,
-        private readonly userService: UserService,
         private readonly participantService: ParticipantService,
         private readonly playerService: PlayerService,
     ) {}
@@ -57,7 +55,7 @@ export class TournamentManager {
     async create(dto: CreateTournamentDto, ownerId?: string): Promise<TournamentResponseDto> {
         const tournament = await this.tournamentService.create(dto, ownerId);
         if (ownerId) {
-            await this.participantService.ensureStaff(tournament.id, ownerId);
+            await this.participantService.ensureOwner(tournament.id, ownerId);
         }
         const reloaded = await this.tournamentService.findOne(tournament.id);
         return this.toResponseDto(reloaded ?? tournament);
@@ -74,27 +72,6 @@ export class TournamentManager {
             tournament: this.toResponseDto(result.tournament),
             previousSyncstartUrl: result.previousSyncstartUrl,
         };
-    }
-
-    async addHelper(tournamentId: number, accountId: string): Promise<TournamentResponseDto> {
-        const tournament = await this.tournamentService.findOne(tournamentId);
-        if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
-
-        const account = await this.userService.findById(accountId);
-        if (!account) throw new NotFoundException(`Account ${accountId} not found`);
-
-        await this.participantService.ensureStaff(tournamentId, accountId);
-        const updated = await this.tournamentService.findOne(tournamentId);
-        return this.toResponseDto(updated);
-    }
-
-    async removeHelper(tournamentId: number, accountId: string): Promise<TournamentResponseDto> {
-        const tournament = await this.tournamentService.findOne(tournamentId);
-        if (!tournament) throw new NotFoundException(`Tournament ${tournamentId} not found`);
-
-        await this.participantService.removeStaff(tournamentId, accountId);
-        const updated = await this.tournamentService.findOne(tournamentId);
-        return this.toResponseDto(updated);
     }
 
     async listParticipants(tournamentId: number) {

@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
-import { UserService } from './services';
-import { UserController } from './controllers';
+import { AccountService } from './services';
+import { AccountController } from './controllers';
 import { PersistenceModule } from '@persistence/persistence.module';
 import { AdminGuard, CreatorOrAdminGuard } from '@auth/guards';
 
 @Module({
     imports: [PersistenceModule],
-    providers: [UserService, AdminGuard, CreatorOrAdminGuard],
-    controllers: [UserController],
-    exports: [UserService],
+    providers: [AccountService, AdminGuard, CreatorOrAdminGuard],
+    controllers: [AccountController],
+    exports: [AccountService],
 })
 export class AccountModule {
   constructor(private datasource: DataSource) { }

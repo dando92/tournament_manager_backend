@@ -1,6 +1,6 @@
 export enum Role {
     Player = 'player',
-    TournamentHelper = 'tournament_helper',
+    TournamentStaff = 'tournament_staff',
     TournamentOwner = 'tournament_owner',
     Admin = 'admin',
 }

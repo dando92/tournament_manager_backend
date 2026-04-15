@@ -21,10 +21,15 @@ export class TournamentAccessGuard implements CanActivate {
         const tournamentId = Number(request.params.id);
         if (isNaN(tournamentId)) return false;
 
-        const participant = await this.participantRepo.findOne({
-            where: { tournament: { id: tournamentId }, account: { id: user.id } },
-        });
+        const participant = await this.participantRepo
+            .createQueryBuilder('participant')
+            .leftJoin('participant.account', 'participantAccount')
+            .leftJoin('participant.player', 'player')
+            .leftJoin('player.account', 'playerAccount')
+            .where('participant.tournamentId = :tournamentId', { tournamentId })
+            .andWhere('(participantAccount.id = :accountId OR playerAccount.id = :accountId)', { accountId: user.id })
+            .getOne();
 
-        return participant?.roles?.includes('staff') ?? false;
+        return participant?.roles?.some((role) => role === 'owner' || role === 'staff') ?? false;
     }
 }

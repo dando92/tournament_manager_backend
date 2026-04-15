@@ -1,4 +1,3 @@
-import { UserService } from '../user/services/user.service';
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
 import { SongRoller } from "./services/song.roller";
@@ -22,7 +21,6 @@ import { ScoreService } from './services/score.service';
 import { RoundService } from './services/round.service';
 import { UiUpdateContextService } from '@match/services/ui-update-context.service';
 
-export { UserService as AccountService };
 export { MatchManager };
 export { MatchService };
 export { SongRoller };
@@ -48,7 +46,6 @@ export { UiUpdateContextService };
 export { StandingService };
 
 export const Services = [
-    UserService,
     MatchService,
     MatchManager,
     SongRoller,

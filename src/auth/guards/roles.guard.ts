@@ -10,7 +10,7 @@ import { Role } from "@auth/enums/role.enum";
 
 const ROLE_HIERARCHY: Role[] = [
     Role.Player,
-    Role.TournamentHelper,
+    Role.TournamentStaff,
     Role.TournamentOwner,
     Role.Admin,
 ];

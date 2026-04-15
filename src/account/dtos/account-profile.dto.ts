@@ -1,6 +1,6 @@
 import { Account } from '@persistence/entities';
 
-export class UserProfileDto {
+export class AccountProfileDto {
     id: string;
     username: string;
     nationality: string;
