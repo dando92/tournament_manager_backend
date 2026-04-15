@@ -50,7 +50,7 @@ export class TournamentsController {
         return {
             ...roles,
             isAdmin: permissions.isAdmin,
-            canCreateTournament: permissions.isTournamentCreator,
+            canCreateTournament: permissions.isAdmin || permissions.isTournamentCreator,
         };
     }
 
