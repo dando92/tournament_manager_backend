@@ -14,6 +14,8 @@ import { AuthService } from '@auth/services/auth.service';
 import { MyTournamentRoles, TournamentService } from '../services/tournament.service';
 import { TournamentManager } from '../services/tournament.manager';
 import { LobbyManager } from '../services/lobby-manager.service';
+import { StartggService } from '../../integrations/startgg/startgg.service';
+import { StartggImportPreviewDto } from '../../integrations/startgg/startgg.dto';
 
 @Controller('tournaments')
 export class TournamentsController {
@@ -22,6 +24,7 @@ export class TournamentsController {
         private readonly tournamentService: TournamentService,
         private readonly tournamentManager: TournamentManager,
         private readonly lobbyManager: LobbyManager,
+        private readonly startggService: StartggService,
     ) {}
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
@@ -111,6 +114,32 @@ export class TournamentsController {
         @Body(new ValidationPipe()) dto: ImportParticipantsDto,
     ) {
         return this.tournamentManager.importParticipants(Number(id), dto.entries);
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/startgg/import-preview')
+    async previewStartggImport(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: StartggImportPreviewDto,
+        @Request() req,
+    ) {
+        return this.startggService.previewImport({
+            ...dto,
+            targetTournamentId: Number(id),
+        }, req.user);
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/startgg/import')
+    async importStartggEvent(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: StartggImportPreviewDto,
+        @Request() req,
+    ) {
+        return this.startggService.importEvent({
+            ...dto,
+            targetTournamentId: Number(id),
+        }, req.user);
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)

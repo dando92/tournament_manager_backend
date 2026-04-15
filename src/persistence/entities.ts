@@ -13,8 +13,14 @@ import { Setup } from './entities/setup.entity';
 import { Account } from './entities/account.entity';
 import { Participant } from './entities/participant.entity';
 import { Entrant } from './entities/entrant.entity';
+import { ExternalMapping } from './entities/external_mapping.entity';
 export type { ParticipantRole, ParticipantStatus } from './entities/participant.entity';
 export type { EntrantType, EntrantStatus } from './entities/entrant.entity';
+export type {
+    ExternalProvider,
+    ExternalMappingLocalType,
+    ExternalMappingExternalType,
+} from './entities/external_mapping.entity';
 
 export { Division }
 export { Phase }
@@ -31,6 +37,7 @@ export { Setup }
 export { Account }
 export { Participant }
 export { Entrant }
+export { ExternalMapping }
 
 export const Entities = [
     Division,
@@ -48,4 +55,5 @@ export const Entities = [
     Account
     ,Participant
     ,Entrant
+    ,ExternalMapping
 ];
