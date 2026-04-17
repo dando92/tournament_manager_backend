@@ -42,6 +42,17 @@ export class TournamentManager {
         return (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + (phaseGroup.matches?.length ?? 0), 0);
     }
 
+    private getPhaseGroupsSummary(phase: {
+        phaseGroups?: Array<{ id: number; name: string; mode: 'set-driven' | 'progression-driven'; matches?: unknown[] }>;
+    }) {
+        return (phase.phaseGroups ?? []).map((phaseGroup) => ({
+            id: phaseGroup.id,
+            name: phaseGroup.name,
+            mode: phaseGroup.mode,
+            matchCount: phaseGroup.matches?.length ?? 0,
+        }));
+    }
+
     private toResponseDto(tournament: Tournament): TournamentResponseDto {
         return {
             id: tournament.id,
@@ -196,7 +207,9 @@ export class TournamentManager {
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
                     name: phase.name,
+                    type: phase.type,
                     matchCount: this.getPhaseMatchCount(phase),
+                    phaseGroups: this.getPhaseGroupsSummary(phase),
                 })),
             })),
         };

@@ -101,6 +101,10 @@ export class MatchManager {
                     }
                     : null,
                 phaseId: phase?.id,
+                phaseType: phase?.type,
+                phaseGroupId: phaseGroup?.id,
+                phaseGroupName: phaseGroup?.name,
+                phaseGroupMode: phaseGroup?.mode,
             };
         }));
     }
