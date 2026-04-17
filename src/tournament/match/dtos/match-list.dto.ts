@@ -66,4 +66,8 @@ export type MatchListDto = {
     sourcePaths: number[];
     matchResult?: MatchListResultDto | null;
     phaseId?: number;
+    phaseType?: 'pool' | 'bracket';
+    phaseGroupId?: number;
+    phaseGroupName?: string;
+    phaseGroupMode?: 'set-driven' | 'progression-driven';
 };

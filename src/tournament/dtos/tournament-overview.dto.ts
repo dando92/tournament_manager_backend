@@ -22,7 +22,14 @@ export type TournamentOverviewEntrantDto = {
 export type TournamentOverviewDivisionPhaseDto = {
     id: number;
     name: string;
+    type: 'pool' | 'bracket';
     matchCount: number;
+    phaseGroups: Array<{
+        id: number;
+        name: string;
+        mode: 'set-driven' | 'progression-driven';
+        matchCount: number;
+    }>;
 };
 
 export type TournamentOverviewDivisionDto = {

@@ -10,6 +10,15 @@ export class DivisionManager {
         return (phase.phaseGroups ?? []).flatMap((phaseGroup) => phaseGroup.matches ?? []);
     }
 
+    private toPhaseGroupSummary(phase: { phaseGroups?: Array<{ id: number; name: string; mode: 'set-driven' | 'progression-driven'; matches?: any[] }> }) {
+        return (phase.phaseGroups ?? []).map((phaseGroup) => ({
+            id: phaseGroup.id,
+            name: phaseGroup.name,
+            mode: phaseGroup.mode,
+            matchCount: phaseGroup.matches?.length ?? 0,
+        }));
+    }
+
     async findSummary(id: number): Promise<DivisionSummaryDto> {
         const division = await this.divisionService.findOneForSummary(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
@@ -37,7 +46,9 @@ export class DivisionManager {
             phases: (division.phases ?? []).map((phase) => ({
                 id: phase.id,
                 name: phase.name,
+                type: phase.type,
                 matchCount: this.getPhaseMatches(phase).length,
+                phaseGroups: this.toPhaseGroupSummary(phase),
             })),
         };
     }

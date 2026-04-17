@@ -211,6 +211,7 @@ export class StartggService {
             return {
                 externalId: phase.id,
                 name: phase.name,
+                type: this.inferPhaseType(phase),
                 action: mappedPhase ? 'mapped' : 'create-phase',
                 localPhaseId: mappedPhase?.id ?? null,
             };
@@ -224,6 +225,7 @@ export class StartggService {
                     externalId: phaseGroup.id,
                     phaseExternalId: phase.id,
                     name: phaseGroup.displayIdentifier ?? phaseGroup.id,
+                    mode: (phaseGroup.sets?.length ?? 0) > 0 ? 'set-driven' : 'progression-driven',
                     action: mappedPhaseGroup ? 'mapped' : 'create-phase-group',
                     localPhaseGroupId: mappedPhaseGroup?.id ?? null,
                 };
@@ -727,7 +729,12 @@ export class StartggService {
             const dto = new CreatePhaseDto();
             dto.name = phase.name;
             dto.divisionId = divisionId;
+            dto.type = this.inferPhaseType(phase);
             localPhase = await this.phaseService.create(dto);
+        } else {
+            localPhase.name = phase.name;
+            localPhase.type = this.inferPhaseType(phase);
+            localPhase = await this.phaseRepository.save(localPhase);
         }
 
         this.cacheMapping(mappingCache, {
@@ -1071,6 +1078,22 @@ export class StartggService {
 
     private buildMatchName(set: StartggSetNode): string {
         return set.fullRoundText?.trim() || `start.gg Set ${set.id}`;
+    }
+
+    private inferPhaseType(phase: StartggPhaseNode): 'pool' | 'bracket' {
+        if ((phase.phaseGroups?.length ?? 0) > 1) {
+            return 'pool';
+        }
+
+        if (phase.name.toLowerCase().includes('pool')) {
+            return 'pool';
+        }
+
+        if ((phase.phaseGroups ?? []).some((phaseGroup) => (phaseGroup.sets?.length ?? 0) === 0)) {
+            return 'pool';
+        }
+
+        return 'bracket';
     }
 
     private createMappingCache(mappings: ExternalMapping[]): StartggMappingCache {

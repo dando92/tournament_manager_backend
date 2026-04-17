@@ -23,6 +23,7 @@ export class PhaseService {
 
         const phase = new Phase();
         phase.name = dto.name;
+        phase.type = dto.type ?? 'bracket';
         phase.division = division;
 
         const savedPhase = await this.phaseRepository.save(phase);
