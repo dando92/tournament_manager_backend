@@ -4,26 +4,22 @@ export type StartggTournamentRef = {
     slug?: string | null;
 };
 
+export type StartggSeedNode = {
+    id: string;
+    seedNum: number;
+    entrantId: string;
+};
+
 export type StartggParticipantNode = {
     id: string;
     gamerTag: string;
+    entrantId: string;
 };
 
 export type StartggEntrantNode = {
     id: string;
     name: string;
     participants: StartggParticipantNode[];
-};
-
-export type StartggSeedNode = {
-    id: string;
-    seedNum: number;
-    entrant: StartggEntrantNode | null;
-};
-
-export type StartggPhaseNode = {
-    id: string;
-    name: string;
 };
 
 export type StartggSetNode = {
@@ -33,10 +29,38 @@ export type StartggSetNode = {
     phaseName?: string | null;
     phaseGroupId?: string | null;
     phaseGroupName?: string | null;
+    slots: Array<{
+        prereqId?: string | null;
+        prereqPlacement?: number | null;
+        prereqType?: string | null;
+        entrant?: {
+            id: string;
+            name: string;
+        } | null;
+        standing?: {
+            placement?: number | null;
+            score?: number | null;
+        } | null;
+    }>;
     entrants: Array<{
         id: string;
         name: string;
     }>;
+};
+
+export type StartggPhaseGroupNode = {
+    id: string;
+    displayIdentifier?: string | null;
+    phaseId: string;
+    phaseName?: string | null;
+    sets: StartggSetNode[];
+};
+
+export type StartggPhaseNode = {
+    id: string;
+    name: string;
+    seeds: StartggSeedNode[];
+    phaseGroups: StartggPhaseGroupNode[];
 };
 
 export type StartggEventNode = {
@@ -44,12 +68,17 @@ export type StartggEventNode = {
     name: string;
     slug: string;
     tournament?: StartggTournamentRef | null;
-    phases: StartggPhaseNode[];
+    phases: Array<{
+        id: string;
+        name: string;
+    }>;
 };
 
 export type StartggEventSnapshot = {
-    event: StartggEventNode;
+    id: string;
+    name: string;
+    slug: string;
+    tournament?: StartggTournamentRef | null;
     entrants: StartggEntrantNode[];
-    seeds: StartggSeedNode[];
-    sets: StartggSetNode[];
+    phases: StartggPhaseNode[];
 };
