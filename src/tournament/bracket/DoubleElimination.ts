@@ -10,16 +10,22 @@ export class DoubleElimination extends IBracketSystem {
         return "DoubleElimination";
     }
 
-    protected async createBracket(entrants: Entrant[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
+    protected async createBracket(
+        entrants: Entrant[],
+        playerPerMatch: number,
+        _division: Division,
+        phase: Phase,
+        phaseGroupId: number,
+    ): Promise<void> {
         if (playerPerMatch !== 2 && playerPerMatch !== 4 && playerPerMatch !== 8) {
             throw new Error(`DoubleElimination only supports playerPerMatch of 2, 4, or 8, got ${playerPerMatch}`);
         }
 
-        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase);
+        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase, phaseGroupId);
         await this.fillFirstWave(entrants, firstRound, playerPerMatch);
     }
 
-    private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase): Promise<Match[]> {
+    private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase, phaseGroupId: number): Promise<Match[]> {
         const passingPlayers = playerPerMatch / 2;
         const r1MatchCount = Math.max(2, this.nextPow2(Math.ceil(playerCount / playerPerMatch)));
         const nextEffN = playerPerMatch * r1MatchCount;
@@ -35,7 +41,7 @@ export class DoubleElimination extends IBracketSystem {
         const wbRounds: Match[][] = [];
         let wbMatchCount = r1MatchCount;
         for (let k = 0; k < wbRoundCount; k++) {
-            const matches = await this.CreateMatchesInPhase(`WB_Round_${k + 1}`, phase, wbMatchCount);
+            const matches = await this.CreateMatchesInPhase(`WB_Round_${k + 1}`, phaseGroupId, wbMatchCount);
             wbRounds.push(matches);
             wbMatchCount = Math.floor(wbMatchCount / 2);
         }
@@ -47,7 +53,7 @@ export class DoubleElimination extends IBracketSystem {
             const isDropRound = i % 2 === 1;
             const roundNum = Math.floor(i / 2) + 1;
             const roundName = isDropRound ? `LB_Drop_${roundNum}` : `LB_Merge_${roundNum}`;
-            const matches = await this.CreateMatchesInPhase(roundName, phase, lbMatchCount);
+            const matches = await this.CreateMatchesInPhase(roundName, phaseGroupId, lbMatchCount);
             lbRounds.push(matches);
             if (isDropRound) {
                 lbMatchCount = Math.floor(lbMatchCount / 2);
@@ -55,7 +61,7 @@ export class DoubleElimination extends IBracketSystem {
         }
 
         // --- Create Grand Final ---
-        const grandFinalMatches = await this.CreateMatchesInPhase('Grand_Final', phase, 1);
+        const grandFinalMatches = await this.CreateMatchesInPhase('Grand_Final', phaseGroupId, 1);
         const grandFinalMatch = grandFinalMatches[0];
 
         // --- Wire Winners Bracket paths (in memory) ---

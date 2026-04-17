@@ -10,9 +10,15 @@ export class Manual extends IBracketSystem {
         return "First phase only";
     }
 
-    protected async createBracket(_entrants: Entrant[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
+    protected async createBracket(
+        _entrants: Entrant[],
+        _playerPerMatch: number,
+        _division: Division,
+        _phase: Phase,
+        phaseGroupId: number,
+    ): Promise<void> {
         const matchCount = Math.ceil(_entrants.length / _playerPerMatch);
-        const matches = await this.CreateMatchesInPhase("Match", _phase, matchCount);
+        const matches = await this.CreateMatchesInPhase("Match", phaseGroupId, matchCount);
         await this.fillFirstWave(_entrants, matches, _playerPerMatch);
     }
 }

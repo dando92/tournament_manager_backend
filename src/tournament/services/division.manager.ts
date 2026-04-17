@@ -6,6 +6,10 @@ import { DivisionService } from './division.service';
 export class DivisionManager {
     constructor(private readonly divisionService: DivisionService) {}
 
+    private getPhaseMatches(phase: { phaseGroups?: Array<{ matches?: any[] }> }): any[] {
+        return (phase.phaseGroups ?? []).flatMap((phaseGroup) => phaseGroup.matches ?? []);
+    }
+
     async findSummary(id: number): Promise<DivisionSummaryDto> {
         const division = await this.divisionService.findOneForSummary(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
@@ -33,7 +37,7 @@ export class DivisionManager {
             phases: (division.phases ?? []).map((phase) => ({
                 id: phase.id,
                 name: phase.name,
-                matchCount: phase.matches?.length ?? 0,
+                matchCount: this.getPhaseMatches(phase).length,
             })),
         };
     }
@@ -45,7 +49,7 @@ export class DivisionManager {
         const playerTotals = new Map<number, DivisionStandingRowDto>();
 
         for (const phase of division.phases ?? []) {
-            for (const match of phase.matches ?? []) {
+            for (const match of this.getPhaseMatches(phase)) {
                 for (const round of match.rounds ?? []) {
                     for (const standing of round.standings ?? []) {
                         const player = standing.score.player;

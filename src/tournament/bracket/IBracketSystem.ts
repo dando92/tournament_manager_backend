@@ -37,12 +37,18 @@ export class IBracketSystem {
         phaseDto.name = `Bracket ${phaseNumber}`;
         phaseDto.divisionId = division.id;
         const phase = await this.phaseService.create(phaseDto);
-        phase.matches = [];
+        const phaseGroup = await this.phaseService.createPhaseGroup(phase.id, 'Main Bracket', 'set-driven');
 
-        await this.createBracket(entrants, playerPerMatch, division, phase);
+        await this.createBracket(entrants, playerPerMatch, division, phase, phaseGroup.id);
     }
 
-    protected async createBracket(_entrants: Entrant[], _playerPerMatch: number, _division: Division, _phase: Phase): Promise<void> {
+    protected async createBracket(
+        _entrants: Entrant[],
+        _playerPerMatch: number,
+        _division: Division,
+        _phase: Phase,
+        _phaseGroupId: number,
+    ): Promise<void> {
         throw new Error("Method 'createBracket' should be implemented.");
     }
 
@@ -61,13 +67,12 @@ export class IBracketSystem {
         }
     }
 
-    protected async CreateMatchesInPhase(namePrefix: string, phase: Phase, matchCount: number): Promise<Match[]> {
+    protected async CreateMatchesInPhase(namePrefix: string, phaseGroupId: number, matchCount: number): Promise<Match[]> {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
-            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phase.id);
+            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phaseGroupId);
             match.targetPaths = [];
             match.sourcePaths = [];
-            phase.matches.push(match);
             matches.push(match);
         }
         return matches;
@@ -80,10 +85,10 @@ export class IBracketSystem {
         await this.matchManager.UpdateMatch(match.id, dto);
     }
 
-    protected async CreateEmptyMatch(name: string, desc: string, phaseId: number): Promise<Match> {
+    protected async CreateEmptyMatch(name: string, desc: string, phaseGroupId: number): Promise<Match> {
         const dto = new CreateMatchDto();
 
-        dto.phaseId = phaseId;
+        dto.phaseGroupId = phaseGroupId;
         dto.name = name;
         dto.notes = desc;
         dto.scoringSystem = "EurocupScoreCalculator";

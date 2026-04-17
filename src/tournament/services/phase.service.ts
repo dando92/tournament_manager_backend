@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Division, Phase } from '@persistence/entities';
+import { Division, Phase, PhaseGroup } from '@persistence/entities';
 import { CreatePhaseDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
@@ -10,6 +10,8 @@ export class PhaseService {
     constructor(
         @InjectRepository(Phase)
         private readonly phaseRepository: Repository<Phase>,
+        @InjectRepository(PhaseGroup)
+        private readonly phaseGroupRepository: Repository<PhaseGroup>,
         @InjectRepository(Division)
         private readonly divisionRepository: Repository<Division>,
         private readonly uiUpdateGateway: UiUpdateGateway,
@@ -28,11 +30,30 @@ export class PhaseService {
         return savedPhase;
     }
 
+    async createPhaseGroup(phaseId: number, name: string, mode: 'set-driven' | 'progression-driven' = 'set-driven'): Promise<PhaseGroup> {
+        const phase = await this.phaseRepository.findOne({
+            where: { id: phaseId },
+            relations: { division: true },
+        });
+        if (!phase) throw new NotFoundException(`Phase with ID ${phaseId} not found`);
+
+        const phaseGroup = new PhaseGroup();
+        phaseGroup.name = name;
+        phaseGroup.mode = mode;
+        phaseGroup.phase = phase;
+
+        const savedPhaseGroup = await this.phaseGroupRepository.save(phaseGroup);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);
+        return savedPhaseGroup;
+    }
+
     async findOverviewDataForDivision(divisionId: number): Promise<Phase[]> {
         return this.phaseRepository.find({
             where: { division: { id: divisionId } },
             relations: {
-                matches: true,
+                phaseGroups: {
+                    matches: true,
+                },
             },
         });
     }

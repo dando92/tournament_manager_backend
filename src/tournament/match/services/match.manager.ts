@@ -43,7 +43,8 @@ export class MatchManager {
     async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
         const matches = await this.matchService.findByDivisionForView(divisionId);
         return await Promise.all(matches.map(async (match) => {
-            const phase = await match.phase;
+            const phaseGroup = await match.phaseGroup;
+            const phase = phaseGroup?.phase ?? null;
 
             return {
                 id: match.id,

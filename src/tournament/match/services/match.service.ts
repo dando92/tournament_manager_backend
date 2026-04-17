@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Entrant, Match, Phase } from '@persistence/entities';
+import { Entrant, Match, PhaseGroup } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
@@ -10,8 +10,8 @@ export class MatchService {
     constructor(
         @InjectRepository(Match)
         private readonly matchRepository: Repository<Match>,
-        @InjectRepository(Phase)
-        private readonly phaseRepository: Repository<Phase>,
+        @InjectRepository(PhaseGroup)
+        private readonly phaseGroupRepository: Repository<PhaseGroup>,
         @InjectRepository(Entrant)
         private readonly entrantRepository: Repository<Entrant>,
         private readonly uiUpdateGateway: UiUpdateGateway,
@@ -19,11 +19,13 @@ export class MatchService {
 
     async create(dto: CreateMatchDto): Promise<Match> {
         const match = new Match();
+        const phaseGroup = await this.phaseGroupRepository.findOne({
+            where: { id: dto.phaseGroupId },
+            relations: { phase: true },
+        });
+        if (!phaseGroup) throw new NotFoundException(`PhaseGroup with ID ${dto.phaseGroupId} not found`);
 
-        const phase = await this.phaseRepository.findOneBy({ id: dto.phaseId });
-        if (!phase) throw new NotFoundException(`Phase with ID ${dto.phaseId} not found`);
-        match.phase = Promise.resolve(phase);
-
+        match.phaseGroup = Promise.resolve(phaseGroup);
         match.entrants = [];
 
         if (dto.entrantIds !== undefined) {
@@ -45,7 +47,7 @@ export class MatchService {
         match.subtitle = dto.subtitle;
 
         const savedMatch = await this.matchRepository.save(match);
-        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(dto.phaseId);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseGroup.phase?.id);
 
         return savedMatch;
     }
@@ -61,6 +63,9 @@ export class MatchService {
     async findAllForLobbyLookup(): Promise<Match[]> {
         return await this.matchRepository.find({
             relations: {
+                phaseGroup: {
+                    phase: true,
+                },
                 entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
@@ -73,14 +78,18 @@ export class MatchService {
     async findByDivisionForView(divisionId: number): Promise<Match[]> {
         return this.matchRepository.find({
             where: {
-                phase: {
-                    division: {
-                        id: divisionId,
+                phaseGroup: {
+                    phase: {
+                        division: {
+                            id: divisionId,
+                        },
                     },
                 },
             },
             relations: {
-                phase: true,
+                phaseGroup: {
+                    phase: true,
+                },
                 entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
@@ -99,6 +108,9 @@ export class MatchService {
         return await this.matchRepository.findOne({
             where: { id },
             relations: {
+                phaseGroup: {
+                    phase: true,
+                },
                 entrants: { participants: { player: true } },
                 rounds: {
                     song: true,
@@ -123,11 +135,14 @@ export class MatchService {
         const match = await this.findOneBasic(id);
         if (!match) throw new Error(`Match with ID ${id} not found`);
 
-        if (dto.phaseId) {
-            const phase = await this.phaseRepository.findOneBy({ id: dto.phaseId });
-            if (!phase) throw new NotFoundException(`Phase with ID ${dto.phaseId} not found`);
-            match.phase = Promise.resolve(phase);
-            delete dto.phaseId;
+        if (dto.phaseGroupId) {
+            const phaseGroup = await this.phaseGroupRepository.findOne({
+                where: { id: dto.phaseGroupId },
+                relations: { phase: true },
+            });
+            if (!phaseGroup) throw new NotFoundException(`PhaseGroup with ID ${dto.phaseGroupId} not found`);
+            match.phaseGroup = Promise.resolve(phaseGroup);
+            delete dto.phaseGroupId;
         }
 
         if (dto.entrantIds !== undefined) {
@@ -156,16 +171,23 @@ export class MatchService {
     }
 
     async delete(id: number): Promise<void> {
-        const match = await this.findOneBasic(id);
+        const match = await this.matchRepository.findOne({
+            where: { id },
+            relations: {
+                phaseGroup: {
+                    phase: true,
+                },
+            },
+        });
         if (!match) return;
-        const phase = await match.phase;
-        const phaseId = phase?.id;
+        const phaseGroup = match.phaseGroup ? await match.phaseGroup : null;
+        const phaseId = phaseGroup?.phase?.id ?? null;
 
         const sourcePathIds: number[] = (match.sourcePaths ?? []).map(Number);
         if (sourcePathIds.length > 0) {
             const sourceMatches = await this.matchRepository.findBy({ id: In(sourcePathIds) });
             for (const source of sourceMatches) {
-                source.targetPaths = (source.targetPaths ?? []).filter(t => Number(t) !== id);
+                source.targetPaths = (source.targetPaths ?? []).filter((targetId) => Number(targetId) !== id);
                 await this.matchRepository.save(source);
                 await this.uiUpdateGateway.emitMatchUpdateByMatchId(source.id);
             }
