@@ -26,7 +26,7 @@ export class MatchesController {
             subtitle: dto.subtitle,
             notes: dto.notes,
             entrantIds: dto.entrantIds,
-            phaseId: dto.phaseId,
+            phaseGroupId: dto.phaseGroupId,
             scoringSystem: dto.scoringSystem,
         };
         const match = await this.matchService.create(createMatchDto);

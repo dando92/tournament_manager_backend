@@ -76,7 +76,8 @@ export class UiUpdateContextService {
     async getMatchUpdatePayload(matchId: number): Promise<MatchUpdatePayload | null> {
         const data = await this.matchRepository
             .createQueryBuilder('match')
-            .leftJoin('match.phase', 'phase')
+            .leftJoin('match.phaseGroup', 'phaseGroup')
+            .leftJoin('phaseGroup.phase', 'phase')
             .leftJoin('phase.division', 'division')
             .leftJoin('division.tournament', 'tournament')
             .select('tournament.id', 'tournamentId')
