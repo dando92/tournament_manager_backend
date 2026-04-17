@@ -7,12 +7,13 @@ import {
   OneToOne,
   ManyToMany,
   JoinTable,
-  JoinColumn } from 'typeorm';
+  JoinColumn,
+} from 'typeorm';
 
-import { Round } from './round.entity'
-import { Phase } from './phase.entity'
-import { Entrant } from './entrant.entity'
-import { MatchResult } from './match_result.entity'
+import { Round } from './round.entity';
+import { PhaseGroup } from './phase_group.entity';
+import { Entrant } from './entrant.entity';
+import { MatchResult } from './match_result.entity';
 
 
 @Entity()
@@ -56,7 +57,7 @@ export class Match {
   @JoinTable()
   entrants?: Entrant[];
 
-  @OneToMany(() => Round, (round) => round.match, { cascade: true  })
+  @OneToMany(() => Round, (round) => round.match, { cascade: true })
   rounds: Round[];
 
   @OneToOne(() => MatchResult, (matchResult) => matchResult.match, {
@@ -67,7 +68,7 @@ export class Match {
   @JoinColumn()
   matchResult?: MatchResult | null;
 
-  @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PhaseGroup, (phaseGroup) => phaseGroup.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
-  phase: Promise<Phase>;
+  phaseGroup: Promise<PhaseGroup>;
 }
