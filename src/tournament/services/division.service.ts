@@ -50,6 +50,9 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    seeds: {
+                        entrant: true,
+                    },
                     phaseGroups: {
                         matches: true,
                     },
@@ -91,6 +94,9 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    seeds: {
+                        entrant: true,
+                    },
                     phaseGroups: {
                         matches: {
                             matchResult: true,
@@ -143,6 +149,9 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    seeds: {
+                        entrant: true,
+                    },
                     phaseGroups: {
                         matches: {
                             matchResult: true,
@@ -176,6 +185,9 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    seeds: {
+                        entrant: true,
+                    },
                     phaseGroups: {
                         matches: {
                             entrants: {

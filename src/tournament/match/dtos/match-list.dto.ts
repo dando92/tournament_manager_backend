@@ -19,7 +19,6 @@ export type MatchListEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: MatchListParticipantDto[];
 };

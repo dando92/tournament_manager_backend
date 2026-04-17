@@ -14,9 +14,14 @@ export type DivisionSummaryEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: DivisionSummaryParticipantDto[];
+};
+
+export type DivisionSummaryPhaseSeedDto = {
+    id: number;
+    entrantId: number;
+    seedNum: number;
 };
 
 export type DivisionSummaryPhaseDto = {
@@ -24,6 +29,7 @@ export type DivisionSummaryPhaseDto = {
     name: string;
     type: 'pool' | 'bracket';
     matchCount: number;
+    seeds: DivisionSummaryPhaseSeedDto[];
     phaseGroups: Array<{
         id: number;
         name: string;

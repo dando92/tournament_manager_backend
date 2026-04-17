@@ -30,9 +30,6 @@ export class Entrant {
   @Column({ default: 'player' })
   type: EntrantType;
 
-  @Column({ nullable: true, default: null })
-  seedNum?: number | null;
-
   @Column({ default: 'active' })
   status: EntrantStatus;
 

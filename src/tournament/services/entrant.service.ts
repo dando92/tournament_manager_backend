@@ -14,7 +14,7 @@ export class EntrantService {
         private readonly participantRepository: Repository<Participant>,
     ) {}
 
-    async addSinglesEntrant(divisionId: number, participantId: number, seedNum?: number | null): Promise<Entrant> {
+    async addSinglesEntrant(divisionId: number, participantId: number): Promise<Entrant> {
         const existing = await this.entrantRepository
             .createQueryBuilder('entrant')
             .leftJoinAndSelect('entrant.participants', 'participant')
@@ -25,7 +25,6 @@ export class EntrantService {
 
         if (existing) {
             if (existing.status !== 'active') existing.status = 'active';
-            if (seedNum !== undefined) existing.seedNum = seedNum;
             return this.entrantRepository.save(existing);
         }
 
@@ -42,7 +41,6 @@ export class EntrantService {
         entrant.division = division;
         entrant.name = participant.player.playerName;
         entrant.type = 'player';
-        entrant.seedNum = seedNum ?? await this.getNextSeedNum(divisionId);
         entrant.status = 'active';
         entrant.participants = [participant];
         return this.entrantRepository.save(entrant);
@@ -76,24 +74,7 @@ export class EntrantService {
     }
 
     async updateSeeding(divisionId: number, entrantIds: number[]): Promise<void> {
-        const entrants = await this.entrantRepository.find({
-            where: { division: { id: divisionId } },
-        });
-        const order = new Map(entrantIds.map((id, index) => [Number(id), index + 1]));
-        for (const entrant of entrants) {
-            if (order.has(entrant.id)) {
-                entrant.seedNum = order.get(entrant.id);
-                await this.entrantRepository.save(entrant);
-            }
-        }
-    }
-
-    private async getNextSeedNum(divisionId: number): Promise<number> {
-        const { max } = await this.entrantRepository
-            .createQueryBuilder('entrant')
-            .select('MAX(entrant.seedNum)', 'max')
-            .where('entrant.divisionId = :divisionId', { divisionId })
-            .getRawOne<{ max: number | null }>();
-        return Number(max ?? 0) + 1;
+        void divisionId;
+        void entrantIds;
     }
 }
