@@ -13,6 +13,7 @@ export type ExternalMappingLocalType =
   | 'tournament'
   | 'division'
   | 'phase'
+  | 'phaseGroup'
   | 'match';
 export type ExternalMappingExternalType =
   | 'user'
