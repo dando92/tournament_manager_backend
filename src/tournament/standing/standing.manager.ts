@@ -1,11 +1,12 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } from '../dtos';
-import { Entrant, Match, Player, Score } from '@persistence/entities';
+import { Match, Player, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystemProvider";
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
+import { MatchManager } from '@match/services/match.manager';
 import { BracketManager } from '@bracket/bracket.manager';
 import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
@@ -17,6 +18,8 @@ export class StandingManager implements ILobbyStateObserver {
         private readonly standingService: StandingService,
         @Inject()
         private readonly matchService: MatchService,
+        @Inject()
+        private readonly matchManager: MatchManager,
         @Inject()
         private readonly scoreService: ScoreService,
         @Inject()
@@ -41,14 +44,14 @@ export class StandingManager implements ILobbyStateObserver {
     }
 
     async AddScoreToMatch(match: Match, score: Score): Promise<Match> {
-        const round = match.rounds.find(round => round.song.id == score.song.id);
+        const round = match.rounds.find((candidate) => candidate.song.id == score.song.id);
 
         if (!round) {
             return;
         }
 
         const alreadyExistentStanding = round.standings.find(
-            standing => standing.score.song.id == score.song.id && standing.score.player.id == score.player.id
+            (standing) => standing.score.song.id == score.song.id && standing.score.player.id == score.player.id,
         );
 
         if (alreadyExistentStanding) {
@@ -69,9 +72,9 @@ export class StandingManager implements ILobbyStateObserver {
         }
 
         const matchPlayers = this.getSinglesPlayers(match);
-        const isRoundCompleted = matchPlayers.every(player =>
+        const isRoundCompleted = matchPlayers.every((player) =>
             round.standings.some(
-                s => s.score.player.id === player.id && s.score.song.id === round.song.id,
+                (standing) => standing.score.player.id === player.id && standing.score.song.id === round.song.id,
             ),
         );
 
@@ -80,35 +83,14 @@ export class StandingManager implements ILobbyStateObserver {
         if (isRoundCompleted) {
             const scoreSystem = this.scoringSystemProvider.getScoringSystem(match.scoringSystem);
             scoreSystem.recalc(round.standings);
-            round.standings.forEach(async standing => {
+            round.standings.forEach(async (standing) => {
                 const dto = new UpdateStandingDto();
                 dto.points = standing.points;
                 await this.standingService.update(standing.id, dto);
             });
         }
 
-        const isMatchComplete = match.rounds.length > 0 && match.rounds.every(r =>
-            matchPlayers.every(player =>
-                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
-            ),
-        );
-
-        if (isMatchComplete && match.targetPaths?.length) {
-            const getTotalPoints = (playerId: number) =>
-                match.rounds.reduce((acc, r) => {
-                    const standing = r.standings.find(s => s.score.player.id === playerId);
-                    return acc + (standing?.points ?? 0);
-                }, 0);
-
-            const sortedEntrants = this.sortEntrantsByPlayerPoints(match, getTotalPoints);
-            await this.bracketManager.advanceEntrants(match, sortedEntrants);
-
-            for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
-            }
-        }
-
+        await this.refreshRoutesFromMatchResult(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -121,24 +103,7 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
-        const matchPlayers = this.getSinglesPlayers(match);
-        const wasComplete = match.rounds.length > 0 && match.rounds.every(r =>
-            matchPlayers.every(player =>
-                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
-            ),
-        );
-
-        const getTotalPoints = (id: number) =>
-            match.rounds.reduce((acc, r) => {
-                const standing = r.standings.find(s => s.score.player.id === id);
-                return acc + (standing?.points ?? 0);
-            }, 0);
-
-        const sortedEntrants = wasComplete && match.targetPaths?.length
-            ? this.sortEntrantsByPlayerPoints(match, getTotalPoints)
-            : [];
-
-        const round = match.rounds.find(round => round.song.id == songId);
+        const round = match.rounds.find((candidate) => candidate.song.id == songId);
 
         if (!round) {
             return;
@@ -171,15 +136,7 @@ export class StandingManager implements ILobbyStateObserver {
             console.log(error);
         }
 
-        if (wasComplete && match.targetPaths?.length) {
-            await this.bracketManager.revertEntrants(match, sortedEntrants);
-
-            for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
-            }
-        }
-
+        await this.refreshRoutesFromMatchResult(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -192,30 +149,13 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
-        const matchPlayers = this.getSinglesPlayers(match);
-        const wasComplete = match.rounds.length > 0 && match.rounds.every(r =>
-            matchPlayers.every(player =>
-                r.standings.some(s => s.score.player.id === player.id && s.score.song.id === r.song.id),
-            ),
-        );
-
-        const getTotalPoints = (playerId: number) =>
-            match.rounds.reduce((acc, r) => {
-                const standing = r.standings.find(s => s.score.player.id === playerId);
-                return acc + (standing?.points ?? 0);
-            }, 0);
-
-        const oldSortedEntrants = wasComplete && match.targetPaths?.length
-            ? this.sortEntrantsByPlayerPoints(match, getTotalPoints)
-            : [];
-
-        const round = match.rounds.find(round => round.song.id == songId);
+        const round = match.rounds.find((candidate) => candidate.song.id == songId);
 
         if (!round) {
             return;
         }
 
-        const standing = round.standings.find(s => s.score.player.id == playerId);
+        const standing = round.standings.find((candidate) => candidate.score.player.id == playerId);
 
         if (!standing) {
             return;
@@ -232,24 +172,13 @@ export class StandingManager implements ILobbyStateObserver {
         const scoreSystem = this.scoringSystemProvider.getScoringSystem(match.scoringSystem);
         scoreSystem.recalc(round.standings);
 
-        for (const s of round.standings) {
+        for (const currentStanding of round.standings) {
             const dto = new UpdateStandingDto();
-            dto.points = s.points;
-            await this.standingService.update(s.id, dto);
+            dto.points = currentStanding.points;
+            await this.standingService.update(currentStanding.id, dto);
         }
 
-        if (wasComplete && match.targetPaths?.length) {
-            await this.bracketManager.revertEntrants(match, oldSortedEntrants);
-
-            const newSortedEntrants = this.sortEntrantsByPlayerPoints(match, getTotalPoints);
-            await this.bracketManager.advanceEntrants(match, newSortedEntrants);
-
-            for (const targetMatchId of match.targetPaths) {
-                const targetMatch = await this.matchService.getMatch(targetMatchId);
-                if (targetMatch) await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
-            }
-        }
-
+        await this.refreshRoutesFromMatchResult(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -262,13 +191,14 @@ export class StandingManager implements ILobbyStateObserver {
 
         for (const player of lobbyState.players) {
             if (player.screenName === "ScreenEvaluationStage") {
-                const match = await this._findMatchId(songPath, player.profileName);
+                const match = await this.findMatch(songPath, player.profileName);
 
-                if (!match)
+                if (!match) {
                     continue;
+                }
 
-                const matchPlayer = this.getSinglesPlayers(match).find(p => p.playerName == player.profileName);
-                const matchRound = match.rounds.find(r => r.song.title == songPath);
+                const matchPlayer = this.getSinglesPlayers(match).find((candidate) => candidate.playerName == player.profileName);
+                const matchRound = match.rounds.find((candidate) => candidate.song.title == songPath);
                 if (!matchPlayer || !matchRound) continue;
 
                 const payload: CreateScoreDto = {
@@ -283,13 +213,38 @@ export class StandingManager implements ILobbyStateObserver {
         }
     }
 
-    private async _findMatchId(songPath: string, playerName: string): Promise<Match | null> {
+    private async refreshRoutesFromMatchResult(match: Match): Promise<void> {
+        const hadMatchResult = this.matchManager.HasMatchResult(match);
+        const previousSortedEntrants = hadMatchResult && match.targetPaths?.length
+            ? this.matchManager.SortEntrantsByMatchResult(match)
+            : [];
+
+        if (hadMatchResult && match.targetPaths?.length) {
+            await this.bracketManager.revertEntrants(match, previousSortedEntrants);
+        }
+
+        await this.matchManager.SyncMatchResult(match);
+
+        if (this.matchManager.HasMatchResult(match) && match.targetPaths?.length) {
+            const nextSortedEntrants = this.matchManager.SortEntrantsByMatchResult(match);
+            await this.bracketManager.advanceEntrants(match, nextSortedEntrants);
+        }
+
+        for (const targetMatchId of match.targetPaths ?? []) {
+            const targetMatch = await this.matchService.getMatch(targetMatchId);
+            if (targetMatch) {
+                await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
+            }
+        }
+    }
+
+    private async findMatch(songPath: string, playerName: string): Promise<Match | null> {
         const matches = await this.matchService.findAll();
 
         const match = matches.find(
-            (m) =>
-                m.rounds?.some((r) => r.song?.title === songPath) &&
-                this.getSinglesPlayers(m).some((p) => p.playerName === playerName),
+            (candidate) =>
+                candidate.rounds?.some((round) => round.song?.title === songPath) &&
+                this.getSinglesPlayers(candidate).some((player) => player.playerName === playerName),
         );
 
         if (!match) {
@@ -305,13 +260,5 @@ export class StandingManager implements ILobbyStateObserver {
             .filter((entrant) => entrant.type === 'player')
             .map((entrant) => entrant.participants?.[0]?.player)
             .filter(Boolean);
-    }
-
-    private sortEntrantsByPlayerPoints(match: Match, getTotalPoints: (playerId: number) => number): Entrant[] {
-        return [...(match.entrants ?? [])].sort((a, b) => {
-            const aPlayer = a.participants?.[0]?.player;
-            const bPlayer = b.participants?.[0]?.player;
-            return getTotalPoints(bPlayer?.id) - getTotalPoints(aPlayer?.id);
-        });
     }
 }

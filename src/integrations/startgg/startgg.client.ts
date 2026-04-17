@@ -3,27 +3,40 @@ import {
     HttpException,
     Injectable,
     InternalServerErrorException,
+    Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+    EventEntrantsResponse,
+    EventSetsResponse,
+    GetEventBySlugResponse,
+    PageInfo,
+    PhaseGroupsByPhaseResponse,
+    PhaseGroupSetsResponse,
+    PhaseSeedsResponse,
+} from './responses';
+import {
     StartggEntrantNode,
     StartggEventNode,
+    StartggPhaseGroupNode,
     StartggSeedNode,
     StartggSetNode,
 } from './startgg.types';
+import { EVENT_ENTRANTS_QUERY } from './queries/event-entrants.query';
+import { EVENT_SETS_QUERY } from './queries/event-sets.query';
+import { GET_EVENT_BY_SLUG_QUERY } from './queries/get-event-by-slug.query';
+import { PHASE_GROUPS_BY_PHASE_QUERY } from './queries/phase-groups-by-phase.query';
+import { PHASE_GROUP_SETS_QUERY } from './queries/phase-group-sets.query';
+import { PHASE_SEEDS_QUERY } from './queries/phase-seeds.query';
 
 type GraphqlResponse<T> = {
     data?: T;
     errors?: Array<{ message?: string }>;
 };
 
-type PageInfo = {
-    total?: number;
-    totalPages?: number;
-};
-
 @Injectable()
 export class StartggClient {
+    private readonly logger = new Logger(StartggClient.name);
     private readonly endpoint: string;
     private readonly accessToken?: string;
     private readonly perPage: number;
@@ -34,300 +47,98 @@ export class StartggClient {
         this.endpoint = this.configService.get<string>('STARTGG_API_URL') ?? 'https://api.start.gg/gql/alpha';
         this.accessToken = this.configService.get<string>('STARTGG_ACCESS_TOKEN');
         this.perPage = Number(this.configService.get<string>('STARTGG_PER_PAGE') ?? 64);
-        this.minIntervalMs = Number(this.configService.get<string>('STARTGG_MIN_INTERVAL_MS') ?? 800);
+        this.minIntervalMs = Number(this.configService.get<string>('STARTGG_MIN_INTERVAL_MS') ?? 1000);
     }
 
     async getEventBySlug(slug: string): Promise<StartggEventNode> {
-        const response = await this.request<{
-            event?: {
-                id: string | number;
-                name: string;
-                slug?: string | null;
-                tournament?: {
-                    id: string | number;
-                    name: string;
-                    slug?: string | null;
-                } | null;
-                phases?: Array<{
-                    id: string | number;
-                    name: string;
-                }> | null;
-            } | null;
-        }>(
-            `
-            query GetEventBySlug($slug: String!) {
-              event(slug: $slug) {
-                id
-                name
-                slug
-                tournament {
-                  id
-                  name
-                  slug
-                }
-                phases {
-                  id
-                  name
-                }
-              }
-            }
-            `,
+        const response = await this.request<GetEventBySlugResponse>(
+            'GetEventBySlug',
+            GET_EVENT_BY_SLUG_QUERY,
             { slug },
         );
-
-        const event = response.event;
-        if (!event?.id || !event?.name) {
-            throw new BadGatewayException('start.gg response did not contain an event');
+        try {
+            return GetEventBySlugResponse.map(response, slug);
+        } catch (error) {
+            throw new BadGatewayException(error instanceof Error ? error.message : 'start.gg response did not contain an event');
         }
-
-        return {
-            id: String(event.id),
-            name: event.name,
-            slug: event.slug ?? slug,
-            tournament: event.tournament?.id && event.tournament?.name
-                ? {
-                    id: String(event.tournament.id),
-                    name: event.tournament.name,
-                    slug: event.tournament.slug ?? null,
-                }
-                : null,
-            phases: (event.phases ?? [])
-                .filter((phase) => phase?.id && phase?.name)
-                .map((phase) => ({
-                    id: String(phase.id),
-                    name: phase.name,
-                })),
-        };
     }
 
     async getEventEntrants(eventId: string): Promise<StartggEntrantNode[]> {
         return this.paginate<StartggEntrantNode>(
+            `event:${eventId}:entrants`,
             async (page, perPage) => {
-                const response = await this.request<{
-                    event?: {
-                        entrants?: {
-                            pageInfo?: PageInfo | null;
-                            nodes?: Array<{
-                                id: string | number;
-                                name?: string | null;
-                                participants?: Array<{
-                                    id: string | number;
-                                    gamerTag?: string | null;
-                                }> | null;
-                            }> | null;
-                        } | null;
-                    } | null;
-                }>(
-                    `
-                    query EventEntrants($eventId: ID!, $page: Int!, $perPage: Int!) {
-                      event(id: $eventId) {
-                        entrants(query: { page: $page, perPage: $perPage }) {
-                          pageInfo {
-                            total
-                            totalPages
-                          }
-                          nodes {
-                            id
-                            name
-                            participants {
-                              id
-                              gamerTag
-                            }
-                          }
-                        }
-                      }
-                    }
-                    `,
+                const response = await this.request<EventEntrantsResponse>(
+                    'EventEntrants',
+                    EVENT_ENTRANTS_QUERY,
                     { eventId, page, perPage },
                 );
-
-                const entrants = response.event?.entrants;
-                return {
-                    pageInfo: entrants?.pageInfo ?? {},
-                    nodes: (entrants?.nodes ?? [])
-                        .filter((entrant) => entrant?.id)
-                        .map((entrant) => {
-                            const participants = (entrant.participants ?? [])
-                                .filter((participant) => participant?.id && participant?.gamerTag)
-                                .map((participant) => ({
-                                    id: String(participant.id),
-                                    gamerTag: String(participant.gamerTag),
-                                }));
-                            return {
-                                id: String(entrant.id),
-                                name: entrant.name?.trim() || participants.map((participant) => participant.gamerTag).join(' / ') || `Entrant ${entrant.id}`,
-                                participants,
-                            };
-                        }),
-                };
+                return EventEntrantsResponse.mapPage(response);
             },
         );
     }
 
     async getPhaseSeeds(phaseId: string): Promise<StartggSeedNode[]> {
         return this.paginate<StartggSeedNode>(
+            `phase:${phaseId}:seeds`,
             async (page, perPage) => {
-                const response = await this.request<{
-                    phase?: {
-                        seeds?: {
-                            pageInfo?: PageInfo | null;
-                            nodes?: Array<{
-                                id: string | number;
-                                seedNum?: number | null;
-                                entrant?: {
-                                    id: string | number;
-                                    name?: string | null;
-                                    participants?: Array<{
-                                        id: string | number;
-                                        gamerTag?: string | null;
-                                    }> | null;
-                                } | null;
-                            }> | null;
-                        } | null;
-                    } | null;
-                }>(
-                    `
-                    query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
-                      phase(id: $phaseId) {
-                        seeds(query: { page: $page, perPage: $perPage }) {
-                          pageInfo {
-                            total
-                            totalPages
-                          }
-                          nodes {
-                            id
-                            seedNum
-                            entrant {
-                              id
-                              name
-                              participants {
-                                id
-                                gamerTag
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    `,
+                const response = await this.request<PhaseSeedsResponse>(
+                    'PhaseSeeds',
+                    PHASE_SEEDS_QUERY,
                     { phaseId, page, perPage },
                 );
-
-                const seeds = response.phase?.seeds;
-                return {
-                    pageInfo: seeds?.pageInfo ?? {},
-                    nodes: (seeds?.nodes ?? [])
-                        .filter((seed) => seed?.id && seed?.seedNum !== null && seed?.seedNum !== undefined)
-                        .map((seed) => ({
-                            id: String(seed.id),
-                            seedNum: Number(seed.seedNum),
-                            entrant: seed.entrant?.id ? {
-                                id: String(seed.entrant.id),
-                                name: seed.entrant.name?.trim() || (seed.entrant.participants ?? []).map((participant) => participant?.gamerTag).filter(Boolean).join(' / '),
-                                participants: (seed.entrant.participants ?? [])
-                                    .filter((participant) => participant?.id && participant?.gamerTag)
-                                    .map((participant) => ({
-                                        id: String(participant.id),
-                                        gamerTag: String(participant.gamerTag),
-                                    })),
-                            } : null,
-                        })),
-                };
+                return PhaseSeedsResponse.mapPage(response);
             },
         );
     }
 
     async getEventSets(eventId: string): Promise<StartggSetNode[]> {
         return this.paginate<StartggSetNode>(
+            `event:${eventId}:sets`,
             async (page, perPage) => {
-                const response = await this.request<{
-                    event?: {
-                        sets?: {
-                            pageInfo?: PageInfo | null;
-                            nodes?: Array<{
-                                id: string | number;
-                                fullRoundText?: string | null;
-                                phaseGroup?: {
-                                    id: string | number;
-                                    displayIdentifier?: string | null;
-                                    phase?: {
-                                        id: string | number;
-                                        name?: string | null;
-                                    } | null;
-                                } | null;
-                                slots?: Array<{
-                                    entrant?: {
-                                        id: string | number;
-                                        name?: string | null;
-                                    } | null;
-                                }> | null;
-                            }> | null;
-                        } | null;
-                    } | null;
-                }>(
-                    `
-                    query EventSets($eventId: ID!, $page: Int!, $perPage: Int!) {
-                      event(id: $eventId) {
-                        sets(page: $page, perPage: $perPage, sortType: STANDARD) {
-                          pageInfo {
-                            total
-                            totalPages
-                          }
-                          nodes {
-                            id
-                            fullRoundText
-                            phaseGroup {
-                              id
-                              displayIdentifier
-                              phase {
-                                id
-                                name
-                              }
-                            }
-                            slots {
-                              entrant {
-                                id
-                                name
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    `,
+                const response = await this.request<EventSetsResponse>(
+                    'EventSets',
+                    EVENT_SETS_QUERY,
                     { eventId, page, perPage },
                 );
-
-                const sets = response.event?.sets;
-                return {
-                    pageInfo: sets?.pageInfo ?? {},
-                    nodes: (sets?.nodes ?? [])
-                        .filter((set) => set?.id)
-                        .map((set) => ({
-                            id: String(set.id),
-                            fullRoundText: set.fullRoundText ?? null,
-                            phaseId: set.phaseGroup?.phase?.id ? String(set.phaseGroup.phase.id) : null,
-                            phaseName: set.phaseGroup?.phase?.name ?? null,
-                            phaseGroupId: set.phaseGroup?.id ? String(set.phaseGroup.id) : null,
-                            phaseGroupName: set.phaseGroup?.displayIdentifier ?? null,
-                            entrants: (set.slots ?? [])
-                                .filter((slot) => slot?.entrant?.id)
-                                .map((slot) => ({
-                                    id: String(slot.entrant.id),
-                                    name: slot.entrant.name?.trim() || `Entrant ${slot.entrant.id}`,
-                                })),
-                        })),
-                };
+                return EventSetsResponse.mapPage(response);
             },
         );
     }
 
-    private async request<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    async getPhaseGroups(phaseId: string): Promise<StartggPhaseGroupNode[]> {
+        return this.paginate<StartggPhaseGroupNode>(
+            `phase:${phaseId}:phaseGroups`,
+            async (page, perPage) => {
+                const response = await this.request<PhaseGroupsByPhaseResponse>(
+                    'PhaseGroupsByPhase',
+                    PHASE_GROUPS_BY_PHASE_QUERY,
+                    { phaseId, page, perPage },
+                );
+                return PhaseGroupsByPhaseResponse.mapPage(response, phaseId);
+            },
+        );
+    }
+
+    async getPhaseGroupSets(phaseGroup: StartggPhaseGroupNode): Promise<StartggSetNode[]> {
+        return this.paginate<StartggSetNode>(
+            `phaseGroup:${phaseGroup.id}:sets`,
+            async (page, perPage) => {
+                const response = await this.request<PhaseGroupSetsResponse>(
+                    'PhaseGroupSets',
+                    PHASE_GROUP_SETS_QUERY,
+                    { phaseGroupId: phaseGroup.id, page, perPage },
+                );
+                return PhaseGroupSetsResponse.mapPage(response, phaseGroup);
+            },
+        );
+    }
+
+    private async request<T>(operationName: string, query: string, variables: Record<string, unknown>): Promise<T> {
         if (!this.accessToken) {
             throw new InternalServerErrorException('STARTGG_ACCESS_TOKEN is not configured');
         }
 
-        await this.throttle();
+        const throttleWaitMs = await this.throttle();
 
         const maxAttempts = 4;
         let attempt = 0;
@@ -335,6 +146,7 @@ export class StartggClient {
 
         while (attempt < maxAttempts) {
             attempt += 1;
+            const requestStartedAt = Date.now();
 
             const response = await fetch(this.endpoint, {
                 method: 'POST',
@@ -347,6 +159,10 @@ export class StartggClient {
                     variables,
                 }),
             });
+
+            this.logger.log(
+                `[timing] request operation=${operationName} attempt=${attempt} status=${response.status} durationMs=${Date.now() - requestStartedAt} throttleWaitMs=${throttleWaitMs}`,
+            );
 
             if (response.status === 429) {
                 if (attempt >= maxAttempts) {
@@ -384,13 +200,16 @@ export class StartggClient {
     }
 
     private async paginate<T>(
+        label: string,
         fetchPage: (page: number, perPage: number) => Promise<{ pageInfo: PageInfo; nodes: T[] }>,
     ): Promise<T[]> {
         const nodes: T[] = [];
         let page = 1;
         let totalPages = 1;
+        const startedAt = Date.now();
 
         while (page <= totalPages) {
+            const pageStartedAt = Date.now();
             const { pageInfo, nodes: pageNodes } = await fetchPage(page, this.perPage);
             nodes.push(...pageNodes);
 
@@ -402,19 +221,28 @@ export class StartggClient {
                 totalPages = page;
             }
 
+            this.logger.log(
+                `[timing] paginate label=${label} page=${page}/${totalPages} pageNodes=${pageNodes.length} accumulatedNodes=${nodes.length} durationMs=${Date.now() - pageStartedAt}`,
+            );
+
             page += 1;
         }
+
+        this.logger.log(
+            `[timing] paginate-complete label=${label} pages=${Math.max(0, page - 1)} totalNodes=${nodes.length} durationMs=${Date.now() - startedAt}`,
+        );
 
         return nodes;
     }
 
-    private async throttle(): Promise<void> {
+    private async throttle(): Promise<number> {
         const now = Date.now();
         const waitMs = this.lastRequestAt + this.minIntervalMs - now;
         if (waitMs > 0) {
             await this.sleep(waitMs);
         }
         this.lastRequestAt = Date.now();
+        return Math.max(0, waitMs);
     }
 
     private async sleep(ms: number): Promise<void> {

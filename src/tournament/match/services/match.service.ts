@@ -65,6 +65,7 @@ export class MatchService {
                 rounds: {
                     song: true,
                 },
+                matchResult: true,
             },
         });
     }
@@ -89,6 +90,7 @@ export class MatchService {
                         },
                     },
                 },
+                matchResult: true,
             },
         });
     }
@@ -108,6 +110,7 @@ export class MatchService {
                     },
                     matchAssignments: true,
                 },
+                matchResult: true,
             },
         });
     }

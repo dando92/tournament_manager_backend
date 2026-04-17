@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   ManyToMany,
   JoinTable,
   JoinColumn } from 'typeorm';
@@ -11,6 +12,7 @@ import {
 import { Round } from './round.entity'
 import { Phase } from './phase.entity'
 import { Entrant } from './entrant.entity'
+import { MatchResult } from './match_result.entity'
 
 
 @Entity()
@@ -56,6 +58,14 @@ export class Match {
 
   @OneToMany(() => Round, (round) => round.match, { cascade: true  })
   rounds: Round[];
+
+  @OneToOne(() => MatchResult, (matchResult) => matchResult.match, {
+    cascade: true,
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  matchResult?: MatchResult | null;
 
   @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
   @JoinColumn()

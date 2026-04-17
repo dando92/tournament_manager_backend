@@ -1,5 +1,6 @@
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
+import { MatchResultService } from "@match/services/match-result.service";
 import { SongRoller } from "./services/song.roller";
 import { StandingManager } from "./standing/standing.manager";
 import { StandingService } from "./standing/standing.service";
@@ -24,6 +25,7 @@ import { StartggService } from '../integrations/startgg/startgg.service';
 
 export { MatchManager };
 export { MatchService };
+export { MatchResultService };
 export { SongRoller };
 export { StandingManager };
 export { ScoringSystemProvider };
@@ -49,6 +51,7 @@ export { StandingService };
 
 export const Services = [
     MatchService,
+    MatchResultService,
     MatchManager,
     SongRoller,
     StandingManager,
