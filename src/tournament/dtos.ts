@@ -1,5 +1,5 @@
 import { CreateDivisionDto, UpdateDivisionDto, UpdateEntrantSeedingDto } from './dtos/division.dto';
-import { CreatePhaseDto, UpdatePhaseDto } from './dtos/phase.dto';
+import { CreatePhaseDto, UpdatePhaseDto, UpdatePhaseSeedingDto } from './dtos/phase.dto';
 import { CreateMatchDto, UpdateMatchDto, CreateMatchWithSongsDto, AddSongToMatchDto, AddStandingToMatchDto } from '@match/dtos/match.dto';
 import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from '@player/player.dto';
 import { CreateRoundDto, UpdateRoundDto } from './dtos/round.dto';
@@ -18,7 +18,7 @@ import { CreateAccountPlayerDto, UpdateAccountPlayerDto } from './dtos/accountpl
 import { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto, ImportParticipantsPreviewDto } from './dtos/participant-management.dto';
 
 export { CreateDivisionDto, UpdateDivisionDto, UpdateEntrantSeedingDto };
-export { CreatePhaseDto, UpdatePhaseDto };
+export { CreatePhaseDto, UpdatePhaseDto, UpdatePhaseSeedingDto };
 export { CreateMatchDto, UpdateMatchDto, CreateMatchWithSongsDto, AddSongToMatchDto, AddStandingToMatchDto };
 export { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto };
 export { CreateRoundDto, UpdateRoundDto };

@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { PhaseType } from '@persistence/entities';
 
 export class CreatePhaseDto {
@@ -23,4 +24,10 @@ export class UpdatePhaseDto {
   @IsOptional()
   @IsString()
   type?: PhaseType;
+}
+
+export class UpdatePhaseSeedingDto {
+  @IsArray()
+  @Type(() => Number)
+  entrantIds: number[];
 }

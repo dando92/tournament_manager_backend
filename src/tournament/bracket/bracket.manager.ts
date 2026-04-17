@@ -22,6 +22,24 @@ export class BracketManager {
         return this.bracketSystemProvider.getAll();
     }
 
+    private getDivisionSeeding(division: {
+        entrants?: Entrant[];
+        phases?: Array<{ id: number; seeds?: Array<{ entrant?: Entrant; entrantId?: number; seedNum: number }> }>;
+    }): number[] {
+        const seededPhase = [...(division.phases ?? [])]
+            .sort((left, right) => left.id - right.id)
+            .find((phase) => (phase.seeds?.length ?? 0) > 0);
+
+        if (!seededPhase) {
+            return (division.entrants ?? []).map((entrant) => entrant.id);
+        }
+
+        return [...(seededPhase.seeds ?? [])]
+            .sort((left, right) => left.seedNum - right.seedNum)
+            .map((seed) => seed.entrant?.id ?? seed.entrantId ?? null)
+            .filter((entrantId): entrantId is number => Number.isFinite(entrantId));
+    }
+
     async generateForDivision(divisionId: number, bracketType: string, playerPerMatch: number): Promise<void> {
         const division = await this.divisionService.findOneForBracketGeneration(divisionId);
         if (!division) {
@@ -29,11 +47,7 @@ export class BracketManager {
         }
         const entrants = this.sortBySeed(
             (division?.entrants ?? []).filter((entrant) => entrant.status === 'active' && entrant.type === 'player'),
-            (division?.entrants ?? []).map((entrant) => entrant.id).sort((a, b) => {
-                const left = division.entrants.find((entrant) => entrant.id === a)?.seedNum ?? Number.MAX_SAFE_INTEGER;
-                const right = division.entrants.find((entrant) => entrant.id === b)?.seedNum ?? Number.MAX_SAFE_INTEGER;
-                return left - right;
-            })
+            this.getDivisionSeeding(division),
         );
         const system = this.bracketSystemProvider.getBracketSystem(bracketType);
         await system.generateForDivision(division, entrants, playerPerMatch);

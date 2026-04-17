@@ -56,7 +56,6 @@ export class MatchManager {
                     id: entrant.id,
                     name: entrant.name,
                     type: entrant.type,
-                    seedNum: entrant.seedNum ?? null,
                     status: entrant.status,
                     participants: (entrant.participants ?? []).map((participant) => ({
                         id: participant.id,

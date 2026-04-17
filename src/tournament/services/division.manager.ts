@@ -31,7 +31,6 @@ export class DivisionManager {
                 id: entrant.id,
                 name: entrant.name,
                 type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
                 status: entrant.status,
                 participants: (entrant.participants ?? []).map((participant) => ({
                     id: participant.id,
@@ -48,6 +47,11 @@ export class DivisionManager {
                 name: phase.name,
                 type: phase.type,
                 matchCount: this.getPhaseMatches(phase).length,
+                seeds: (phase.seeds ?? []).map((seed) => ({
+                    id: seed.id,
+                    entrantId: seed.entrant?.id,
+                    seedNum: seed.seedNum,
+                })),
                 phaseGroups: this.toPhaseGroupSummary(phase),
             })),
         };

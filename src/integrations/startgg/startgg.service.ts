@@ -374,7 +374,6 @@ export class StartggService {
                     division.id,
                     entrant,
                     participantByExternalId,
-                    seedByEntrantId.get(entrant.id) ?? null,
                     mappingCache,
                 );
                 entrantByExternalId.set(entrant.id, localEntrant);
@@ -649,7 +648,6 @@ export class StartggService {
         divisionId: number,
         entrant: StartggEntrantNode,
         participantByExternalId: Map<string, Participant>,
-        seedNum: number | null,
         mappingCache: StartggMappingCache,
     ): Promise<Entrant> {
         const existingMapping = this.findMappingInCache(mappingCache, 'entrant', 'entrant', entrant.id);
@@ -666,7 +664,7 @@ export class StartggService {
             if (!participant) {
                 throw new NotFoundException(`No local participant resolved for start.gg participant ${entrant.participants[0].id}`);
             }
-            localEntrant = await this.entrantService.addSinglesEntrant(divisionId, participant.id, seedNum);
+            localEntrant = await this.entrantService.addSinglesEntrant(divisionId, participant.id);
         }
 
         if (!localEntrant) {
@@ -677,14 +675,12 @@ export class StartggService {
             localEntrant.division = division;
             localEntrant.name = entrant.name;
             localEntrant.type = entrant.participants.length > 1 ? 'team' : 'player';
-            localEntrant.seedNum = seedNum;
             localEntrant.status = 'active';
             localEntrant.participants = entrant.participants
                 .map((participant) => participantByExternalId.get(participant.id))
                 .filter(Boolean);
         } else {
             localEntrant.name = entrant.name;
-            localEntrant.seedNum = seedNum;
             localEntrant.status = 'active';
             if (entrant.participants.length > 1) {
                 localEntrant.type = 'team';
