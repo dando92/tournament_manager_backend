@@ -35,8 +35,9 @@ export class MatchResultService {
         });
         if (!match?.matchResult) return;
 
-        await this.matchResultRepository.remove(match.matchResult);
+        const matchResult = match.matchResult;
         match.matchResult = null;
         await this.matchRepository.save(match);
+        await this.matchResultRepository.remove(matchResult);
     }
 }
