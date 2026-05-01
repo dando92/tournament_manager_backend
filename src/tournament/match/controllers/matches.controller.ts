@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
 import { MatchListDto } from '@match/dtos/match-list.dto';
-import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto } from '@match/dtos/match.dto';
+import { AddPlayerToMatchDto, AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { MatchManager } from '@match/services/match.manager';
 import { MatchService } from '@match/services/match.service';
@@ -70,6 +70,14 @@ export class MatchesController {
             return await this.matchManager.AddRandomSongsToMatch(match, dto.tournamentId, dto.divisionId, dto.group, dto.level);
         }
 
+        return match;
+    }
+
+    @Post(':matchId/players')
+    async addPlayerToMatch(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: AddPlayerToMatchDto): Promise<Match> {
+        await this.matchManager.AddEntrantInMatch(Number(matchId), dto.entrantId);
+        const match = await this.matchService.getMatch(Number(matchId));
+        if (!match) throw new NotFoundException(`Match with ID ${matchId} not found`);
         return match;
     }
 

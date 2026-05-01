@@ -173,6 +173,11 @@ export class AddSongToMatchDto {
   level?: string;
 }
 
+export class AddPlayerToMatchDto {
+  @IsNumber()
+  entrantId: number;
+}
+
 export class AddStandingToMatchDto {
   @IsNumber()
   playerId: number;
