@@ -20,6 +20,7 @@ export class DivisionService {
         if (!tournament) throw new NotFoundException(`Tournament ${dto.tournamentId} not found`);
         const division = new Division();
         division.name = dto.name;
+        division.playersPerMatch = dto.playersPerMatch ?? null;
         division.tournament = tournament;
         const savedDivision = await this.divisionRepository.save(division);
         await this.uiUpdateGateway.emitTournamentUpdate(dto.tournamentId);

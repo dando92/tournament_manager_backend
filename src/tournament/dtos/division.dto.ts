@@ -15,6 +15,12 @@ export class CreateDivisionDto {
   @IsNumber()
   @Type(() => Number)
   tournamentId: number;
+
+  @ApiProperty({ description: 'Max players per match for this bracket', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  playersPerMatch?: number;
 }
 
 export class UpdateDivisionDto {
