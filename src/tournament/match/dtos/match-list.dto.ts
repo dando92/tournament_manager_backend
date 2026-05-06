@@ -66,4 +66,6 @@ export type MatchListDto = {
     sourcePaths: number[];
     matchResult?: MatchListResultDto | null;
     phaseId?: number;
+    isActive?: boolean;
+    activeStartedAt?: string | null;
 };

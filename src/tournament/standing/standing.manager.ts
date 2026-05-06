@@ -10,6 +10,7 @@ import { MatchManager } from '@match/services/match.manager';
 import { BracketManager } from '@bracket/bracket.manager';
 import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
+import { ActiveMatchManager } from '../services/active-match.manager';
 
 @Injectable()
 export class StandingManager implements ILobbyStateObserver {
@@ -28,6 +29,8 @@ export class StandingManager implements ILobbyStateObserver {
         private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
         private readonly bracketManager: BracketManager,
+        @Inject()
+        private readonly activeMatchManager: ActiveMatchManager,
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
@@ -191,7 +194,7 @@ export class StandingManager implements ILobbyStateObserver {
 
         for (const player of lobbyState.players) {
             if (player.screenName === "ScreenEvaluationStage") {
-                const match = await this.findMatch(songPath, player.profileName);
+                const match = await this.findMatch(tournamentId, songPath, player.profileName);
 
                 if (!match) {
                     continue;
@@ -238,21 +241,28 @@ export class StandingManager implements ILobbyStateObserver {
         }
     }
 
-    private async findMatch(songPath: string, playerName: string): Promise<Match | null> {
-        const matches = await this.matchService.findAll();
+    private async findMatch(tournamentId: number, songPath: string, playerName: string): Promise<Match | null> {
+        const activeMatchIds = this.activeMatchManager.getActiveMatchIds(tournamentId);
 
-        const match = matches.find(
+        if (activeMatchIds.length === 0) {
+            console.warn(`[StandingManager] No active matches for tournament ${tournamentId}`);
+            return null;
+        }
+
+        const matches = await this.matchService.findByIdsForLobbyLookup(activeMatchIds);
+
+        const candidates = matches.filter(
             (candidate) =>
                 candidate.rounds?.some((round) => round.song?.title === songPath) &&
                 this.getSinglesPlayers(candidate).some((player) => player.playerName === playerName),
         );
 
-        if (!match) {
-            console.warn(`[StandingManager] No match found for song "${songPath}" and player "${playerName}"`);
+        if (candidates.length !== 1) {
+            console.warn(`[StandingManager] Expected 1 active match for tournament ${tournamentId}, song "${songPath}", player "${playerName}", found ${candidates.length}`);
             return null;
         }
 
-        return match;
+        return candidates[0];
     }
 
     private getSinglesPlayers(match: Match): Player[] {

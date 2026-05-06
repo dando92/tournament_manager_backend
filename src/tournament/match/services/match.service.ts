@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { Entrant, Match, Phase } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
+import { ActiveMatchManager } from '@tournament/services/active-match.manager';
 
 @Injectable()
 export class MatchService {
@@ -15,6 +16,7 @@ export class MatchService {
         @InjectRepository(Entrant)
         private readonly entrantRepository: Repository<Entrant>,
         private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly activeMatchManager: ActiveMatchManager,
     ) {}
 
     async create(dto: CreateMatchDto): Promise<Match> {
@@ -68,6 +70,43 @@ export class MatchService {
                 matchResult: true,
             },
         });
+    }
+
+    async findByIdsForLobbyLookup(ids: number[]): Promise<Match[]> {
+        if (ids.length === 0) return [];
+
+        return await this.matchRepository.find({
+            where: { id: In(ids) },
+            relations: {
+                entrants: { participants: { player: true } },
+                rounds: {
+                    song: true,
+                    standings: {
+                        score: {
+                            player: true,
+                            song: true,
+                        },
+                    },
+                },
+                matchResult: true,
+            },
+        });
+    }
+
+    async getTournamentIdForMatch(matchId: number): Promise<number | null> {
+        const match = await this.matchRepository.findOne({
+            where: { id: matchId },
+            relations: {
+                phase: {
+                    division: {
+                        tournament: true,
+                    },
+                },
+            },
+        });
+
+        const phase = await match?.phase;
+        return phase?.division?.tournament?.id ?? null;
     }
 
     async findByDivisionForView(divisionId: number): Promise<Match[]> {
@@ -172,6 +211,7 @@ export class MatchService {
         }
 
         await this.matchRepository.remove(match);
+        this.activeMatchManager.deactivateMatchById(id);
         await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);
     }
 }

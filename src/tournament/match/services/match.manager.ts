@@ -9,6 +9,7 @@ import { MatchResultService } from '@match/services/match-result.service';
 import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
 import { MatchListDto } from '@match/dtos/match-list.dto';
+import { ActiveMatchManager } from '@tournament/services/active-match.manager';
 
 @Injectable()
 export class MatchManager {
@@ -24,7 +25,9 @@ export class MatchManager {
         @Inject()
         private readonly roundService: RoundService,
         @Inject()
-        private readonly uiUpdateGateway: UiUpdateGateway
+        private readonly uiUpdateGateway: UiUpdateGateway,
+        @Inject()
+        private readonly activeMatchManager: ActiveMatchManager
     ) {
     }
 
@@ -100,6 +103,8 @@ export class MatchManager {
                     }
                     : null,
                 phaseId: phase?.id,
+                isActive: this.activeMatchManager.isMatchActive(match.id),
+                activeStartedAt: this.activeMatchManager.getMatchRef(match.id)?.startedAt ?? null,
             };
         }));
     }
@@ -273,6 +278,7 @@ export class MatchManager {
         }
 
         match.matchResult = await this.matchResultService.upsertForMatch(match.id, playerPoints);
+        this.activeMatchManager.deactivateMatchById(match.id);
     }
 
     HasMatchResult(match: Match): boolean {

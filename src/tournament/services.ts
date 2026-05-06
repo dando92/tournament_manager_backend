@@ -22,6 +22,7 @@ import { ScoreService } from './services/score.service';
 import { RoundService } from './services/round.service';
 import { UiUpdateContextService } from '@match/services/ui-update-context.service';
 import { StartggService } from '../integrations/startgg/startgg.service';
+import { ActiveMatchManager } from './services/active-match.manager';
 
 export { MatchManager };
 export { MatchService };
@@ -46,6 +47,7 @@ export { ScoreService };
 export { RoundService };
 export { UiUpdateContextService };
 export { StartggService };
+export { ActiveMatchManager };
 
 export { StandingService };
 
@@ -73,6 +75,7 @@ export const Services = [
     RoundService,
     UiUpdateContextService,
     StartggService,
+    ActiveMatchManager,
 
     TournamentService,
     TournamentManager,
