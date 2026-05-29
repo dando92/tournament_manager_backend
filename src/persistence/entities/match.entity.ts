@@ -14,6 +14,13 @@ import { Phase } from './phase.entity'
 import { Entrant } from './entrant.entity'
 import { MatchResult } from './match_result.entity'
 
+export enum MatchState {
+  NotActive = 'NotActive',
+  Active = 'Active',
+  Pending = 'Pending',
+  Completed = 'Completed',
+}
+
 
 @Entity()
 export class Match {
@@ -51,6 +58,9 @@ export class Match {
 
   @Column()
   scoringSystem: string;
+
+  @Column({ type: 'varchar', default: MatchState.NotActive })
+  state: MatchState;
 
   @ManyToMany(() => Entrant, (entrant) => entrant.matches, { nullable: true })
   @JoinTable()

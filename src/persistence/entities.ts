@@ -18,6 +18,7 @@ import { ExternalMapping } from './entities/external_mapping.entity';
 export type { ParticipantRole, ParticipantStatus } from './entities/participant.entity';
 export type { EntrantType, EntrantStatus } from './entities/entrant.entity';
 export type { MatchResultEntry } from './entities/match_result.entity';
+export { MatchState } from './entities/match.entity';
 export type {
     ExternalProvider,
     ExternalMappingLocalType,

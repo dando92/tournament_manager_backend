@@ -16,7 +16,6 @@ import { TournamentManager } from '../services/tournament.manager';
 import { LobbyManager } from '../services/lobby-manager.service';
 import { StartggService } from '../../integrations/startgg/startgg.service';
 import { StartggImportPreviewDto } from '../../integrations/startgg/startgg.dto';
-import { ActiveMatchManager } from '../services/active-match.manager';
 
 @Controller('tournaments')
 export class TournamentsController {
@@ -26,7 +25,6 @@ export class TournamentsController {
         private readonly tournamentManager: TournamentManager,
         private readonly lobbyManager: LobbyManager,
         private readonly startggService: StartggService,
-        private readonly activeMatchManager: ActiveMatchManager,
     ) {}
 
     @UseGuards(JwtAuthGuard, CreatorOrAdminGuard)
@@ -171,11 +169,6 @@ export class TournamentsController {
     @Get(':id/lobbies/status')
     getLobbiesStatus(@Param('id') id: number) {
         return this.lobbyManager.GetLobbies(Number(id));
-    }
-
-    @Get(':id/active-matches')
-    getActiveMatches(@Param('id') id: number) {
-        return this.activeMatchManager.getActiveMatches(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)

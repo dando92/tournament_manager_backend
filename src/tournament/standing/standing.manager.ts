@@ -6,11 +6,9 @@ import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
-import { MatchManager } from '@match/services/match.manager';
-import { BracketManager } from '@bracket/bracket.manager';
+import { MatchStateManager } from '@match/services/match-state.manager';
 import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
-import { ActiveMatchManager } from '../services/active-match.manager';
 
 @Injectable()
 export class StandingManager implements ILobbyStateObserver {
@@ -20,17 +18,13 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly matchService: MatchService,
         @Inject()
-        private readonly matchManager: MatchManager,
+        private readonly matchStateManager: MatchStateManager,
         @Inject()
         private readonly scoreService: ScoreService,
         @Inject()
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
         private readonly uiUpdateGateway: UiUpdateGateway,
-        @Inject()
-        private readonly bracketManager: BracketManager,
-        @Inject()
-        private readonly activeMatchManager: ActiveMatchManager,
     ) { }
 
     async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
@@ -93,7 +87,7 @@ export class StandingManager implements ILobbyStateObserver {
             });
         }
 
-        await this.refreshRoutesFromMatchResult(match);
+        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -139,7 +133,7 @@ export class StandingManager implements ILobbyStateObserver {
             console.log(error);
         }
 
-        await this.refreshRoutesFromMatchResult(match);
+        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -181,7 +175,7 @@ export class StandingManager implements ILobbyStateObserver {
             await this.standingService.update(currentStanding.id, dto);
         }
 
-        await this.refreshRoutesFromMatchResult(match);
+        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -216,40 +210,17 @@ export class StandingManager implements ILobbyStateObserver {
         }
     }
 
-    private async refreshRoutesFromMatchResult(match: Match): Promise<void> {
-        const hadMatchResult = this.matchManager.HasMatchResult(match);
-        const previousSortedEntrants = hadMatchResult && match.targetPaths?.length
-            ? this.matchManager.SortEntrantsByMatchResult(match)
-            : [];
-
-        if (hadMatchResult && match.targetPaths?.length) {
-            await this.bracketManager.revertEntrants(match, previousSortedEntrants);
-        }
-
-        await this.matchManager.SyncMatchResult(match);
-
-        if (this.matchManager.HasMatchResult(match) && match.targetPaths?.length) {
-            const nextSortedEntrants = this.matchManager.SortEntrantsByMatchResult(match);
-            await this.bracketManager.advanceEntrants(match, nextSortedEntrants);
-        }
-
-        for (const targetMatchId of match.targetPaths ?? []) {
-            const targetMatch = await this.matchService.getMatch(targetMatchId);
-            if (targetMatch) {
-                await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
-            }
-        }
+    private async refreshMatchStateFromStandings(match: Match): Promise<void> {
+        await this.matchStateManager.SyncMatchStateFromStandings(match);
     }
 
     private async findMatch(tournamentId: number, songPath: string, playerName: string): Promise<Match | null> {
-        const activeMatchIds = this.activeMatchManager.getActiveMatchIds(tournamentId);
+        const matches = await this.matchService.findActiveByTournamentForLobbyLookup(tournamentId);
 
-        if (activeMatchIds.length === 0) {
+        if (matches.length === 0) {
             console.warn(`[StandingManager] No active matches for tournament ${tournamentId}`);
             return null;
         }
-
-        const matches = await this.matchService.findByIdsForLobbyLookup(activeMatchIds);
 
         const candidates = matches.filter(
             (candidate) =>

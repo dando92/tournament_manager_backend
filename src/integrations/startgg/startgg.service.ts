@@ -12,6 +12,7 @@ import {
     ExternalMapping,
     Match,
     MatchResult,
+    MatchState,
     Participant,
     Phase,
     Player,
@@ -796,6 +797,7 @@ export class StartggService {
                     resultIdsToDelete.add(localMatch.matchResult.id);
                 }
                 localMatch.matchResult = null;
+                localMatch.state = MatchState.NotActive;
                 continue;
             }
 
@@ -803,6 +805,7 @@ export class StartggService {
             matchResult.playerPoints = playerPoints;
             matchResult.match = localMatch;
             localMatch.matchResult = matchResult;
+            localMatch.state = MatchState.Completed;
         }
 
         await this.matchRepository.save(Array.from(matchesBySetId.values()), { chunk: this.bulkSaveChunkSize });

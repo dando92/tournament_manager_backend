@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Entrant, Match, Phase } from '@persistence/entities';
+import { Entrant, Match, MatchState, Phase } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
-import { ActiveMatchManager } from '@tournament/services/active-match.manager';
 
 @Injectable()
 export class MatchService {
@@ -16,7 +15,6 @@ export class MatchService {
         @InjectRepository(Entrant)
         private readonly entrantRepository: Repository<Entrant>,
         private readonly uiUpdateGateway: UiUpdateGateway,
-        private readonly activeMatchManager: ActiveMatchManager,
     ) {}
 
     async create(dto: CreateMatchDto): Promise<Match> {
@@ -40,6 +38,7 @@ export class MatchService {
         }
 
         match.scoringSystem = dto.scoringSystem;
+        match.state = MatchState.NotActive;
         match.name = dto.name;
         if (dto.notes) {
             match.notes = dto.notes;
@@ -52,31 +51,22 @@ export class MatchService {
         return savedMatch;
     }
 
-    async findAll(): Promise<Match[]> {
-        return await this.findAllForLobbyLookup();
-    }
-
     async getMatch(id: number): Promise<Match | null> {
         return await this.findOneForView(id);
     }
 
-    async findAllForLobbyLookup(): Promise<Match[]> {
+    async findActiveByTournamentForLobbyLookup(tournamentId: number): Promise<Match[]> {
         return await this.matchRepository.find({
-            relations: {
-                entrants: { participants: { player: true } },
-                rounds: {
-                    song: true,
+            where: {
+                state: MatchState.Active,
+                phase: {
+                    division: {
+                        tournament: {
+                            id: tournamentId,
+                        },
+                    },
                 },
-                matchResult: true,
             },
-        });
-    }
-
-    async findByIdsForLobbyLookup(ids: number[]): Promise<Match[]> {
-        if (ids.length === 0) return [];
-
-        return await this.matchRepository.find({
-            where: { id: In(ids) },
             relations: {
                 entrants: { participants: { player: true } },
                 rounds: {
@@ -91,22 +81,6 @@ export class MatchService {
                 matchResult: true,
             },
         });
-    }
-
-    async getTournamentIdForMatch(matchId: number): Promise<number | null> {
-        const match = await this.matchRepository.findOne({
-            where: { id: matchId },
-            relations: {
-                phase: {
-                    division: {
-                        tournament: true,
-                    },
-                },
-            },
-        });
-
-        const phase = await match?.phase;
-        return phase?.division?.tournament?.id ?? null;
     }
 
     async findByDivisionForView(divisionId: number): Promise<Match[]> {
@@ -194,6 +168,16 @@ export class MatchService {
         return updatedMatch;
     }
 
+    async updateState(id: number, state: MatchState): Promise<Match> {
+        const match = await this.findOneBasic(id);
+        if (!match) throw new Error(`Match with ID ${id} not found`);
+
+        match.state = state;
+        const updatedMatch = await this.matchRepository.save(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(updatedMatch.id);
+        return updatedMatch;
+    }
+
     async delete(id: number): Promise<void> {
         const match = await this.findOneBasic(id);
         if (!match) return;
@@ -211,7 +195,6 @@ export class MatchService {
         }
 
         await this.matchRepository.remove(match);
-        this.activeMatchManager.deactivateMatchById(id);
         await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);
     }
 }

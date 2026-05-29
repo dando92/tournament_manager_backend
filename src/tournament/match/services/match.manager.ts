@@ -1,23 +1,20 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateRoundDto } from '@tournament/dtos';
 import { UpdateMatchDto } from '@match/dtos/match.dto';
-import { Entrant, Match, MatchResultEntry } from '@persistence/entities';
+import { Match } from '@persistence/entities';
 import { SongRoller } from '@tournament/services/song.roller';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { MatchService } from '@match/services/match.service';
-import { MatchResultService } from '@match/services/match-result.service';
 import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
 import { MatchListDto } from '@match/dtos/match-list.dto';
-import { ActiveMatchManager } from '@tournament/services/active-match.manager';
+import { MatchStateManager } from '@match/services/match-state.manager';
 
 @Injectable()
 export class MatchManager {
     constructor(
         @Inject()
         private readonly matchService: MatchService,
-        @Inject()
-        private readonly matchResultService: MatchResultService,
         @Inject()
         private readonly songExtractor: SongRoller,
         @Inject()
@@ -27,7 +24,7 @@ export class MatchManager {
         @Inject()
         private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
-        private readonly activeMatchManager: ActiveMatchManager
+        private readonly matchStateManager: MatchStateManager,
     ) {
     }
 
@@ -54,6 +51,7 @@ export class MatchManager {
                 subtitle: match.subtitle,
                 notes: match.notes,
                 scoringSystem: match.scoringSystem,
+                state: this.matchStateManager.getEffectiveMatchState(match),
                 entrants: (match.entrants ?? []).map((entrant) => ({
                     id: entrant.id,
                     name: entrant.name,
@@ -103,8 +101,6 @@ export class MatchManager {
                     }
                     : null,
                 phaseId: phase?.id,
-                isActive: this.activeMatchManager.isMatchActive(match.id),
-                activeStartedAt: this.activeMatchManager.getMatchRef(match.id)?.startedAt ?? null,
             };
         }));
     }
@@ -170,26 +166,15 @@ export class MatchManager {
         const dto = new UpdateMatchDto();
         dto.entrantIds = remainingEntrantIds;
         await this.matchService.update(matchId, dto);
-        await this.SyncMatchResultById(matchId);
+        await this.matchStateManager.SyncMatchStateFromStandingsById(matchId);
     }
 
     async AddEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
-        const match = await this.matchService.getMatch(matchId);
-        if (!match) return;
-        if ((match.entrants ?? []).some(entrant => entrant.id === entrantId)) return;
-        const dto = new UpdateMatchDto();
-        dto.entrantIds = [...(match.entrants ?? []).map(entrant => entrant.id), entrantId];
-        await this.matchService.update(matchId, dto);
-        await this.SyncMatchResultById(matchId);
+        await this.matchStateManager.AddEntrantInMatch(matchId, entrantId);
     }
 
     async RemoveEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
-        const match = await this.matchService.getMatch(matchId);
-        if (!match) return;
-        const dto = new UpdateMatchDto();
-        dto.entrantIds = (match.entrants ?? []).filter(entrant => entrant.id !== entrantId).map(entrant => entrant.id);
-        await this.matchService.update(matchId, dto);
-        await this.SyncMatchResultById(matchId);
+        await this.matchStateManager.RemoveEntrantInMatch(matchId, entrantId);
     }
 
     public async AddSongsToMatchById(matchId: number, songIds: number[]): Promise<void> {
@@ -236,7 +221,7 @@ export class MatchManager {
 
         await this.roundService.delete(round.id);
         match.rounds = match.rounds.filter((candidate) => candidate.id !== round.id);
-        await this.SyncMatchResult(match);
+        await this.matchStateManager.SyncMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
     }
 
@@ -254,80 +239,9 @@ export class MatchManager {
             await this.AddSongToMatch(match, songId);
         }
 
-        await this.SyncMatchResult(match);
+        await this.matchStateManager.SyncMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
         return match;
-    }
-
-    async SyncMatchResultById(matchId: number): Promise<Match | null> {
-        const match = await this.matchService.getMatch(matchId);
-        if (!match) return null;
-
-        await this.SyncMatchResult(match);
-        return match;
-    }
-
-    async SyncMatchResult(match: Match): Promise<void> {
-        const playerPoints = this.buildMatchResultPlayerPoints(match);
-        if (!playerPoints) {
-            if (match.matchResult) {
-                await this.matchResultService.deleteForMatch(match.id);
-                match.matchResult = null;
-            }
-            return;
-        }
-
-        match.matchResult = await this.matchResultService.upsertForMatch(match.id, playerPoints);
-        this.activeMatchManager.deactivateMatchById(match.id);
-    }
-
-    HasMatchResult(match: Match): boolean {
-        return Boolean(match.matchResult);
-    }
-
-    SortEntrantsByMatchResult(match: Match): Entrant[] {
-        const playerPoints = new Map(
-            (match.matchResult?.playerPoints ?? []).map((entry) => [entry.playerId, entry.points]),
-        );
-
-        return [...(match.entrants ?? [])].sort((left, right) => {
-            const leftPlayerId = left.participants?.[0]?.player?.id;
-            const rightPlayerId = right.participants?.[0]?.player?.id;
-            return (playerPoints.get(rightPlayerId) ?? 0) - (playerPoints.get(leftPlayerId) ?? 0);
-        });
-    }
-
-    private buildMatchResultPlayerPoints(match: Match): MatchResultEntry[] | null {
-        const singlesEntrants = (match.entrants ?? []).filter((entrant) => entrant.type === 'player');
-        if (singlesEntrants.length === 0 || (match.rounds?.length ?? 0) === 0) {
-            return null;
-        }
-
-        const playerIds = singlesEntrants
-            .map((entrant) => entrant.participants?.[0]?.player?.id)
-            .filter((playerId): playerId is number => Number.isFinite(playerId));
-        if (playerIds.length === 0) {
-            return null;
-        }
-
-        const everyStandingPresent = (match.rounds ?? []).every((round) =>
-            playerIds.every((playerId) =>
-                (round.standings ?? []).some((standing) => standing.score.player.id === playerId),
-            ),
-        );
-        if (!everyStandingPresent) {
-            return null;
-        }
-
-        const playerPoints = playerIds.map((playerId) => ({
-            playerId,
-            points: (match.rounds ?? []).reduce((acc, round) => {
-                const standing = (round.standings ?? []).find((candidate) => candidate.score.player.id === playerId);
-                return acc + (standing?.points ?? 0);
-            }, 0),
-        }));
-
-        return playerPoints.sort((left, right) => right.points - left.points || left.playerId - right.playerId);
     }
 
     private async AddSongToMatch(match: Match, songId: number): Promise<void> {

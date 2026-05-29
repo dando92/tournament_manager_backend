@@ -5,8 +5,10 @@ import {
   IsOptional,
   IsString,
   IsBoolean,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { MatchState } from '@persistence/entities';
 
 export class CreateMatchDto {
   @ApiProperty({ description: 'The name of the match', example: 'Match 1' })
@@ -171,6 +173,12 @@ export class AddSongToMatchDto {
   @IsOptional()
   @IsString()
   level?: string;
+}
+
+export class UpdateMatchStateDto {
+  @ApiProperty({ enum: MatchState, description: 'The lifecycle state of the match' })
+  @IsEnum(MatchState)
+  state: MatchState;
 }
 
 export class AddStandingToMatchDto {

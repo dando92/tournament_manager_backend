@@ -1,7 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
-import { MatchManager } from "@match/services/match.manager";
-import { Entrant, Match } from "@persistence/entities";
 import { UpdateDivisionDto } from "@tournament/dtos";
 import { DivisionService } from "@tournament/services/division.service";
 
@@ -12,8 +10,6 @@ export class BracketManager {
     constructor(
         @Inject()
         private readonly bracketSystemProvider: BracketSystemProvider,
-        @Inject()
-        private readonly matchManager: MatchManager,
         @Inject()
         private readonly divisionService: DivisionService,
     ) { }
@@ -39,34 +35,6 @@ export class BracketManager {
         await system.generateForDivision(division, entrants, playerPerMatch);
         const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
         await this.divisionService.update(divisionId, updateDto);
-    }
-
-    async revertEntrants(match: Match, sortedEntrants: Entrant[]): Promise<void> {
-        if (!match.targetPaths)
-            return;
-
-        for (let i = 0; i < match.targetPaths.length; i++) {
-            const targetMatchId = match.targetPaths[i];
-
-            if (targetMatchId === 0)
-                continue;
-
-            await this.matchManager.RemoveEntrantInMatch(match.targetPaths[i], sortedEntrants[i].id);
-        }
-    }
-
-    async advanceEntrants(match: Match, sortedEntrants: Entrant[]): Promise<void> {
-        if (!match.targetPaths)
-            return;
-
-        for (let i = 0; i < match.targetPaths.length; i++) {
-            const targetMatchId = match.targetPaths[i];
-
-            if (targetMatchId === 0)
-                continue;
-
-            await this.matchManager.AddEntrantInMatch(targetMatchId, sortedEntrants[i].id);
-        }
     }
 
     sortBySeed<T extends WithId>(

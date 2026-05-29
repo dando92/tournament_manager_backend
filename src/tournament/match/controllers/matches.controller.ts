@@ -1,19 +1,19 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
 import { MatchListDto } from '@match/dtos/match-list.dto';
-import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto } from '@match/dtos/match.dto';
+import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto, UpdateMatchStateDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { MatchManager } from '@match/services/match.manager';
+import { MatchStateManager } from '@match/services/match-state.manager';
 import { MatchService } from '@match/services/match.service';
 import { ScoringSystemProvider } from '@tournament/services/scoring-systems/ScoringSystemProvider';
-import { ActiveMatchManager } from '@tournament/services/active-match.manager';
 
 @Controller('matches')
 export class MatchesController {
     constructor(
         private readonly matchService: MatchService,
         private readonly matchManager: MatchManager,
+        private readonly matchStateManager: MatchStateManager,
         private readonly scoringSystemProvider: ScoringSystemProvider,
-        private readonly activeMatchManager: ActiveMatchManager,
     ) {}
 
     @Get('scoring-systems')
@@ -100,16 +100,8 @@ export class MatchesController {
         return await this.matchManager.UpdateMatchPaths(matchId, dto);
     }
 
-    @Post(':matchId/active')
-    async activateMatch(@Param('matchId') matchId: number) {
-        const tournamentId = await this.matchService.getTournamentIdForMatch(Number(matchId));
-        if (!tournamentId) throw new Error(`Tournament for match ${matchId} not found`);
-        return this.activeMatchManager.activateMatch(tournamentId, Number(matchId));
-    }
-
-    @Delete(':matchId/active')
-    async deactivateMatch(@Param('matchId') matchId: number) {
-        this.activeMatchManager.deactivateMatchById(Number(matchId));
-        return { ok: true };
+    @Put(':matchId/state')
+    async updateMatchState(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: UpdateMatchStateDto): Promise<Match> {
+        return await this.matchStateManager.UpdateMatchState(Number(matchId), dto);
     }
 }

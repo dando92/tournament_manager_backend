@@ -1,3 +1,5 @@
+import { MatchState } from '@persistence/entities';
+
 export type MatchListSongDto = {
     id: number;
     title: string;
@@ -60,12 +62,11 @@ export type MatchListDto = {
     subtitle: string;
     notes: string;
     scoringSystem: string;
+    state: MatchState;
     entrants: MatchListEntrantDto[];
     rounds: MatchListRoundDto[];
     targetPaths: number[];
     sourcePaths: number[];
     matchResult?: MatchListResultDto | null;
     phaseId?: number;
-    isActive?: boolean;
-    activeStartedAt?: string | null;
 };

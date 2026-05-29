@@ -1,4 +1,5 @@
 import { MatchManager } from "@match/services/match.manager";
+import { MatchStateManager } from "@match/services/match-state.manager";
 import { MatchService } from "@match/services/match.service";
 import { MatchResultService } from "@match/services/match-result.service";
 import { SongRoller } from "./services/song.roller";
@@ -22,9 +23,9 @@ import { ScoreService } from './services/score.service';
 import { RoundService } from './services/round.service';
 import { UiUpdateContextService } from '@match/services/ui-update-context.service';
 import { StartggService } from '../integrations/startgg/startgg.service';
-import { ActiveMatchManager } from './services/active-match.manager';
 
 export { MatchManager };
+export { MatchStateManager };
 export { MatchService };
 export { MatchResultService };
 export { SongRoller };
@@ -47,7 +48,6 @@ export { ScoreService };
 export { RoundService };
 export { UiUpdateContextService };
 export { StartggService };
-export { ActiveMatchManager };
 
 export { StandingService };
 
@@ -55,6 +55,7 @@ export const Services = [
     MatchService,
     MatchResultService,
     MatchManager,
+    MatchStateManager,
     SongRoller,
     StandingManager,
     StandingService,
@@ -75,7 +76,6 @@ export const Services = [
     RoundService,
     UiUpdateContextService,
     StartggService,
-    ActiveMatchManager,
 
     TournamentService,
     TournamentManager,
