@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { Player, Score, Song } from '@persistence/entities';
 import { CreateScoreDto, UpdateScoreDto } from '../dtos';
 
@@ -55,6 +55,37 @@ export class ScoreService {
     }
 
     async findBySongId(songId: number): Promise<Score[]> {
-        return this.scoreRepository.find({ where: { song: { id: songId } } });
+        return this.find({ songId });
+    }
+
+    async findOne(id: number): Promise<Score | null> {
+        return this.scoreRepository.findOne({
+            where: { id },
+            relations: {
+                player: true,
+                song: true,
+            },
+        });
+    }
+
+    async find(filters: { songId?: number; playerId?: number }): Promise<Score[]> {
+        const where: FindOptionsWhere<Score> = {};
+        if (filters.songId !== undefined) {
+            where.song = { id: filters.songId };
+        }
+        if (filters.playerId !== undefined) {
+            where.player = { id: filters.playerId };
+        }
+
+        return this.scoreRepository.find({
+            where,
+            relations: {
+                player: true,
+                song: true,
+            },
+            order: {
+                id: 'DESC',
+            },
+        });
     }
 }

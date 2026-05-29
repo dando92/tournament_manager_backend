@@ -1,5 +1,5 @@
-import { Injectable, Inject } from "@nestjs/common";
-import { CreateScoreDto, CreateStandingDto, UpdateScoreDto, UpdateStandingDto } from '../dtos';
+import { BadRequestException, Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { CreateScoreDto, CreateStandingDto, UpdateStandingDto } from '../dtos';
 import { Match, Player, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystemProvider";
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
@@ -27,7 +27,7 @@ export class StandingManager implements ILobbyStateObserver {
         private readonly uiUpdateGateway: UiUpdateGateway,
     ) { }
 
-    async AddScoreToMatchById(matchId: number, score: CreateScoreDto): Promise<Match> {
+    async AddScoreToMatchById(matchId: number, score: CreateScoreDto, scoreId?: number): Promise<Match> {
         const match = await this.matchService.getMatch(matchId);
 
         if (!match) {
@@ -35,7 +35,9 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
-        const actualScoreEntity = await this.scoreService.create(score);
+        const actualScoreEntity = scoreId
+            ? await this.getExistingScoreForStanding(scoreId, score.playerId, score.songId)
+            : await this.scoreService.create(score);
 
         return await this.AddScoreToMatch(match, actualScoreEntity);
     }
@@ -68,25 +70,40 @@ export class StandingManager implements ILobbyStateObserver {
             round.standings.push(standing);
         }
 
-        const matchPlayers = this.getSinglesPlayers(match);
-        const isRoundCompleted = matchPlayers.every((player) =>
-            round.standings.some(
-                (standing) => standing.score.player.id === player.id && standing.score.song.id === round.song.id,
-            ),
-        );
-
         console.log(`[StandingManager]${score.player.playerName} ${score.song.title} standings length ${round.standings.length}`);
 
-        if (isRoundCompleted) {
-            const scoreSystem = this.scoringSystemProvider.getScoringSystem(match.scoringSystem);
-            scoreSystem.recalc(round.standings);
-            round.standings.forEach(async (standing) => {
-                const dto = new UpdateStandingDto();
-                dto.points = standing.points;
-                await this.standingService.update(standing.id, dto);
-            });
+        await this.recalculateRoundIfComplete(match, round);
+
+        await this.refreshMatchStateFromStandings(match);
+        await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
+
+        return match;
+    }
+
+    async AddScoreToEmptyStanding(match: Match, score: Score): Promise<Match> {
+        const round = match.rounds.find((candidate) => candidate.song.id == score.song.id);
+
+        if (!round) {
+            return match;
         }
 
+        const alreadyExistentStanding = round.standings.find(
+            (standing) => standing.score.song.id == score.song.id && standing.score.player.id == score.player.id,
+        );
+
+        if (alreadyExistentStanding) {
+            return match;
+        }
+
+        const newStanding = new CreateStandingDto();
+        newStanding.roundId = round.id;
+        newStanding.scoreId = score.id;
+        newStanding.points = 0;
+
+        const standing = await this.standingService.create(newStanding);
+        round.standings.push(standing);
+
+        await this.recalculateRoundIfComplete(match, round);
         await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
@@ -139,7 +156,14 @@ export class StandingManager implements ILobbyStateObserver {
         return match;
     }
 
-    async EditStandingInMatch(matchId: number, playerId: number, songId: number, percentage: number, isFailed: boolean): Promise<Match> {
+    async EditStandingInMatch(
+        matchId: number,
+        playerId: number,
+        songId: number,
+        percentage: number,
+        isFailed: boolean,
+        scoreId?: number,
+    ): Promise<Match> {
         const match = await this.matchService.getMatch(matchId);
 
         if (!match) {
@@ -158,13 +182,23 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
-        const updateScoreDto = new UpdateScoreDto();
-        updateScoreDto.percentage = percentage;
-        updateScoreDto.isFailed = isFailed;
-        await this.scoreService.update(standing.score.id, updateScoreDto);
-
-        standing.score.percentage = percentage;
-        standing.score.isFailed = isFailed;
+        if (scoreId) {
+            const updateStandingDto = new UpdateStandingDto();
+            updateStandingDto.scoreId = scoreId;
+            const updatedStanding = await this.standingService.update(standing.id, updateStandingDto);
+            standing.score = updatedStanding.score;
+        } else {
+            const score = await this.scoreService.create({
+                playerId,
+                songId,
+                percentage,
+                isFailed,
+            });
+            const updateStandingDto = new UpdateStandingDto();
+            updateStandingDto.scoreId = score.id;
+            const updatedStanding = await this.standingService.update(standing.id, updateStandingDto);
+            standing.score = updatedStanding.score;
+        }
 
         const scoreSystem = this.scoringSystemProvider.getScoringSystem(match.scoringSystem);
         scoreSystem.recalc(round.standings);
@@ -188,25 +222,67 @@ export class StandingManager implements ILobbyStateObserver {
 
         for (const player of lobbyState.players) {
             if (player.screenName === "ScreenEvaluationStage") {
-                const match = await this.findMatch(tournamentId, songPath, player.profileName);
-
-                if (!match) {
-                    continue;
-                }
-
-                const matchPlayer = this.getSinglesPlayers(match).find((candidate) => candidate.playerName == player.profileName);
-                const matchRound = match.rounds.find((candidate) => candidate.song.title == songPath);
-                if (!matchPlayer || !matchRound) continue;
-
-                const payload: CreateScoreDto = {
-                    playerId: matchPlayer.id,
-                    songId: matchRound.song.id,
-                    percentage: player.score,
-                    isFailed: player.isFailed ?? false,
-                };
-
-                await this.AddScoreToMatchById(match.id, payload);
+                await this.registerLobbyScore(
+                    tournamentId,
+                    songPath,
+                    player.profileName,
+                    player.score,
+                    player.isFailed ?? false,
+                );
             }
+        }
+    }
+
+    private async registerLobbyScore(
+        tournamentId: number,
+        songPath: string,
+        playerName: string,
+        percentage: number,
+        isFailed: boolean,
+    ): Promise<void> {
+        const matches = await this.matchService.findActiveByTournamentForLobbyLookup(tournamentId);
+        const candidates = matches.filter(
+            (candidate) =>
+                candidate.rounds?.some((round) => round.song?.title === songPath) &&
+                this.getSinglesPlayers(candidate).some((player) => player.playerName === playerName),
+        );
+
+        if (candidates.length === 0) {
+            this.uiUpdateGateway.emitWarning(
+                tournamentId,
+                `No active match found for ${playerName} on "${songPath}". Score was not saved.`,
+            );
+            return;
+        }
+
+        const emptyCandidate = candidates.find((candidate) => {
+            const matchPlayer = this.getSinglesPlayers(candidate).find((player) => player.playerName === playerName);
+            const round = candidate.rounds.find((currentRound) => currentRound.song.title === songPath);
+            return matchPlayer && round && !(round.standings ?? []).some(
+                (standing) => standing.score.player.id === matchPlayer.id && standing.score.song.id === round.song.id,
+            );
+        });
+        const targetCandidate = emptyCandidate ?? candidates[0];
+        const matchPlayer = this.getSinglesPlayers(targetCandidate).find((candidate) => candidate.playerName === playerName);
+        const matchRound = targetCandidate.rounds.find((candidate) => candidate.song.title === songPath);
+
+        if (!matchPlayer || !matchRound) {
+            this.uiUpdateGateway.emitWarning(
+                tournamentId,
+                `Unable to resolve score target for ${playerName} on "${songPath}". Score was not saved.`,
+            );
+            return;
+        }
+
+        const score = await this.scoreService.create({
+            playerId: matchPlayer.id,
+            songId: matchRound.song.id,
+            percentage,
+            isFailed,
+        });
+
+        if (emptyCandidate) {
+            await this.AddScoreToEmptyStanding(emptyCandidate, score);
         }
     }
 
@@ -214,26 +290,37 @@ export class StandingManager implements ILobbyStateObserver {
         await this.matchStateManager.SyncMatchStateFromStandings(match);
     }
 
-    private async findMatch(tournamentId: number, songPath: string, playerName: string): Promise<Match | null> {
-        const matches = await this.matchService.findActiveByTournamentForLobbyLookup(tournamentId);
-
-        if (matches.length === 0) {
-            console.warn(`[StandingManager] No active matches for tournament ${tournamentId}`);
-            return null;
+    private async getExistingScoreForStanding(scoreId: number, playerId: number, songId: number): Promise<Score> {
+        const score = await this.scoreService.findOne(scoreId);
+        if (!score) {
+            throw new NotFoundException(`Score with id ${scoreId} not found`);
         }
+        if (score.player.id !== playerId || score.song.id !== songId) {
+            throw new BadRequestException(`Score ${scoreId} does not match the selected player and song`);
+        }
+        return score;
+    }
 
-        const candidates = matches.filter(
-            (candidate) =>
-                candidate.rounds?.some((round) => round.song?.title === songPath) &&
-                this.getSinglesPlayers(candidate).some((player) => player.playerName === playerName),
+    private async recalculateRoundIfComplete(match: Match, round: Match['rounds'][number]): Promise<void> {
+        const matchPlayers = this.getSinglesPlayers(match);
+        const isRoundCompleted = matchPlayers.every((player) =>
+            round.standings.some(
+                (standing) => standing.score.player.id === player.id && standing.score.song.id === round.song.id,
+            ),
         );
 
-        if (candidates.length !== 1) {
-            console.warn(`[StandingManager] Expected 1 active match for tournament ${tournamentId}, song "${songPath}", player "${playerName}", found ${candidates.length}`);
-            return null;
+        if (!isRoundCompleted) {
+            return;
         }
 
-        return candidates[0];
+        const scoreSystem = this.scoringSystemProvider.getScoringSystem(match.scoringSystem);
+        scoreSystem.recalc(round.standings);
+
+        for (const standing of round.standings) {
+            const dto = new UpdateStandingDto();
+            dto.points = standing.points;
+            await this.standingService.update(standing.id, dto);
+        }
     }
 
     private getSinglesPlayers(match: Match): Player[] {

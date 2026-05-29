@@ -17,7 +17,7 @@ export class StandingsController {
         score.playerId = dto.playerId;
         score.songId = dto.songId;
 
-        return await this.standingManager.AddScoreToMatchById(matchId, score);
+        return await this.standingManager.AddScoreToMatchById(matchId, score, dto.scoreId);
     }
 
     @Delete('matches/:matchId/:playerId/:songId')
@@ -31,6 +31,13 @@ export class StandingsController {
 
     @Put('matches/:matchId')
     async editStanding(@Param('matchId') matchId: number, @Body() dto: AddStandingToMatchDto): Promise<Match> {
-        return await this.standingManager.EditStandingInMatch(matchId, dto.playerId, dto.songId, dto.percentage, dto.isFailed);
+        return await this.standingManager.EditStandingInMatch(
+            matchId,
+            dto.playerId,
+            dto.songId,
+            dto.percentage,
+            dto.isFailed,
+            dto.scoreId,
+        );
     }
 }

@@ -182,6 +182,10 @@ export class UpdateMatchStateDto {
 }
 
 export class AddStandingToMatchDto {
+  @IsOptional()
+  @IsNumber()
+  scoreId?: number;
+
   @IsNumber()
   playerId: number;
 

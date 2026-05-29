@@ -29,6 +29,11 @@ type MatchUpdatePayload = {
   matchId: number;
 };
 
+type UiWarningPayload = {
+  tournamentId: number;
+  message: string;
+};
+
 @WebSocketGateway({
   path: "/uiupdatehub",
   cors: {
@@ -92,5 +97,12 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
     if (!payload) return;
 
     this.broadcast('MatchUpdate', payload);
+  }
+
+  emitWarning(tournamentId: number | null | undefined, message: string) {
+    if (!tournamentId) return;
+
+    const payload: UiWarningPayload = { tournamentId, message };
+    this.broadcast('UiWarning', payload);
   }
 }
