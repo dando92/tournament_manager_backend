@@ -21,7 +21,6 @@ export type MatchListEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: MatchListParticipantDto[];
 };
@@ -77,6 +76,5 @@ export type MatchListDto = {
     rounds: MatchListRoundDto[];
     advancementRules: MatchListAdvancementRuleDto[];
     matchResult?: MatchListResultDto | null;
-    phaseId?: number;
-    phaseGroupId?: number | null;
+    phaseGroupId: number;
 };

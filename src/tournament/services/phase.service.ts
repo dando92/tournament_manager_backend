@@ -35,7 +35,6 @@ export class PhaseService {
         return this.phaseRepository.find({
             where: { division: { id: divisionId } },
             relations: {
-                matches: true,
                 phaseGroups: {
                     entrants: {
                         entrant: {

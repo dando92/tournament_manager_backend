@@ -10,7 +10,6 @@ import {
   JoinColumn } from 'typeorm';
 
 import { Round } from './round.entity'
-import { Phase } from './phase.entity'
 import { Entrant } from './entrant.entity'
 import { MatchResult } from './match_result.entity'
 import { PhaseGroup } from './phase-group.entity'
@@ -58,11 +57,7 @@ export class Match {
   @JoinColumn()
   matchResult?: MatchResult | null;
 
-  @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PhaseGroup, (phaseGroup) => phaseGroup.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
-  phase: Promise<Phase>;
-
-  @ManyToOne(() => PhaseGroup, (phaseGroup) => phaseGroup.matches, { nullable: true, onDelete: 'CASCADE' })
-  @JoinColumn()
-  phaseGroup?: PhaseGroup | null;
+  phaseGroup: PhaseGroup;
 }

@@ -25,7 +25,6 @@ export class DivisionManager {
                 id: entrant.id,
                 name: entrant.name,
                 type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
                 status: entrant.status,
                 participants: (entrant.participants ?? []).map((participant) => ({
                     id: participant.id,
@@ -40,7 +39,7 @@ export class DivisionManager {
             phases: (division.phases ?? []).map((phase) => ({
                 id: phase.id,
                 name: phase.name,
-                matchCount: phase.matches?.length ?? 0,
+                matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + (phaseGroup.matches?.length ?? 0), 0),
                 phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
                     id: phaseGroup.id,
                     name: phaseGroup.name,
@@ -57,7 +56,6 @@ export class DivisionManager {
                             id: phaseGroupEntrant.entrant.id,
                             name: phaseGroupEntrant.entrant.name,
                             type: phaseGroupEntrant.entrant.type,
-                            seedNum: phaseGroupEntrant.entrant.seedNum ?? null,
                             status: phaseGroupEntrant.entrant.status,
                             participants: (phaseGroupEntrant.entrant.participants ?? []).map((participant) => ({
                                 id: participant.id,
@@ -93,7 +91,8 @@ export class DivisionManager {
         const playerTotals = new Map<number, DivisionStandingRowDto>();
 
         for (const phase of division.phases ?? []) {
-            for (const match of phase.matches ?? []) {
+            for (const phaseGroup of phase.phaseGroups ?? []) {
+            for (const match of phaseGroup.matches ?? []) {
                 for (const round of match.rounds ?? []) {
                     for (const standing of round.standings ?? []) {
                         const player = standing.score.player;
@@ -109,6 +108,7 @@ export class DivisionManager {
                         playerTotals.set(player.id, current);
                     }
                 }
+            }
             }
         }
 

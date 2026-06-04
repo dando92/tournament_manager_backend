@@ -51,7 +51,6 @@ export class PhaseGroupService {
             relations: {
                 phase: {
                     division: true,
-                    matches: true,
                 },
                 entrants: {
                     entrant: {

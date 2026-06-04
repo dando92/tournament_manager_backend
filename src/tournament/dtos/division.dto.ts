@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsArray } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Tournament } from '@persistence/entities';
@@ -45,8 +45,3 @@ export class UpdateDivisionDto {
   tournament?: Tournament;
 }
 
-export class UpdateEntrantSeedingDto {
-  @ApiProperty({ description: 'Ordered entrant IDs for seeding', required: true })
-  @IsArray()
-  entrantIds: number[];
-}

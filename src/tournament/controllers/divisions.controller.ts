@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
 import { Division, Entrant } from '@persistence/entities';
-import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto, UpdateEntrantSeedingDto } from '../dtos';
+import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto } from '../dtos';
 import { DivisionManager } from '../services/division.manager';
 import { DivisionService } from '../services/division.service';
 import { EntrantService } from '../services/entrant.service';
@@ -74,11 +74,4 @@ export class DivisionsController {
         return this.entrantService.removeSinglesEntrantByParticipant(Number(id), Number(participantId));
     }
 
-    @Patch(':id/entrant-seeding')
-    async updateEntrantSeeding(
-        @Param('id') id: number,
-        @Body(new ValidationPipe()) dto: UpdateEntrantSeedingDto,
-    ): Promise<void> {
-        return this.entrantService.updateSeeding(Number(id), dto.entrantIds);
-    }
 }

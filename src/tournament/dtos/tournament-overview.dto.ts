@@ -14,7 +14,6 @@ export type TournamentOverviewEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: TournamentOverviewParticipantDto[];
 };
@@ -23,6 +22,15 @@ export type TournamentOverviewDivisionPhaseDto = {
     id: number;
     name: string;
     matchCount: number;
+    phaseGroups: Array<{
+        id: number;
+        name: string;
+        displayIdentifier: string | null;
+        bracketType: string | null;
+        state: string;
+        entrants: unknown[];
+        matchCount: number;
+    }>;
 };
 
 export type TournamentOverviewDivisionDto = {

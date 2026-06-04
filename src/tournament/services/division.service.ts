@@ -60,7 +60,6 @@ export class DivisionService {
                         },
                         matches: true,
                     },
-                    matches: true,
                 },
             },
         });
@@ -79,14 +78,13 @@ export class DivisionService {
                                 },
                             },
                         },
-                        matches: true,
-                    },
-                    matches: {
-                        matchResult: true,
-                        rounds: {
-                            standings: {
-                                score: {
-                                    player: true,
+                        matches: {
+                            matchResult: true,
+                            rounds: {
+                                standings: {
+                                    score: {
+                                        player: true,
+                                    },
                                 },
                             },
                         },
@@ -107,19 +105,21 @@ export class DivisionService {
                     },
                 },
                 phases: {
-                    matches: {
-                        matchResult: true,
-                        entrants: {
-                            participants: {
-                                player: true,
-                            },
-                        },
-                        rounds: {
-                            song: true,
-                            standings: {
-                                score: {
+                    phaseGroups: {
+                        matches: {
+                            matchResult: true,
+                            entrants: {
+                                participants: {
                                     player: true,
-                                    song: true,
+                                },
+                            },
+                            rounds: {
+                                song: true,
+                                standings: {
+                                    score: {
+                                        player: true,
+                                        song: true,
+                                    },
                                 },
                             },
                         },
@@ -149,7 +149,6 @@ export class DivisionService {
                         },
                         matches: true,
                     },
-                    matches: true,
                 },
             },
         });
@@ -173,20 +172,19 @@ export class DivisionService {
                                 },
                             },
                         },
-                        matches: true,
-                    },
-                    matches: {
-                        matchResult: true,
-                        entrants: {
-                            participants: {
-                                player: true,
-                            },
-                        },
-                        rounds: {
-                            song: true,
-                            standings: {
-                                score: {
+                        matches: {
+                            matchResult: true,
+                            entrants: {
+                                participants: {
                                     player: true,
+                                },
+                            },
+                            rounds: {
+                                song: true,
+                                standings: {
+                                    score: {
+                                        player: true,
+                                    },
                                 },
                             },
                         },
@@ -214,16 +212,15 @@ export class DivisionService {
                                 },
                             },
                         },
-                        matches: true,
-                    },
-                    matches: {
-                        entrants: {
-                            participants: {
-                                player: true,
+                        matches: {
+                            entrants: {
+                                participants: {
+                                    player: true,
+                                },
                             },
-                        },
-                        rounds: {
-                            song: true,
+                            rounds: {
+                                song: true,
+                            },
                         },
                     },
                 },

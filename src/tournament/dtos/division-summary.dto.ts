@@ -14,7 +14,6 @@ export type DivisionSummaryEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: DivisionSummaryParticipantDto[];
 };

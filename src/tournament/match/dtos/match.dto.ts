@@ -31,15 +31,10 @@ export class CreateMatchDto {
   @IsArray()
   entrantIds?: number[];
 
-  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
+  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1 })
   @IsNotEmpty()
   @IsNumber()
-  phaseId: number;
-
-  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1, required: false })
-  @IsOptional()
-  @IsNumber()
-  phaseGroupId?: number;
+  phaseGroupId: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsNotEmpty()
@@ -68,11 +63,6 @@ export class UpdateMatchDto {
   @IsOptional()
   @IsArray()
   entrantIds?: number[];
-
-  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
-  @IsOptional()
-  @IsNumber()
-  phaseId?: number;
 
   @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1, required: false })
   @IsOptional()
@@ -105,11 +95,7 @@ export class CreateMatchWithSongsDto {
 
   @IsNotEmpty()
   @IsNumber()
-  phaseId: number;
-
-  @IsOptional()
-  @IsNumber()
-  phaseGroupId?: number;
+  phaseGroupId: number;
 
   @IsNotEmpty()
   @IsString()
@@ -139,7 +125,6 @@ export class CreateMatchWithSongsDto {
         const createDto = new CreateMatchDto();
         createDto.name = this.name;
         createDto.notes = this.notes;
-        createDto.phaseId = this.phaseId;
         createDto.phaseGroupId = this.phaseGroupId;
         createDto.entrantIds = this.entrantIds;
         createDto.subtitle = this.subtitle;

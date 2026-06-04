@@ -101,7 +101,6 @@ export class PhaseGroupManager {
                 id: entry.entrant.id,
                 name: entry.entrant.name,
                 type: entry.entrant.type,
-                seedNum: entry.entrant.seedNum ?? null,
                 status: entry.entrant.status,
                 participants: (entry.entrant.participants ?? []).map((participant) => ({
                     id: participant.id,

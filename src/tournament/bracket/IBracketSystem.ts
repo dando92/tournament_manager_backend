@@ -1,11 +1,8 @@
 import { Inject } from "@nestjs/common";
-import { CreateDivisionDto } from "@tournament/dtos";
 import { CreateMatchDto } from "@tournament/dtos";
-import { UpdateMatchDto } from "@tournament/dtos";
 
 import { Entrant, Match, Division, Phase, PhaseGroup } from "@persistence/entities";
 import { DivisionService } from "@tournament/services/division.service";
-import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
 import { PhaseService } from "@tournament/services/phase.service";
@@ -37,19 +34,6 @@ export class IBracketSystem {
         throw new Error("Method 'Description' should be implemented.");
     }
 
-    async generateForDivision(division: Division, entrants: Entrant[], playerPerMatch: number = 2): Promise<void> {
-        const phaseNumber = (division.phases?.length ?? 0) + 1;
-        const phaseDto = new CreatePhaseDto();
-        phaseDto.name = `Bracket ${phaseNumber}`;
-        phaseDto.divisionId = division.id;
-        const phase = await this.phaseService.create(phaseDto);
-        phase.matches = [];
-        const phaseGroup = await this.phaseGroupService.findOrCreateDefaultForPhaseId(phase.id, this.getName());
-        await this.phaseGroupService.replaceEntrants(phaseGroup.id, entrants);
-
-        await this.createBracket(entrants, playerPerMatch, division, phase, phaseGroup.id);
-    }
-
     async generateForExistingPhaseGroup(
         division: Division,
         phase: Phase,
@@ -58,7 +42,6 @@ export class IBracketSystem {
         playerPerMatch: number = 2,
     ): Promise<void> {
         await this.phaseGroupService.replaceEntrants(phaseGroup.id, entrants);
-        phase.matches = phase.matches ?? [];
         await this.createBracket(entrants, playerPerMatch, division, phase, phaseGroup.id);
     }
 
@@ -87,11 +70,10 @@ export class IBracketSystem {
         }
     }
 
-    protected async CreateMatchesInPhase(namePrefix: string, phase: Phase, matchCount: number, phaseGroupId?: number): Promise<Match[]> {
+    protected async CreateMatchesInPhase(namePrefix: string, _phase: Phase, matchCount: number, phaseGroupId: number): Promise<Match[]> {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
-            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phase.id, phaseGroupId);
-            phase.matches.push(match);
+            const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phaseGroupId);
             matches.push(match);
         }
         return matches;
@@ -111,10 +93,9 @@ export class IBracketSystem {
         );
     }
 
-    protected async CreateEmptyMatch(name: string, desc: string, phaseId: number, phaseGroupId?: number): Promise<Match> {
+    protected async CreateEmptyMatch(name: string, desc: string, phaseGroupId: number): Promise<Match> {
         const dto = new CreateMatchDto();
 
-        dto.phaseId = phaseId;
         dto.phaseGroupId = phaseGroupId;
         dto.name = name;
         dto.notes = desc;

@@ -185,7 +185,6 @@ export class MatchManager {
     }
 
     private async toMatchListDto(match: Match): Promise<MatchListDto> {
-        const phase = await match.phase;
         const outgoingRules = await this.advancementRuleService.findBySource('match', match.id);
         const incomingRules = await this.advancementRuleService.findByTarget('match', match.id);
         const advancementRules = [...outgoingRules, ...incomingRules]
@@ -203,7 +202,6 @@ export class MatchManager {
                 id: entrant.id,
                 name: entrant.name,
                 type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
                 status: entrant.status,
                 participants: (entrant.participants ?? []).map((participant) => ({
                     id: participant.id,
@@ -254,8 +252,7 @@ export class MatchManager {
                     playerPoints: match.matchResult.playerPoints ?? [],
                 }
                 : null,
-            phaseId: phase?.id,
-            phaseGroupId: match.phaseGroup?.id ?? null,
+            phaseGroupId: match.phaseGroup.id,
         };
     }
 }

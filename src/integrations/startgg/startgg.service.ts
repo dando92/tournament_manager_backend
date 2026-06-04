@@ -15,6 +15,7 @@ import {
     MatchState,
     Participant,
     Phase,
+    PhaseGroup,
     Player,
     Tournament,
 } from '@persistence/entities';
@@ -27,6 +28,7 @@ import { PlayerService } from '@player/player.service';
 import { TournamentService } from '@tournament/services/tournament.service';
 import { CreateDivisionDto, CreatePhaseDto } from '@tournament/dtos';
 import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
+import { PhaseGroupService } from '@tournament/services/phase-group.service';
 import { StartggClient } from './startgg.client';
 import { StartggImportDto, StartggImportPreviewDto } from './startgg.dto';
 import {
@@ -70,6 +72,7 @@ export class StartggService {
         private readonly playerService: PlayerService,
         private readonly uiUpdateGateway: UiUpdateGateway,
         private readonly advancementRuleService: AdvancementRuleService,
+        private readonly phaseGroupService: PhaseGroupService,
         @InjectRepository(Tournament)
         private readonly tournamentRepository: Repository<Tournament>,
         @InjectRepository(Division)
@@ -343,7 +346,6 @@ export class StartggService {
                     division.id,
                     entrant,
                     participantByExternalId,
-                    seedByEntrantId.get(entrant.id) ?? null,
                     mappingCache,
                 );
                 entrantByExternalId.set(entrant.id, localEntrant);
@@ -373,9 +375,36 @@ export class StartggService {
             throw new NotFoundException(`Could not resolve a local phase for imported event ${snapshot.id}`);
         }
 
+        const localPhaseGroups = new Map<string, PhaseGroup>();
+        await this.timeOperation(`importEvent.ensurePhaseGroups phaseCount=${remotePhases.length}`, async () => {
+            for (const phase of remotePhases) {
+                const localPhase = localPhases.get(phase.id);
+                if (!localPhase) continue;
+                for (const phaseGroup of phase.phaseGroups ?? []) {
+                    const localPhaseGroup = await this.ensurePhaseGroup(localPhase, phaseGroup, mappingCache);
+                    localPhaseGroups.set(phaseGroup.id, localPhaseGroup);
+
+                    const groupEntrantIds = this.uniqueBy(
+                        (phaseGroup.sets ?? []).flatMap((set) => set.entrants.map((entrant) => entrant.id)),
+                        (id) => id,
+                    );
+                    const phaseSeedByEntrantId = new Map((phase.seeds ?? []).map((seed) => [seed.entrantId, seed.seedNum]));
+                    const orderedEntrants = groupEntrantIds
+                        .sort((left, right) =>
+                            (phaseSeedByEntrantId.get(left) ?? Number.MAX_SAFE_INTEGER)
+                            - (phaseSeedByEntrantId.get(right) ?? Number.MAX_SAFE_INTEGER),
+                        )
+                        .map((entrantId) => entrantByExternalId.get(entrantId))
+                        .filter((entrant): entrant is Entrant => Boolean(entrant))
+                    ;
+                    await this.phaseGroupService.replaceEntrants(localPhaseGroup.id, orderedEntrants);
+                }
+            }
+        });
+
         const { matchesBySetId: localMatches, touchedPhaseIds } = await this.timeOperation(
             `importEvent.syncMatches count=${snapshotSets.length}`,
-            () => this.syncImportedMatches(snapshotSets, localPhases, fallbackPhase, entrantByExternalId, mappingCache),
+            () => this.syncImportedMatches(snapshotSets, localPhaseGroups, fallbackPhase, entrantByExternalId, mappingCache),
         );
 
         await this.timeOperation(
@@ -499,7 +528,7 @@ export class StartggService {
         const matches = await this.timeOperation(
             `buildLocalContext.loadMatches tournamentId=${tournamentId}`,
             () => this.matchRepository.find({
-                where: { phase: { division: { tournament: { id: tournamentId } } } },
+                where: { phaseGroup: { phase: { division: { tournament: { id: tournamentId } } } } },
             }),
         );
 
@@ -594,7 +623,6 @@ export class StartggService {
         divisionId: number,
         entrant: StartggEntrantNode,
         participantByExternalId: Map<string, Participant>,
-        seedNum: number | null,
         mappingCache: StartggMappingCache,
     ): Promise<Entrant> {
         const existingMapping = this.findMappingInCache(mappingCache, 'entrant', 'entrant', entrant.id);
@@ -611,7 +639,7 @@ export class StartggService {
             if (!participant) {
                 throw new NotFoundException(`No local participant resolved for start.gg participant ${entrant.participants[0].id}`);
             }
-            localEntrant = await this.entrantService.addSinglesEntrant(divisionId, participant.id, seedNum);
+            localEntrant = await this.entrantService.addSinglesEntrant(divisionId, participant.id);
         }
 
         if (!localEntrant) {
@@ -622,14 +650,12 @@ export class StartggService {
             localEntrant.division = division;
             localEntrant.name = entrant.name;
             localEntrant.type = entrant.participants.length > 1 ? 'team' : 'player';
-            localEntrant.seedNum = seedNum;
             localEntrant.status = 'active';
             localEntrant.participants = entrant.participants
                 .map((participant) => participantByExternalId.get(participant.id))
                 .filter(Boolean);
         } else {
             localEntrant.name = entrant.name;
-            localEntrant.seedNum = seedNum;
             localEntrant.status = 'active';
             if (entrant.participants.length > 1) {
                 localEntrant.type = 'team';
@@ -692,9 +718,47 @@ export class StartggService {
         return localPhase;
     }
 
+    private async ensurePhaseGroup(
+        phase: Phase,
+        phaseGroup: StartggPhaseGroupNode,
+        mappingCache: StartggMappingCache,
+    ): Promise<PhaseGroup> {
+        const existingMapping = this.findMappingInCache(mappingCache, 'phaseGroup', 'phaseGroup', phaseGroup.id);
+
+        let localPhaseGroup = existingMapping
+            ? await this.phaseGroupService.findOne(Number(existingMapping.localId))
+            : null;
+
+        if (!localPhaseGroup) {
+            localPhaseGroup = await this.phaseGroupService.createForPhase(phase.id, {
+                name: phaseGroup.displayIdentifier ?? `Group ${phaseGroup.id}`,
+                displayIdentifier: phaseGroup.displayIdentifier ?? null,
+            });
+        } else {
+            localPhaseGroup = await this.phaseGroupService.update(localPhaseGroup.id, {
+                name: phaseGroup.displayIdentifier ?? localPhaseGroup.name,
+                displayIdentifier: phaseGroup.displayIdentifier ?? null,
+            });
+        }
+
+        this.cacheMapping(mappingCache, {
+            provider: 'startgg',
+            localType: 'phaseGroup',
+            localId: String(localPhaseGroup.id),
+            externalType: 'phaseGroup',
+            externalId: phaseGroup.id,
+            metadata: {
+                phaseId: phase.id,
+                displayIdentifier: phaseGroup.displayIdentifier ?? null,
+            },
+        });
+
+        return localPhaseGroup;
+    }
+
     private async syncImportedMatches(
         sets: StartggSetNode[],
-        localPhases: Map<string, Phase>,
+        localPhaseGroups: Map<string, PhaseGroup>,
         fallbackPhase: Phase,
         entrantByExternalId: Map<string, Entrant>,
         mappingCache: StartggMappingCache,
@@ -713,26 +777,27 @@ export class StartggService {
         const matchesBySetId = new Map<string, Match>();
         const touchedPhaseIds = new Set<number>();
 
-        const stagedMatches = sets.map((set) => {
+        const stagedMatches = await Promise.all(sets.map(async (set) => {
             const existingMapping = this.findMappingInCache(mappingCache, 'match', 'set', set.id);
             const existingMatch = existingMapping
                 ? existingMatchesById.get(Number(existingMapping.localId)) ?? null
                 : null;
-            const targetPhase = (set.phaseId ? localPhases.get(set.phaseId) : null) ?? fallbackPhase;
+            const targetPhaseGroup = (set.phaseGroupId ? localPhaseGroups.get(set.phaseGroupId) : null)
+                ?? await this.phaseGroupService.findOrCreateDefaultForPhaseId(fallbackPhase.id);
             const match = existingMatch ?? this.matchRepository.create();
 
             match.name = this.buildMatchName(set);
             match.subtitle = set.phaseGroupName ?? null;
             match.notes = `Imported from start.gg set ${set.id}`;
             match.scoringSystem = 'EurocupScoreCalculator';
-            match.phase = Promise.resolve(targetPhase);
+            match.phaseGroup = targetPhaseGroup;
             match.entrants = set.entrants
                 .map((entrant) => entrantByExternalId.get(entrant.id))
                 .filter((entrant): entrant is Entrant => Boolean(entrant));
-            touchedPhaseIds.add(targetPhase.id);
+            touchedPhaseIds.add(targetPhaseGroup.phase.id);
             matchesBySetId.set(set.id, match);
             return match;
-        });
+        }));
 
         const savedMatches = await this.matchRepository.save(stagedMatches, { chunk: this.bulkSaveChunkSize });
         savedMatches.forEach((match, index) => matchesBySetId.set(sets[index].id, match));

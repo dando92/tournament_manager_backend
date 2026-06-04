@@ -162,7 +162,11 @@ export class TournamentManager {
         );
         const matchCount = divisions.reduce(
             (count, division) =>
-                count + (division.phases ?? []).reduce((phaseCount, phase) => phaseCount + (phase.matches?.length ?? 0), 0),
+                count + (division.phases ?? []).reduce(
+                    (phaseCount, phase) =>
+                        phaseCount + (phase.phaseGroups ?? []).reduce((groupCount, phaseGroup) => groupCount + (phaseGroup.matches?.length ?? 0), 0),
+                    0,
+                ),
             0,
         );
 
@@ -177,7 +181,6 @@ export class TournamentManager {
                     id: entrant.id,
                     name: entrant.name,
                     type: entrant.type,
-                    seedNum: entrant.seedNum ?? null,
                     status: entrant.status,
                     participants: (entrant.participants ?? []).map((participant) => ({
                         id: participant.id,
@@ -192,7 +195,16 @@ export class TournamentManager {
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
                     name: phase.name,
-                    matchCount: phase.matches?.length ?? 0,
+                    matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + (phaseGroup.matches?.length ?? 0), 0),
+                    phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
+                        id: phaseGroup.id,
+                        name: phaseGroup.name,
+                        displayIdentifier: phaseGroup.displayIdentifier ?? null,
+                        bracketType: phaseGroup.bracketType ?? null,
+                        state: phaseGroup.state,
+                        entrants: [],
+                        matchCount: phaseGroup.matches?.length ?? 0,
+                    })),
                 })),
             })),
         };
