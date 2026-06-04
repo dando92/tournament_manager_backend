@@ -32,6 +32,22 @@ export class AdvancementRuleService {
     });
   }
 
+  async createPhaseGroupToPhaseGroupRule(
+    sourceId: number,
+    sourcePlacement: number,
+    targetId: number,
+    targetSlot: number,
+  ): Promise<AdvancementRule> {
+    return await this.create({
+      sourceKind: 'phase_group',
+      sourceId,
+      sourcePlacement,
+      targetKind: 'phase_group',
+      targetId,
+      targetSlot,
+    });
+  }
+
   async findById(id: number): Promise<AdvancementRule | null> {
     return await this.advancementRuleRepository.findOneBy({ id });
   }

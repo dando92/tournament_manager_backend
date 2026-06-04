@@ -3,7 +3,7 @@ import { CreateDivisionDto } from "@tournament/dtos";
 import { CreateMatchDto } from "@tournament/dtos";
 import { UpdateMatchDto } from "@tournament/dtos";
 
-import { Entrant, Match, Division, Phase } from "@persistence/entities";
+import { Entrant, Match, Division, Phase, PhaseGroup } from "@persistence/entities";
 import { DivisionService } from "@tournament/services/division.service";
 import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
@@ -47,6 +47,18 @@ export class IBracketSystem {
         const phaseGroup = await this.phaseGroupService.findOrCreateDefaultForPhaseId(phase.id, this.getName());
         await this.phaseGroupService.replaceEntrants(phaseGroup.id, entrants);
 
+        await this.createBracket(entrants, playerPerMatch, division, phase, phaseGroup.id);
+    }
+
+    async generateForExistingPhaseGroup(
+        division: Division,
+        phase: Phase,
+        phaseGroup: PhaseGroup,
+        entrants: Entrant[],
+        playerPerMatch: number = 2,
+    ): Promise<void> {
+        await this.phaseGroupService.replaceEntrants(phaseGroup.id, entrants);
+        phase.matches = phase.matches ?? [];
         await this.createBracket(entrants, playerPerMatch, division, phase, phaseGroup.id);
     }
 

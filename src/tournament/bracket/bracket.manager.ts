@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { BracketSystemProvider } from "@bracket/BracketSystemProvider";
 import { UpdateDivisionDto } from "@tournament/dtos";
 import { DivisionService } from "@tournament/services/division.service";
+import { PhaseGroupService } from "@tournament/services/phase-group.service";
 
 type WithId = { id: number | string };
 
@@ -12,6 +13,8 @@ export class BracketManager {
         private readonly bracketSystemProvider: BracketSystemProvider,
         @Inject()
         private readonly divisionService: DivisionService,
+        @Inject()
+        private readonly phaseGroupService: PhaseGroupService,
     ) { }
 
     getBracketTypes(): string[] {
@@ -35,6 +38,19 @@ export class BracketManager {
         await system.generateForDivision(division, entrants, playerPerMatch);
         const updateDto = Object.assign(new UpdateDivisionDto(), { playersPerMatch: playerPerMatch });
         await this.divisionService.update(divisionId, updateDto);
+    }
+
+    async generateForPhaseGroup(phaseGroupId: number, bracketType: string, playerPerMatch: number): Promise<void> {
+        const phaseGroup = await this.phaseGroupService.findOne(phaseGroupId);
+        if (!phaseGroup) {
+            throw new Error(`PhaseGroup ${phaseGroupId} not found`);
+        }
+
+        const entrants = await this.phaseGroupService.getEntrantsForBracket(phaseGroupId);
+        const phase = phaseGroup.phase;
+        const division = phase.division;
+        const system = this.bracketSystemProvider.getBracketSystem(bracketType);
+        await system.generateForExistingPhaseGroup(division, phase, phaseGroup, entrants, playerPerMatch);
     }
 
     sortBySeed<T extends WithId>(

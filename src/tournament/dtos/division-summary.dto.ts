@@ -35,6 +35,15 @@ export type DivisionSummaryPhaseGroupDto = {
     state: string;
     entrants: DivisionSummaryPhaseGroupEntrantDto[];
     matchCount: number;
+    advancementRules?: Array<{
+        id: number;
+        sourceKind: string;
+        sourceId: number;
+        sourcePlacement: number;
+        targetKind: string;
+        targetId: number;
+        targetSlot: number;
+    }>;
 };
 
 export type DivisionSummaryPhaseDto = {

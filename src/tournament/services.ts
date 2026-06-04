@@ -20,6 +20,7 @@ import { ParticipantService } from './services/participant.service';
 import { EntrantService } from './services/entrant.service';
 import { PhaseService } from './services/phase.service';
 import { PhaseGroupService } from './services/phase-group.service';
+import { PhaseGroupManager } from './services/phase-group.manager';
 import { SongService } from './services/song.service';
 import { ScoreService } from './services/score.service';
 import { RoundService } from './services/round.service';
@@ -48,6 +49,7 @@ export { ParticipantService };
 export { EntrantService };
 export { PhaseService };
 export { PhaseGroupService };
+export { PhaseGroupManager };
 export { SongService };
 export { ScoreService };
 export { RoundService };
@@ -79,6 +81,7 @@ export const Services = [
     EntrantService,
     PhaseService,
     PhaseGroupService,
+    PhaseGroupManager,
     SongService,
     ScoreService,
     RoundService,

@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DivisionStandingRowDto, DivisionSummaryDto } from '../dtos';
 import { DivisionService } from './division.service';
+import { AdvancementRuleService } from './advancement-rule.service';
 
 @Injectable()
 export class DivisionManager {
-    constructor(private readonly divisionService: DivisionService) {}
+    constructor(
+        private readonly divisionService: DivisionService,
+        private readonly advancementRuleService: AdvancementRuleService,
+    ) {}
 
     async findSummary(id: number): Promise<DivisionSummaryDto> {
         const division = await this.divisionService.findOneForSummary(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
+
+        const phaseGroupIds = (division.phases ?? []).flatMap((phase) => (phase.phaseGroups ?? []).map((phaseGroup) => phaseGroup.id));
+        const phaseGroupRules = await this.advancementRuleService.findBySources('phase_group', phaseGroupIds);
 
         return {
             id: division.id,
@@ -63,6 +70,17 @@ export class DivisionManager {
                             })),
                         },
                     })),
+                    advancementRules: phaseGroupRules
+                        .filter((rule) => rule.sourceKind === 'phase_group' && rule.sourceId === phaseGroup.id)
+                        .map((rule) => ({
+                            id: rule.id,
+                            sourceKind: rule.sourceKind,
+                            sourceId: rule.sourceId,
+                            sourcePlacement: rule.sourcePlacement,
+                            targetKind: rule.targetKind,
+                            targetId: rule.targetId,
+                            targetSlot: rule.targetSlot,
+                        })),
                 })),
             })),
         };
