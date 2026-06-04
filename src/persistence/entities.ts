@@ -15,9 +15,11 @@ import { Account } from './entities/account.entity';
 import { Participant } from './entities/participant.entity';
 import { Entrant } from './entities/entrant.entity';
 import { ExternalMapping } from './entities/external_mapping.entity';
+import { AdvancementRule } from './entities/advancement-rule.entity';
 export type { ParticipantRole, ParticipantStatus } from './entities/participant.entity';
 export type { EntrantType, EntrantStatus } from './entities/entrant.entity';
 export type { MatchResultEntry } from './entities/match_result.entity';
+export type { AdvancementCompetitionKind } from './entities/advancement-rule.entity';
 export { MatchState } from './entities/match.entity';
 export type {
     ExternalProvider,
@@ -42,6 +44,7 @@ export { Account }
 export { Participant }
 export { Entrant }
 export { ExternalMapping }
+export { AdvancementRule }
 
 export const Entities = [
     Division,
@@ -61,4 +64,5 @@ export const Entities = [
     ,Participant
     ,Entrant
     ,ExternalMapping
+    ,AdvancementRule
 ];
