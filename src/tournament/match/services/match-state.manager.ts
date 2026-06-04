@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { UpdateMatchDto, UpdateMatchStateDto } from '@match/dtos/match.dto';
-import { Entrant, Match, MatchResultEntry, MatchState } from '@persistence/entities';
-import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
+import { Match, MatchResultEntry, MatchState } from '@persistence/entities';
 import { MatchResultService } from '@match/services/match-result.service';
 import { MatchService } from '@match/services/match.service';
+import { AdvancementManager } from '@match/services/advancement.manager';
 
 @Injectable()
 export class MatchStateManager {
@@ -13,7 +13,7 @@ export class MatchStateManager {
         @Inject()
         private readonly matchResultService: MatchResultService,
         @Inject()
-        private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly advancementManager: AdvancementManager,
     ) {}
 
     async UpdateMatchState(matchId: number, dto: UpdateMatchStateDto): Promise<Match> {
@@ -102,23 +102,19 @@ export class MatchStateManager {
             throw new Error(`Match ${match.id} cannot be completed because not all standings are populated`);
         }
 
-        if (this.hasMatchResult(match) && match.targetPaths?.length) {
-            await this.revertEntrantsFromMatchResult(match);
+        if (this.hasMatchResult(match)) {
+            await this.advancementManager.RevertAdvancementFromMatch(match);
         }
 
         match.matchResult = await this.matchResultService.upsertForMatch(match.id, playerPoints);
         await this.setMatchState(match, MatchState.Completed);
 
-        if (match.targetPaths?.length) {
-            await this.advanceEntrantsFromMatchResult(match);
-        }
-
-        await this.emitTargetMatchUpdates(match);
+        await this.advancementManager.AdvanceFromCompletedMatch(match);
     }
 
     private async reopenMatch(match: Match): Promise<void> {
-        if (this.hasMatchResult(match) && match.targetPaths?.length) {
-            await this.revertEntrantsFromMatchResult(match);
+        if (this.hasMatchResult(match)) {
+            await this.advancementManager.RevertAdvancementFromMatch(match);
         }
 
         if (match.matchResult) {
@@ -127,7 +123,6 @@ export class MatchStateManager {
         }
 
         await this.setMatchState(match, MatchState.Pending);
-        await this.emitTargetMatchUpdates(match);
     }
 
     private async setMatchState(match: Match, state: MatchState): Promise<void> {
@@ -137,49 +132,8 @@ export class MatchStateManager {
         match.state = state;
     }
 
-    private async advanceEntrantsFromMatchResult(match: Match): Promise<void> {
-        const sortedEntrants = this.sortEntrantsByMatchResult(match);
-        for (let i = 0; i < (match.targetPaths ?? []).length; i++) {
-            const targetMatchId = match.targetPaths[i];
-            const entrant = sortedEntrants[i];
-            if (!targetMatchId || targetMatchId === 0 || !entrant) continue;
-            await this.AddEntrantInMatch(targetMatchId, entrant.id);
-        }
-    }
-
-    private async revertEntrantsFromMatchResult(match: Match): Promise<void> {
-        const sortedEntrants = this.sortEntrantsByMatchResult(match);
-        for (let i = 0; i < (match.targetPaths ?? []).length; i++) {
-            const targetMatchId = match.targetPaths[i];
-            const entrant = sortedEntrants[i];
-            if (!targetMatchId || targetMatchId === 0 || !entrant) continue;
-            await this.RemoveEntrantInMatch(targetMatchId, entrant.id);
-        }
-    }
-
-    private async emitTargetMatchUpdates(match: Match): Promise<void> {
-        for (const targetMatchId of match.targetPaths ?? []) {
-            const targetMatch = await this.matchService.getMatch(targetMatchId);
-            if (targetMatch) {
-                await this.uiUpdateGateway.emitMatchUpdateByMatchId(targetMatch.id);
-            }
-        }
-    }
-
     private hasMatchResult(match: Match): boolean {
         return Boolean(match.matchResult);
-    }
-
-    private sortEntrantsByMatchResult(match: Match): Entrant[] {
-        const playerPoints = new Map(
-            (match.matchResult?.playerPoints ?? []).map((entry) => [entry.playerId, entry.points]),
-        );
-
-        return [...(match.entrants ?? [])].sort((left, right) => {
-            const leftPlayerId = left.participants?.[0]?.player?.id;
-            const rightPlayerId = right.participants?.[0]?.player?.id;
-            return (playerPoints.get(rightPlayerId) ?? 0) - (playerPoints.get(leftPlayerId) ?? 0);
-        });
     }
 
     private buildMatchResultPlayerPoints(match: Match): MatchResultEntry[] | null {

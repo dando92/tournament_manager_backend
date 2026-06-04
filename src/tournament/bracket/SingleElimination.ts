@@ -44,36 +44,17 @@ export class SingleElimination extends IBracketSystem {
             }
 
             if (currentMatches !== null) {
-                // Initialize currentMatches targetPaths as fixed-length positional array
-                for (let i = 0; i < currentMatches.length; i++) {
-                    currentMatches[i].targetPaths = Array(playerPerMatch).fill(0);
-                }
-
-                // Clear nextMatches sourcePaths before populating
-                for (let i = 0; i < nextMatches.length; i++) {
-                    nextMatches[i].sourcePaths = [];
-                }
-
                 for (let i = 0; i < nextMatches.length; i++) {
                     for (let j = 0; j < playerPerMatch; j++) {
                         const currentIndex = indexes[i][j];
                         const sourceMatch = currentMatches[currentIndex.match];
-                        // Assign positionally: targetPaths[rank] = destination match id
-                        sourceMatch.targetPaths[currentIndex.playerIndexInMatch] = nextMatches[i].id;
-
-                        // Add source match to target match's sourcePaths (unique)
-                        if (!nextMatches[i].sourcePaths.includes(sourceMatch.id)) {
-                            nextMatches[i].sourcePaths.push(sourceMatch.id);
-                        }
+                        await this.CreateMatchAdvancementRule(
+                            sourceMatch,
+                            currentIndex.playerIndexInMatch,
+                            nextMatches[i],
+                            j,
+                        );
                     }
-                }
-
-                // Save currentMatches (targetPaths set) and nextMatches (sourcePaths set)
-                for (let i = 0; i < currentMatches.length; i++) {
-                    this.UpdateMatchPaths(currentMatches[i]);
-                }
-                for (let i = 0; i < nextMatches.length; i++) {
-                    this.UpdateMatchPaths(nextMatches[i]);
                 }
             }
 
@@ -90,18 +71,14 @@ export class SingleElimination extends IBracketSystem {
             console.log("Creating finals");
             const finals = await this.CreateMatchesInPhase("Finals", phase, 2);
 
-            // Fixed-length positional targetPaths: top half → finals[0], bottom half → finals[1]
+            // Top half of placements go to the first final, bottom half to the second.
             const passingPlayers = Math.floor(playerPerMatch / 2);
-            currentMatches[0].targetPaths = Array(playerPerMatch).fill(0);
-            for (let p = 0; p < passingPlayers; p++) currentMatches[0].targetPaths[p] = finals[0].id;
-            for (let p = passingPlayers; p < playerPerMatch; p++) currentMatches[0].targetPaths[p] = finals[1].id;
-
-            finals[0].sourcePaths = [currentMatches[0].id];
-            finals[1].sourcePaths = [currentMatches[0].id];
-
-            this.UpdateMatchPaths(currentMatches[0]);
-            this.UpdateMatchPaths(finals[0]);
-            this.UpdateMatchPaths(finals[1]);
+            for (let p = 0; p < passingPlayers; p++) {
+                await this.CreateMatchAdvancementRule(currentMatches[0], p, finals[0], p);
+            }
+            for (let p = passingPlayers; p < playerPerMatch; p++) {
+                await this.CreateMatchAdvancementRule(currentMatches[0], p, finals[1], p - passingPlayers);
+            }
         }
 
         return firstRound;

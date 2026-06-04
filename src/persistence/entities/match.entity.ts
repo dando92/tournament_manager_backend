@@ -36,26 +36,6 @@ export class Match {
   @Column({ nullable: true })
   notes: string;
 
-  @Column({
-    type: 'simple-array',
-    nullable: true,
-    transformer: {
-      to: (value: number[]) => value,
-      from: (value: string | number[]) => Array.isArray(value) ? value.map(Number) : (value ? value.split(',').map(Number) : []),
-    },
-  })
-  targetPaths: number[];
-
-  @Column({
-    type: 'simple-array',
-    nullable: true,
-    transformer: {
-      to: (value: number[]) => value,
-      from: (value: string | number[]) => Array.isArray(value) ? value.map(Number) : (value ? value.split(',').map(Number) : []),
-    },
-  })
-  sourcePaths: number[];
-
   @Column()
   scoringSystem: string;
 

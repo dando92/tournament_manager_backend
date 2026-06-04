@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Entrant, Match, MatchState, Phase } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
+import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
 
 @Injectable()
 export class MatchService {
@@ -15,6 +16,7 @@ export class MatchService {
         @InjectRepository(Entrant)
         private readonly entrantRepository: Repository<Entrant>,
         private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly advancementRuleService: AdvancementRuleService,
     ) {}
 
     async create(dto: CreateMatchDto): Promise<Match> {
@@ -157,11 +159,6 @@ export class MatchService {
             delete dto.entrantIds;
         }
 
-        if (dto.targetPaths !== undefined) match.targetPaths = dto.targetPaths;
-        if (dto.sourcePaths !== undefined) match.sourcePaths = dto.sourcePaths;
-        delete (dto as any).targetPaths;
-        delete (dto as any).sourcePaths;
-
         this.matchRepository.merge(match, dto);
         const updatedMatch = await this.matchRepository.save(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(updatedMatch.id);
@@ -184,15 +181,7 @@ export class MatchService {
         const phase = await match.phase;
         const phaseId = phase?.id;
 
-        const sourcePathIds: number[] = (match.sourcePaths ?? []).map(Number);
-        if (sourcePathIds.length > 0) {
-            const sourceMatches = await this.matchRepository.findBy({ id: In(sourcePathIds) });
-            for (const source of sourceMatches) {
-                source.targetPaths = (source.targetPaths ?? []).filter(t => Number(t) !== id);
-                await this.matchRepository.save(source);
-                await this.uiUpdateGateway.emitMatchUpdateByMatchId(source.id);
-            }
-        }
+        await this.advancementRuleService.deleteInvolvingMatch(id);
 
         await this.matchRepository.remove(match);
         await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);

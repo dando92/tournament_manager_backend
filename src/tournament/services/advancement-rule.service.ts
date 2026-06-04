@@ -16,6 +16,22 @@ export class AdvancementRuleService {
     return await this.advancementRuleRepository.save(rule);
   }
 
+  async createMatchToMatchRule(
+    sourceId: number,
+    sourcePlacement: number,
+    targetId: number,
+    targetSlot: number,
+  ): Promise<AdvancementRule> {
+    return await this.create({
+      sourceKind: 'match',
+      sourceId,
+      sourcePlacement,
+      targetKind: 'match',
+      targetId,
+      targetSlot,
+    });
+  }
+
   async findById(id: number): Promise<AdvancementRule | null> {
     return await this.advancementRuleRepository.findOneBy({ id });
   }
@@ -25,6 +41,20 @@ export class AdvancementRuleService {
       where: { sourceKind, sourceId },
       order: { sourcePlacement: 'ASC', targetSlot: 'ASC', id: 'ASC' },
     });
+  }
+
+  async findBySources(sourceKind: AdvancementCompetitionKind, sourceIds: number[]): Promise<AdvancementRule[]> {
+    if (sourceIds.length === 0) return [];
+
+    return await this.advancementRuleRepository
+      .createQueryBuilder('rule')
+      .where('rule.sourceKind = :sourceKind', { sourceKind })
+      .andWhere('rule.sourceId IN (:...sourceIds)', { sourceIds })
+      .orderBy('rule.sourceId', 'ASC')
+      .addOrderBy('rule.sourcePlacement', 'ASC')
+      .addOrderBy('rule.targetSlot', 'ASC')
+      .addOrderBy('rule.id', 'ASC')
+      .getMany();
   }
 
   async findByTarget(targetKind: AdvancementCompetitionKind, targetId: number): Promise<AdvancementRule[]> {
@@ -47,5 +77,18 @@ export class AdvancementRuleService {
     if (!rule) return;
 
     await this.advancementRuleRepository.remove(rule);
+  }
+
+  async deleteBySource(sourceKind: AdvancementCompetitionKind, sourceId: number): Promise<void> {
+    await this.advancementRuleRepository.delete({ sourceKind, sourceId });
+  }
+
+  async deleteByTarget(targetKind: AdvancementCompetitionKind, targetId: number): Promise<void> {
+    await this.advancementRuleRepository.delete({ targetKind, targetId });
+  }
+
+  async deleteInvolvingMatch(matchId: number): Promise<void> {
+    await this.advancementRuleRepository.delete({ sourceKind: 'match', sourceId: matchId });
+    await this.advancementRuleRepository.delete({ targetKind: 'match', targetId: matchId });
   }
 }

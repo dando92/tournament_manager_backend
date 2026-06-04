@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsIn, IsInt, IsOptional, Min, ValidateNested } from 'class-validator';
 import { AdvancementCompetitionKind } from '@persistence/entities';
 
 const competitionKinds: AdvancementCompetitionKind[] = ['match', 'phase_group'];
@@ -68,4 +69,29 @@ export class UpdateAdvancementRuleDto {
   @IsInt()
   @Min(1)
   targetSlot?: number;
+}
+
+export class MatchAdvancementRuleInputDto {
+  @ApiProperty({ description: '1-based source result placement', example: 1 })
+  @IsInt()
+  @Min(1)
+  sourcePlacement: number;
+
+  @ApiProperty({ description: 'Target match id', example: 2 })
+  @IsInt()
+  @Min(1)
+  targetId: number;
+
+  @ApiProperty({ description: '1-based target entrant slot', example: 1 })
+  @IsInt()
+  @Min(1)
+  targetSlot: number;
+}
+
+export class UpdateMatchAdvancementRulesDto {
+  @ApiProperty({ type: [MatchAdvancementRuleInputDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MatchAdvancementRuleInputDto)
+  rules: MatchAdvancementRuleInputDto[];
 }
