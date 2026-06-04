@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Division, Phase } from '@persistence/entities';
 import { CreatePhaseDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
+import { PhaseGroupService } from './phase-group.service';
 
 @Injectable()
 export class PhaseService {
@@ -13,6 +14,7 @@ export class PhaseService {
         @InjectRepository(Division)
         private readonly divisionRepository: Repository<Division>,
         private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly phaseGroupService: PhaseGroupService,
     ) {}
 
     async create(dto: CreatePhaseDto): Promise<Phase> {
@@ -24,6 +26,7 @@ export class PhaseService {
         phase.division = division;
 
         const savedPhase = await this.phaseRepository.save(phase);
+        await this.phaseGroupService.createDefaultForPhase(savedPhase);
         await this.uiUpdateGateway.emitDivisionUpdateByDivisionId(dto.divisionId);
         return savedPhase;
     }
@@ -33,6 +36,16 @@ export class PhaseService {
             where: { division: { id: divisionId } },
             relations: {
                 matches: true,
+                phaseGroups: {
+                    entrants: {
+                        entrant: {
+                            participants: {
+                                player: true,
+                            },
+                        },
+                    },
+                    matches: true,
+                },
             },
         });
     }

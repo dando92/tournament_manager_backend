@@ -36,6 +36,11 @@ export class CreateMatchDto {
   @IsNumber()
   phaseId: number;
 
+  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1, required: false })
+  @IsOptional()
+  @IsNumber()
+  phaseGroupId?: number;
+
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsNotEmpty()
   @IsString()
@@ -69,6 +74,11 @@ export class UpdateMatchDto {
   @IsNumber()
   phaseId?: number;
 
+  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1, required: false })
+  @IsOptional()
+  @IsNumber()
+  phaseGroupId?: number;
+
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsOptional()
   @IsString()
@@ -96,6 +106,10 @@ export class CreateMatchWithSongsDto {
   @IsNotEmpty()
   @IsNumber()
   phaseId: number;
+
+  @IsOptional()
+  @IsNumber()
+  phaseGroupId?: number;
 
   @IsNotEmpty()
   @IsString()
@@ -126,6 +140,7 @@ export class CreateMatchWithSongsDto {
         createDto.name = this.name;
         createDto.notes = this.notes;
         createDto.phaseId = this.phaseId;
+        createDto.phaseGroupId = this.phaseGroupId;
         createDto.entrantIds = this.entrantIds;
         createDto.subtitle = this.subtitle;
         createDto.scoringSystem = this.scoringSystem;

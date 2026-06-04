@@ -19,10 +19,29 @@ export type DivisionSummaryEntrantDto = {
     participants: DivisionSummaryParticipantDto[];
 };
 
+export type DivisionSummaryPhaseGroupEntrantDto = {
+    id: number;
+    seedNum: number | null;
+    slot: number | null;
+    status: string;
+    entrant: DivisionSummaryEntrantDto;
+};
+
+export type DivisionSummaryPhaseGroupDto = {
+    id: number;
+    name: string;
+    displayIdentifier: string | null;
+    bracketType: string | null;
+    state: string;
+    entrants: DivisionSummaryPhaseGroupEntrantDto[];
+    matchCount: number;
+};
+
 export type DivisionSummaryPhaseDto = {
     id: number;
     name: string;
     matchCount: number;
+    phaseGroups: DivisionSummaryPhaseGroupDto[];
 };
 
 export type DivisionSummaryDto = {

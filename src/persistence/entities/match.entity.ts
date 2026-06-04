@@ -13,6 +13,7 @@ import { Round } from './round.entity'
 import { Phase } from './phase.entity'
 import { Entrant } from './entrant.entity'
 import { MatchResult } from './match_result.entity'
+import { PhaseGroup } from './phase-group.entity'
 
 export enum MatchState {
   NotActive = 'NotActive',
@@ -60,4 +61,8 @@ export class Match {
   @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
   phase: Promise<Phase>;
+
+  @ManyToOne(() => PhaseGroup, (phaseGroup) => phaseGroup.matches, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn()
+  phaseGroup?: PhaseGroup | null;
 }

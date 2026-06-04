@@ -50,6 +50,16 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                        },
+                        matches: true,
+                    },
                     matches: true,
                 },
             },
@@ -61,6 +71,16 @@ export class DivisionService {
             where: { id },
             relations: {
                 phases: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                        },
+                        matches: true,
+                    },
                     matches: {
                         matchResult: true,
                         rounds: {
@@ -119,6 +139,16 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                        },
+                        matches: true,
+                    },
                     matches: true,
                 },
             },
@@ -135,6 +165,16 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                        },
+                        matches: true,
+                    },
                     matches: {
                         matchResult: true,
                         entrants: {
@@ -166,6 +206,16 @@ export class DivisionService {
                     },
                 },
                 phases: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                        },
+                        matches: true,
+                    },
                     matches: {
                         entrants: {
                             participants: {

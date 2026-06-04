@@ -34,6 +34,36 @@ export class DivisionManager {
                 id: phase.id,
                 name: phase.name,
                 matchCount: phase.matches?.length ?? 0,
+                phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
+                    id: phaseGroup.id,
+                    name: phaseGroup.name,
+                    displayIdentifier: phaseGroup.displayIdentifier ?? null,
+                    bracketType: phaseGroup.bracketType ?? null,
+                    state: phaseGroup.state,
+                    matchCount: phaseGroup.matches?.length ?? 0,
+                    entrants: (phaseGroup.entrants ?? []).map((phaseGroupEntrant) => ({
+                        id: phaseGroupEntrant.id,
+                        seedNum: phaseGroupEntrant.seedNum ?? null,
+                        slot: phaseGroupEntrant.slot ?? null,
+                        status: phaseGroupEntrant.status,
+                        entrant: {
+                            id: phaseGroupEntrant.entrant.id,
+                            name: phaseGroupEntrant.entrant.name,
+                            type: phaseGroupEntrant.entrant.type,
+                            seedNum: phaseGroupEntrant.entrant.seedNum ?? null,
+                            status: phaseGroupEntrant.entrant.status,
+                            participants: (phaseGroupEntrant.entrant.participants ?? []).map((participant) => ({
+                                id: participant.id,
+                                roles: participant.roles ?? [],
+                                status: participant.status,
+                                player: {
+                                    id: participant.player.id,
+                                    playerName: participant.player.playerName,
+                                },
+                            })),
+                        },
+                    })),
+                })),
             })),
         };
     }

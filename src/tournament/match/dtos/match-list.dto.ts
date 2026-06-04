@@ -78,4 +78,5 @@ export type MatchListDto = {
     advancementRules: MatchListAdvancementRuleDto[];
     matchResult?: MatchListResultDto | null;
     phaseId?: number;
+    phaseGroupId?: number | null;
 };

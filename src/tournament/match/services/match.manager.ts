@@ -255,6 +255,7 @@ export class MatchManager {
                 }
                 : null,
             phaseId: phase?.id,
+            phaseGroupId: match.phaseGroup?.id ?? null,
         };
     }
 }
