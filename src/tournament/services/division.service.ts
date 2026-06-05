@@ -51,13 +51,6 @@ export class DivisionService {
                 },
                 phases: {
                     phaseGroups: {
-                        entrants: {
-                            entrant: {
-                                participants: {
-                                    player: true,
-                                },
-                            },
-                        },
                         matches: true,
                     },
                 },

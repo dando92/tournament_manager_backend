@@ -117,6 +117,29 @@ export class MatchService {
         });
     }
 
+    async findByPhaseGroupForView(phaseGroupId: number): Promise<Match[]> {
+        return this.matchRepository.find({
+            where: {
+                phaseGroup: {
+                    id: phaseGroupId,
+                },
+            },
+            relations: {
+                phaseGroup: { phase: true },
+                entrants: { participants: { player: true } },
+                rounds: {
+                    song: true,
+                    standings: {
+                        score: {
+                            player: true,
+                        },
+                    },
+                },
+                matchResult: true,
+            },
+        });
+    }
+
     async findOneForView(id: number): Promise<Match | null> {
         return await this.matchRepository.findOne({
             where: { id },

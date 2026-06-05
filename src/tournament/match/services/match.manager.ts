@@ -54,6 +54,11 @@ export class MatchManager {
         return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
     }
 
+    async FindMatchesForPhaseGroup(phaseGroupId: number): Promise<MatchListDto[]> {
+        const matches = await this.matchService.findByPhaseGroupForView(phaseGroupId);
+        return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
+    }
+
     async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;

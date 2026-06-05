@@ -47,6 +47,11 @@ export class MatchesController {
         return this.matchManager.FindMatchesForDivision(Number(divisionId));
     }
 
+    @Get('phase-group/:phaseGroupId')
+    findByPhaseGroup(@Param('phaseGroupId') phaseGroupId: number): Promise<MatchListDto[]> {
+        return this.matchManager.FindMatchesForPhaseGroup(Number(phaseGroupId));
+    }
+
     @Get(':id')
     findOne(@Param('id') id: number): Promise<MatchListDto | null> {
         return this.matchManager.GetMatchForView(Number(id));
