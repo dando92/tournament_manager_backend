@@ -9,6 +9,7 @@ import { CreatePhaseDto } from "@tournament/dtos";
 import { MatchManager } from "@match/services/match.manager";
 import { MatchService } from "@match/services/match.service";
 import { PhaseService } from "@tournament/services/phase.service";
+import { AdvancementRuleService } from "@tournament/services/advancement-rule.service";
 
 export class IBracketSystem {
     constructor(
@@ -20,6 +21,8 @@ export class IBracketSystem {
         protected readonly divisionService: DivisionService,
         @Inject()
         protected readonly phaseService: PhaseService,
+        @Inject()
+        protected readonly advancementRuleService: AdvancementRuleService,
     ) {
     }
 
@@ -65,19 +68,24 @@ export class IBracketSystem {
         const matches: Match[] = [];
         for (let i = 0; i < matchCount; i++) {
             const match = await this.CreateEmptyMatch(namePrefix + "_Match_" + i, "MatchDescription", phase.id);
-            match.targetPaths = [];
-            match.sourcePaths = [];
             phase.matches.push(match);
             matches.push(match);
         }
         return matches;
     }
 
-    protected async UpdateMatchPaths(match: Match) {
-        const dto = new UpdateMatchDto();
-        if (match.targetPaths !== undefined) dto.targetPaths = match.targetPaths;
-        if (match.sourcePaths !== undefined) dto.sourcePaths = match.sourcePaths;
-        await this.matchManager.UpdateMatch(match.id, dto);
+    protected async CreateMatchAdvancementRule(
+        sourceMatch: Match,
+        sourcePlacementIndex: number,
+        targetMatch: Match,
+        targetSlotIndex: number,
+    ): Promise<void> {
+        await this.advancementRuleService.createMatchToMatchRule(
+            sourceMatch.id,
+            sourcePlacementIndex + 1,
+            targetMatch.id,
+            targetSlotIndex + 1,
+        );
     }
 
     protected async CreateEmptyMatch(name: string, desc: string, phaseId: number): Promise<Match> {

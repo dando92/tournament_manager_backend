@@ -6,6 +6,7 @@ import { MatchManager } from '@match/services/match.manager';
 import { MatchStateManager } from '@match/services/match-state.manager';
 import { MatchService } from '@match/services/match.service';
 import { ScoringSystemProvider } from '@tournament/services/scoring-systems/ScoringSystemProvider';
+import { UpdateMatchAdvancementRulesDto } from '@tournament/dtos';
 
 @Controller('matches')
 export class MatchesController {
@@ -48,8 +49,8 @@ export class MatchesController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: number): Promise<Match | null> {
-        return this.matchService.getMatch(id);
+    findOne(@Param('id') id: number): Promise<MatchListDto | null> {
+        return this.matchManager.GetMatchForView(Number(id));
     }
 
     @Patch(':id')
@@ -95,9 +96,12 @@ export class MatchesController {
         return match;
     }
 
-    @Put(':matchId/paths')
-    async updateMatchPaths(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: UpdateMatchDto): Promise<Match> {
-        return await this.matchManager.UpdateMatchPaths(matchId, dto);
+    @Put(':matchId/advancement-rules')
+    async updateMatchAdvancementRules(
+        @Param('matchId') matchId: number,
+        @Body(new ValidationPipe()) dto: UpdateMatchAdvancementRulesDto,
+    ): Promise<MatchListDto> {
+        return await this.matchManager.UpdateMatchAdvancementRules(Number(matchId), dto.rules);
     }
 
     @Put(':matchId/state')

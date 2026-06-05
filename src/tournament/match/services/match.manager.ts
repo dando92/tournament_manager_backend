@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateRoundDto } from '@tournament/dtos';
 import { UpdateMatchDto } from '@match/dtos/match.dto';
+import { MatchAdvancementRuleInputDto } from '@tournament/dtos';
 import { Match } from '@persistence/entities';
 import { SongRoller } from '@tournament/services/song.roller';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
@@ -9,6 +10,7 @@ import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
 import { MatchListDto } from '@match/dtos/match-list.dto';
 import { MatchStateManager } from '@match/services/match-state.manager';
+import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
 
 @Injectable()
 export class MatchManager {
@@ -25,11 +27,19 @@ export class MatchManager {
         private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
         private readonly matchStateManager: MatchStateManager,
+        @Inject()
+        private readonly advancementRuleService: AdvancementRuleService,
     ) {
     }
 
     async GetMatch(id: number): Promise<Match | null> {
         return await this.matchService.getMatch(id);
+    }
+
+    async GetMatchForView(id: number): Promise<MatchListDto | null> {
+        const match = await this.matchService.getMatch(id);
+        if (!match) return null;
+        return await this.toMatchListDto(match);
     }
 
     async UpdateMatch(id: number, dto: UpdateMatchDto): Promise<Match> {
@@ -42,110 +52,25 @@ export class MatchManager {
 
     async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
         const matches = await this.matchService.findByDivisionForView(divisionId);
-        return await Promise.all(matches.map(async (match) => {
-            const phase = await match.phase;
-
-            return {
-                id: match.id,
-                name: match.name,
-                subtitle: match.subtitle,
-                notes: match.notes,
-                scoringSystem: match.scoringSystem,
-                state: this.matchStateManager.getEffectiveMatchState(match),
-                entrants: (match.entrants ?? []).map((entrant) => ({
-                    id: entrant.id,
-                    name: entrant.name,
-                    type: entrant.type,
-                    seedNum: entrant.seedNum ?? null,
-                    status: entrant.status,
-                    participants: (entrant.participants ?? []).map((participant) => ({
-                        id: participant.id,
-                        roles: participant.roles ?? [],
-                        status: participant.status,
-                        player: {
-                            id: participant.player.id,
-                            playerName: participant.player.playerName,
-                        },
-                    })),
-                })),
-                rounds: (match.rounds ?? []).map((round) => ({
-                    id: round.id,
-                    song: {
-                        id: round.song.id,
-                        title: round.song.title,
-                    },
-                    standings: (round.standings ?? []).map((standing) => ({
-                        id: standing.id,
-                        points: standing.points,
-                        score: {
-                            id: standing.score.id,
-                            percentage: standing.score.percentage,
-                            isFailed: standing.score.isFailed,
-                            player: {
-                                id: standing.score.player.id,
-                                playerName: standing.score.player.playerName,
-                            },
-                            song: {
-                                id: round.song.id,
-                                title: round.song.title,
-                            },
-                        },
-                    })),
-                })),
-                targetPaths: match.targetPaths ?? [],
-                sourcePaths: match.sourcePaths ?? [],
-                matchResult: match.matchResult
-                    ? {
-                        id: match.matchResult.id,
-                        playerPoints: match.matchResult.playerPoints ?? [],
-                    }
-                    : null,
-                phaseId: phase?.id,
-            };
-        }));
+        return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
     }
 
-    async UpdateMatchPaths(matchId: number, dto: UpdateMatchDto): Promise<Match> {
+    async UpdateMatchAdvancementRules(matchId: number, rules: MatchAdvancementRuleInputDto[]): Promise<MatchListDto> {
         const match = await this.matchService.getMatch(Number(matchId));
         if (!match) throw new Error(`Match ${matchId} not found`);
 
-        const newTargetPaths = dto.targetPaths ?? [];
-        const oldTargets = new Set((match.targetPaths ?? []).filter(id => id > 0));
-        const newTargets = new Set(newTargetPaths.filter(id => id > 0));
+        await this.advancementRuleService.deleteBySource('match', Number(matchId));
 
-        // Remove this match from sourcePaths of destinations no longer targeted
-        for (const oldDestId of oldTargets) {
-            if (!newTargets.has(oldDestId)) {
-                const destMatch = await this.matchService.getMatch(oldDestId);
-                if (destMatch) {
-                    const updateDto = new UpdateMatchDto();
-                    updateDto.sourcePaths = (destMatch.sourcePaths ?? []).filter(id => id !== Number(matchId));
-                    await this.matchService.update(oldDestId, updateDto);
-                }
-            }
+        for (const rule of rules) {
+            await this.advancementRuleService.createMatchToMatchRule(
+                Number(matchId),
+                rule.sourcePlacement,
+                rule.targetId,
+                rule.targetSlot,
+            );
         }
 
-        // Add this match to sourcePaths of newly targeted destinations
-        for (const newDestId of newTargets) {
-            if (!oldTargets.has(newDestId)) {
-                const destMatch = await this.matchService.getMatch(newDestId);
-                if (destMatch) {
-                    const existing = destMatch.sourcePaths ?? [];
-                    if (!existing.includes(Number(matchId))) {
-                        const updateDto = new UpdateMatchDto();
-                        updateDto.sourcePaths = [...existing, Number(matchId)];
-                        await this.matchService.update(newDestId, updateDto);
-                    }
-                }
-            }
-        }
-
-        // Save this match's targetPaths
-        const updateDto = new UpdateMatchDto();
-        updateDto.targetPaths = newTargetPaths;
-        await this.matchService.update(Number(matchId), updateDto);
-
-        return await this.matchService.getMatch(Number(matchId));
+        return await this.GetMatchForView(Number(matchId));
     }
 
     async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {
@@ -257,5 +182,79 @@ export class MatchManager {
         dto.matchId = match.id;
         dto.songId = songId;
         return dto;
+    }
+
+    private async toMatchListDto(match: Match): Promise<MatchListDto> {
+        const phase = await match.phase;
+        const outgoingRules = await this.advancementRuleService.findBySource('match', match.id);
+        const incomingRules = await this.advancementRuleService.findByTarget('match', match.id);
+        const advancementRules = [...outgoingRules, ...incomingRules]
+            .filter((rule, index, rules) => rules.findIndex((candidate) => candidate.id === rule.id) === index)
+            .sort((left, right) => left.sourceId - right.sourceId || left.sourcePlacement - right.sourcePlacement || left.targetSlot - right.targetSlot || left.id - right.id);
+
+        return {
+            id: match.id,
+            name: match.name,
+            subtitle: match.subtitle,
+            notes: match.notes,
+            scoringSystem: match.scoringSystem,
+            state: this.matchStateManager.getEffectiveMatchState(match),
+            entrants: (match.entrants ?? []).map((entrant) => ({
+                id: entrant.id,
+                name: entrant.name,
+                type: entrant.type,
+                seedNum: entrant.seedNum ?? null,
+                status: entrant.status,
+                participants: (entrant.participants ?? []).map((participant) => ({
+                    id: participant.id,
+                    roles: participant.roles ?? [],
+                    status: participant.status,
+                    player: {
+                        id: participant.player.id,
+                        playerName: participant.player.playerName,
+                    },
+                })),
+            })),
+            rounds: (match.rounds ?? []).map((round) => ({
+                id: round.id,
+                song: {
+                    id: round.song.id,
+                    title: round.song.title,
+                },
+                standings: (round.standings ?? []).map((standing) => ({
+                    id: standing.id,
+                    points: standing.points,
+                    score: {
+                        id: standing.score.id,
+                        percentage: standing.score.percentage,
+                        isFailed: standing.score.isFailed,
+                        player: {
+                            id: standing.score.player.id,
+                            playerName: standing.score.player.playerName,
+                        },
+                        song: {
+                            id: round.song.id,
+                            title: round.song.title,
+                        },
+                    },
+                })),
+            })),
+            advancementRules: advancementRules.map((rule) => ({
+                id: rule.id,
+                sourceKind: rule.sourceKind,
+                sourceId: rule.sourceId,
+                sourcePlacement: rule.sourcePlacement,
+                targetKind: rule.targetKind,
+                targetId: rule.targetId,
+                targetSlot: rule.targetSlot,
+            })),
+            matchResult: match.matchResult
+                ? {
+                    id: match.matchResult.id,
+                    playerPoints: match.matchResult.playerPoints ?? [],
+                }
+                : null,
+            phaseId: phase?.id,
+        };
     }
 }

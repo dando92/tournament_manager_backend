@@ -58,15 +58,12 @@ export class DoubleElimination extends IBracketSystem {
         const grandFinalMatches = await this.CreateMatchesInPhase('Grand_Final', phase, 1);
         const grandFinalMatch = grandFinalMatches[0];
 
-        // --- Wire Winners Bracket paths (in memory) ---
+        // --- Wire Winners Bracket advancement rules ---
         for (let k = 0; k < wbRoundCount; k++) {
             const round = wbRounds[k];
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                // Fixed-length positional targetPaths: positions 0..passingPlayers-1 → winner dest,
-                // positions passingPlayers..playerPerMatch-1 → loser dest
-                match.targetPaths = Array(playerPerMatch).fill(0);
-
+                // Top placements stay in winners, lower placements drop to losers.
                 const winnerDest = k < wbRoundCount - 1
                     ? wbRounds[k + 1][Math.floor(m / 2)]
                     : grandFinalMatch;
@@ -75,25 +72,30 @@ export class DoubleElimination extends IBracketSystem {
                     ? lbRounds[0][Math.floor(m / 2)]
                     : lbRounds[2 * k - 1][m];
 
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths[p] = winnerDest.id;
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths[passingPlayers + p] = loserDest.id;
+                const winnerBaseSlot = (m % 2) * passingPlayers;
+                const firstLoserRoundBaseSlot = (m % 2) * passingPlayers;
+                const dropLoserBaseSlot = passingPlayers;
 
-                // Set sourcePaths on destinations
-                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
-                if (!loserDest.sourcePaths.includes(match.id)) loserDest.sourcePaths.push(match.id);
+                for (let p = 0; p < passingPlayers; p++) {
+                    await this.CreateMatchAdvancementRule(match, p, winnerDest, winnerBaseSlot + p);
+                    await this.CreateMatchAdvancementRule(
+                        match,
+                        passingPlayers + p,
+                        loserDest,
+                        (k === 0 ? firstLoserRoundBaseSlot : dropLoserBaseSlot) + p,
+                    );
+                }
             }
         }
 
-        // --- Wire Losers Bracket paths (in memory) ---
+        // --- Wire Losers Bracket advancement rules ---
         for (let i = 0; i < lbRounds.length; i++) {
             const round = lbRounds[i];
             const isLast = i === lbRounds.length - 1;
 
             for (let m = 0; m < round.length; m++) {
                 const match = round[m];
-                // Fixed-length positional targetPaths: winner positions, rest stay 0 (eliminated)
-                match.targetPaths = Array(playerPerMatch).fill(0);
-
+                // Top placements continue through losers, lower placements are eliminated.
                 let winnerDest: Match;
                 if (isLast) {
                     winnerDest = grandFinalMatch;
@@ -103,20 +105,17 @@ export class DoubleElimination extends IBracketSystem {
                     winnerDest = lbRounds[i + 1][Math.floor(m / 2)];
                 }
 
-                for (let p = 0; p < passingPlayers; p++) match.targetPaths[p] = winnerDest.id;
+                const targetBaseSlot = isLast
+                    ? passingPlayers
+                    : i % 2 === 0
+                        ? 0
+                        : (m % 2) * passingPlayers;
 
-                if (!winnerDest.sourcePaths.includes(match.id)) winnerDest.sourcePaths.push(match.id);
+                for (let p = 0; p < passingPlayers; p++) {
+                    await this.CreateMatchAdvancementRule(match, p, winnerDest, targetBaseSlot + p);
+                }
             }
         }
-
-        // --- Save all matches ---
-        for (const round of wbRounds) {
-            for (const m of round) await this.UpdateMatchPaths(m);
-        }
-        for (const round of lbRounds) {
-            for (const m of round) await this.UpdateMatchPaths(m);
-        }
-        await this.UpdateMatchPaths(grandFinalMatch);
 
         return wbRounds[0];
     }

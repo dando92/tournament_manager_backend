@@ -16,6 +16,7 @@ import { CreateSetupDto, UpdateSetupDto } from './dtos/setup.dto';
 import { CreateAccountDto, UpdateAcountDto  } from './dtos/acount.dto'
 import { CreateAccountPlayerDto, UpdateAccountPlayerDto } from './dtos/accountplayer.dto';
 import { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto, ImportParticipantsPreviewDto } from './dtos/participant-management.dto';
+import { CreateAdvancementRuleDto, MatchAdvancementRuleInputDto, UpdateAdvancementRuleDto, UpdateMatchAdvancementRulesDto } from './dtos/advancement-rule.dto';
 
 export { CreateDivisionDto, UpdateDivisionDto, UpdateEntrantSeedingDto };
 export { CreatePhaseDto, UpdatePhaseDto };
@@ -35,3 +36,4 @@ export { CreateSetupDto, UpdateSetupDto };
 export { CreateAccountDto, UpdateAcountDto };
 export { CreateAccountPlayerDto, UpdateAccountPlayerDto };
 export { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto, ImportParticipantsPreviewDto };
+export { CreateAdvancementRuleDto, MatchAdvancementRuleInputDto, UpdateAdvancementRuleDto, UpdateMatchAdvancementRulesDto };

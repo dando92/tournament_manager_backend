@@ -26,6 +26,7 @@ import { PhaseService } from '@tournament/services/phase.service';
 import { PlayerService } from '@player/player.service';
 import { TournamentService } from '@tournament/services/tournament.service';
 import { CreateDivisionDto, CreatePhaseDto } from '@tournament/dtos';
+import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
 import { StartggClient } from './startgg.client';
 import { StartggImportDto, StartggImportPreviewDto } from './startgg.dto';
 import {
@@ -68,6 +69,7 @@ export class StartggService {
         private readonly entrantService: EntrantService,
         private readonly playerService: PlayerService,
         private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly advancementRuleService: AdvancementRuleService,
         @InjectRepository(Tournament)
         private readonly tournamentRepository: Repository<Tournament>,
         @InjectRepository(Division)
@@ -727,9 +729,6 @@ export class StartggService {
             match.entrants = set.entrants
                 .map((entrant) => entrantByExternalId.get(entrant.id))
                 .filter((entrant): entrant is Entrant => Boolean(entrant));
-            match.targetPaths = existingMatch?.targetPaths ?? [];
-            match.sourcePaths = existingMatch?.sourcePaths ?? [];
-
             touchedPhaseIds.add(targetPhase.id);
             matchesBySetId.set(set.id, match);
             return match;
@@ -756,39 +755,32 @@ export class StartggService {
         }
 
         const resultIdsToDelete = new Set<number>();
-        for (const set of sets) {
-            const localMatch = matchesBySetId.get(set.id);
-            if (!localMatch) continue;
-
-            localMatch.targetPaths = [];
-            localMatch.sourcePaths = [];
+        const savedMatchIds = Array.from(matchesBySetId.values()).map((match) => match.id);
+        for (const matchId of savedMatchIds) {
+            await this.advancementRuleService.deleteBySource('match', matchId);
         }
 
         for (const set of sets) {
             const localMatch = matchesBySetId.get(set.id);
             if (!localMatch) continue;
 
-            for (const slot of set.slots ?? []) {
+            for (const [slotIndex, slot] of (set.slots ?? []).entries()) {
                 if (slot.prereqType !== 'set' || !slot.prereqId) {
                     continue;
                 }
 
                 const sourceMatch = matchesBySetId.get(slot.prereqId);
-                const routeIndex = (slot.prereqPlacement ?? 1) - 1;
-                if (!sourceMatch || routeIndex < 0) {
+                const sourcePlacement = slot.prereqPlacement ?? 1;
+                if (!sourceMatch || sourcePlacement < 1) {
                     continue;
                 }
 
-                const sourceTargetPaths = [...(sourceMatch.targetPaths ?? [])];
-                while (sourceTargetPaths.length <= routeIndex) {
-                    sourceTargetPaths.push(0);
-                }
-                sourceTargetPaths[routeIndex] = localMatch.id;
-                sourceMatch.targetPaths = sourceTargetPaths;
-
-                const nextSourcePaths = new Set<number>(localMatch.sourcePaths ?? []);
-                nextSourcePaths.add(sourceMatch.id);
-                localMatch.sourcePaths = Array.from(nextSourcePaths);
+                await this.advancementRuleService.createMatchToMatchRule(
+                    sourceMatch.id,
+                    sourcePlacement,
+                    localMatch.id,
+                    slotIndex + 1,
+                );
             }
 
             const playerPoints = this.buildImportedPlayerPoints(set, entrantByExternalId);

@@ -31,16 +31,6 @@ export class CreateMatchDto {
   @IsArray()
   entrantIds?: number[];
 
-  @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
-  @IsOptional()
-  @IsArray()
-  targetPaths?: number[];
-
-  @ApiProperty({ description: 'The source paths (which matches feed into this match)', example: [1, 2] })
-  @IsOptional()
-  @IsArray()
-  sourcePaths?: number[];
-
   @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
   @IsNotEmpty()
   @IsNumber()
@@ -73,16 +63,6 @@ export class UpdateMatchDto {
   @IsOptional()
   @IsArray()
   entrantIds?: number[];
-
-  @ApiProperty({ description: 'The target paths (where players advance to)', example: [1, 2, 3] })
-  @IsOptional()
-  @IsArray()
-  targetPaths?: number[];
-
-  @ApiProperty({ description: 'The source paths (which matches feed into this match)', example: [1, 2] })
-  @IsOptional()
-  @IsArray()
-  sourcePaths?: number[];
 
   @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
   @IsOptional()
