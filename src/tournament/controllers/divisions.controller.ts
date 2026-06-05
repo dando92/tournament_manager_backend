@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
+import { BracketManager } from '@bracket/bracket.manager';
 import { Division, Entrant } from '@persistence/entities';
-import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, UpdateDivisionDto } from '../dtos';
+import { CreateDivisionDto, DivisionStandingRowDto, DivisionSummaryDto, GenerateDivisionBracketDto, UpdateDivisionDto } from '../dtos';
 import { DivisionManager } from '../services/division.manager';
 import { DivisionService } from '../services/division.service';
 import { EntrantService } from '../services/entrant.service';
@@ -11,6 +12,7 @@ export class DivisionsController {
         private readonly divisionService: DivisionService,
         private readonly divisionManager: DivisionManager,
         private readonly entrantService: EntrantService,
+        private readonly bracketManager: BracketManager,
     ) {}
 
     @Post()
@@ -31,6 +33,14 @@ export class DivisionsController {
     @Get(':id/standings')
     async findStandings(@Param('id') id: number): Promise<DivisionStandingRowDto[]> {
         return this.divisionManager.findStandings(Number(id));
+    }
+
+    @Post(':id/generate-bracket')
+    async generateBracket(
+        @Param('id') id: number,
+        @Body(new ValidationPipe()) dto: GenerateDivisionBracketDto,
+    ): Promise<{ phaseId: number; phaseGroupId: number }> {
+        return this.bracketManager.generateForDivision(Number(id), dto);
     }
 
     @Get(':id')

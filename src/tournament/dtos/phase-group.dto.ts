@@ -37,15 +37,6 @@ export class UpdatePhaseGroupSeedingDto {
   entrantIds: number[];
 }
 
-export class GeneratePhaseGroupBracketDto {
-  @IsString()
-  bracketType: string;
-
-  @IsOptional()
-  @IsNumber()
-  playerPerMatch?: number;
-}
-
 export class PhaseGroupAdvancementRuleInputDto {
   @IsNumber()
   sourcePlacement: number;

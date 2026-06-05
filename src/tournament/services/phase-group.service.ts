@@ -76,7 +76,9 @@ export class PhaseGroupService {
         return this.phaseGroupRepository.findOne({
             where: { id },
             relations: {
-                phase: true,
+                phase: {
+                    division: true,
+                },
                 entrants: {
                     entrant: {
                         participants: {

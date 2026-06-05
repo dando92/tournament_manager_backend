@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
 import {
     CreatePhaseGroupDto,
-    GeneratePhaseGroupBracketDto,
     UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
     UpdatePhaseGroupSeedingDto,
@@ -60,15 +59,6 @@ export class PhaseGroupsController {
         @Body(new ValidationPipe()) dto: UpdatePhaseGroupSeedingDto,
     ): Promise<void> {
         return this.phaseGroupManager.updateSeeding(Number(id), dto);
-    }
-
-    @Post('phase-groups/:id/generate-bracket')
-    async generateBracket(
-        @Param('id') id: number,
-        @Body(new ValidationPipe()) dto: GeneratePhaseGroupBracketDto,
-    ): Promise<{ success: true }> {
-        await this.phaseGroupManager.generateBracket(Number(id), dto);
-        return { success: true };
     }
 
     @Put('phase-groups/:id/advancement-rules')

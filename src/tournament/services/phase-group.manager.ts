@@ -2,7 +2,6 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PhaseGroup, PhaseGroupEntrant } from '@persistence/entities';
 import {
     CreatePhaseGroupDto,
-    GeneratePhaseGroupBracketDto,
     UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
     UpdatePhaseGroupSeedingDto,
@@ -10,7 +9,6 @@ import {
 import { DivisionSummaryPhaseGroupDto } from '@tournament/dtos/division-summary.dto';
 import { PhaseGroupService } from './phase-group.service';
 import { AdvancementRuleService } from './advancement-rule.service';
-import { BracketManager } from '@bracket/bracket.manager';
 
 @Injectable()
 export class PhaseGroupManager {
@@ -19,8 +17,6 @@ export class PhaseGroupManager {
         private readonly phaseGroupService: PhaseGroupService,
         @Inject()
         private readonly advancementRuleService: AdvancementRuleService,
-        @Inject()
-        private readonly bracketManager: BracketManager,
     ) {}
 
     async createForPhase(phaseId: number, dto: CreatePhaseGroupDto): Promise<DivisionSummaryPhaseGroupDto> {
@@ -56,10 +52,6 @@ export class PhaseGroupManager {
 
     async updateSeeding(phaseGroupId: number, dto: UpdatePhaseGroupSeedingDto): Promise<void> {
         await this.phaseGroupService.updateSeeding(phaseGroupId, dto.entrantIds);
-    }
-
-    async generateBracket(phaseGroupId: number, dto: GeneratePhaseGroupBracketDto): Promise<void> {
-        await this.bracketManager.generateForPhaseGroup(phaseGroupId, dto.bracketType, dto.playerPerMatch ?? 2);
     }
 
     async updateAdvancementRules(phaseGroupId: number, dto: UpdatePhaseGroupAdvancementRulesDto): Promise<DivisionSummaryPhaseGroupDto> {

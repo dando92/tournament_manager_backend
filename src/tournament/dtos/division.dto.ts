@@ -45,3 +45,23 @@ export class UpdateDivisionDto {
   tournament?: Tournament;
 }
 
+export class GenerateDivisionBracketDto {
+  @ApiProperty({ description: 'The generated phase name', example: 'Bracket', required: false })
+  @IsOptional()
+  @IsString()
+  @Type(() => String)
+  phaseName?: string;
+
+  @ApiProperty({ description: 'The bracket type to generate', example: 'SingleElimination' })
+  @IsNotEmpty()
+  @IsString()
+  @Type(() => String)
+  bracketType: string;
+
+  @ApiProperty({ description: 'Players per match for this generated bracket', example: 2, required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  playerPerMatch?: number;
+}
+

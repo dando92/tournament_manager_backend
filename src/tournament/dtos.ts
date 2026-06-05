@@ -1,4 +1,4 @@
-import { CreateDivisionDto, UpdateDivisionDto } from './dtos/division.dto';
+import { CreateDivisionDto, GenerateDivisionBracketDto, UpdateDivisionDto } from './dtos/division.dto';
 import { CreatePhaseDto, UpdatePhaseDto } from './dtos/phase.dto';
 import { CreateMatchDto, UpdateMatchDto, CreateMatchWithSongsDto, AddSongToMatchDto, AddStandingToMatchDto } from '@match/dtos/match.dto';
 import { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto } from '@player/player.dto';
@@ -19,14 +19,13 @@ import { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto,
 import { CreateAdvancementRuleDto, MatchAdvancementRuleInputDto, UpdateAdvancementRuleDto, UpdateMatchAdvancementRulesDto } from './dtos/advancement-rule.dto';
 import {
     CreatePhaseGroupDto,
-    GeneratePhaseGroupBracketDto,
     PhaseGroupAdvancementRuleInputDto,
     UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
     UpdatePhaseGroupSeedingDto,
 } from './dtos/phase-group.dto';
 
-export { CreateDivisionDto, UpdateDivisionDto };
+export { CreateDivisionDto, GenerateDivisionBracketDto, UpdateDivisionDto };
 export { CreatePhaseDto, UpdatePhaseDto };
 export { CreateMatchDto, UpdateMatchDto, CreateMatchWithSongsDto, AddSongToMatchDto, AddStandingToMatchDto };
 export { CreatePlayerDto, UpdatePlayerDto, BulkAddPlayersToDivisionDto };
@@ -47,7 +46,6 @@ export { CreateParticipantDto, ImportParticipantEntryDto, ImportParticipantsDto,
 export { CreateAdvancementRuleDto, MatchAdvancementRuleInputDto, UpdateAdvancementRuleDto, UpdateMatchAdvancementRulesDto };
 export {
     CreatePhaseGroupDto,
-    GeneratePhaseGroupBracketDto,
     PhaseGroupAdvancementRuleInputDto,
     UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
