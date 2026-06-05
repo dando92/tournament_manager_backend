@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Division, Phase } from '@persistence/entities';
+import { Division, Entrant, Phase } from '@persistence/entities';
 import { CreatePhaseDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { PhaseGroupService } from './phase-group.service';
@@ -49,6 +49,24 @@ export class PhaseService {
                 },
             },
         });
+    }
+
+    async getDivisionEntrants(id: number): Promise<Entrant[]> {
+        const phase = await this.phaseRepository.findOne({
+            where: { id },
+            relations: {
+                division: {
+                    entrants: {
+                        participants: {
+                            player: true,
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!phase) throw new NotFoundException(`Phase with ID ${id} not found`);
+        return phase.division.entrants ?? [];
     }
 
     async delete(id: number): Promise<void> {

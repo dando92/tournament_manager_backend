@@ -275,16 +275,13 @@ export class DivisionService {
         });
         if (!division) throw new NotFoundException(`Division ${id} not found`);
 
-        const activeParticipantIds = new Set(
+        const assignedParticipantIds = new Set(
             (division.entrants ?? [])
-                .filter((entrant) => entrant.status === 'active')
                 .flatMap((entrant) => entrant.participants ?? [])
                 .map((participant) => participant.id),
         );
 
         return (division.tournament.participants ?? [])
-            .filter((participant) => participant.status !== 'withdrawn')
-            .filter((participant) => !activeParticipantIds.has(participant.id))
-            .sort((left, right) => left.player.playerName.localeCompare(right.player.playerName));
+            .filter((participant) => !assignedParticipantIds.has(participant.id));
     }
 }

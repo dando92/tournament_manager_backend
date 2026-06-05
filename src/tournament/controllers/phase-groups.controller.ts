@@ -29,6 +29,11 @@ export class PhaseGroupsController {
         return this.phaseGroupManager.findOne(Number(id));
     }
 
+    @Get('phase-groups/:id/entrants')
+    async getEntrants(@Param('id') id: number): Promise<DivisionSummaryPhaseGroupDto['entrants']> {
+        return this.phaseGroupManager.getEntrants(Number(id));
+    }
+
     @Patch('phase-groups/:id')
     async update(
         @Param('id') id: number,

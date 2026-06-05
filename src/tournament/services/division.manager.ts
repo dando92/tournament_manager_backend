@@ -47,27 +47,7 @@ export class DivisionManager {
                     bracketType: phaseGroup.bracketType ?? null,
                     state: phaseGroup.state,
                     matchCount: phaseGroup.matches?.length ?? 0,
-                    entrants: (phaseGroup.entrants ?? []).map((phaseGroupEntrant) => ({
-                        id: phaseGroupEntrant.id,
-                        seedNum: phaseGroupEntrant.seedNum ?? null,
-                        slot: phaseGroupEntrant.slot ?? null,
-                        status: phaseGroupEntrant.status,
-                        entrant: {
-                            id: phaseGroupEntrant.entrant.id,
-                            name: phaseGroupEntrant.entrant.name,
-                            type: phaseGroupEntrant.entrant.type,
-                            status: phaseGroupEntrant.entrant.status,
-                            participants: (phaseGroupEntrant.entrant.participants ?? []).map((participant) => ({
-                                id: participant.id,
-                                roles: participant.roles ?? [],
-                                status: participant.status,
-                                player: {
-                                    id: participant.player.id,
-                                    playerName: participant.player.playerName,
-                                },
-                            })),
-                        },
-                    })),
+                    entrants: [],
                     advancementRules: phaseGroupRules
                         .filter((rule) => rule.sourceKind === 'phase_group' && rule.sourceId === phaseGroup.id)
                         .map((rule) => ({

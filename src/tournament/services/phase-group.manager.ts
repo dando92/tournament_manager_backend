@@ -30,6 +30,13 @@ export class PhaseGroupManager {
         return this.toDto(phaseGroup);
     }
 
+    async getEntrants(id: number): Promise<DivisionSummaryPhaseGroupDto['entrants']> {
+        const entrants = await this.phaseGroupService.getEntrants(id);
+        return entrants
+            .sort((left, right) => (left.seedNum ?? Number.MAX_SAFE_INTEGER) - (right.seedNum ?? Number.MAX_SAFE_INTEGER))
+            .map((entry) => this.toEntrantDto(entry));
+    }
+
     async update(id: number, dto: UpdatePhaseGroupDto): Promise<DivisionSummaryPhaseGroupDto> {
         return this.toDto(await this.phaseGroupService.update(id, dto));
     }

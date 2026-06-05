@@ -228,6 +228,23 @@ export class PhaseGroupService {
             .map((entry) => entry.entrant);
     }
 
+    async getEntrants(phaseGroupId: number): Promise<PhaseGroupEntrant[]> {
+        const phaseGroup = await this.phaseGroupRepository.findOne({
+            where: { id: phaseGroupId },
+            relations: {
+                entrants: {
+                    entrant: {
+                        participants: {
+                            player: true,
+                        },
+                    },
+                },
+            },
+        });
+        if (!phaseGroup) throw new NotFoundException(`PhaseGroup with ID ${phaseGroupId} not found`);
+        return phaseGroup.entrants ?? [];
+    }
+
     private async getNextSlot(phaseGroupId: number): Promise<number> {
         const { max } = await this.phaseGroupEntrantRepository
             .createQueryBuilder('phaseGroupEntrant')
