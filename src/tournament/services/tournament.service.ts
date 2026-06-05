@@ -41,15 +41,7 @@ export class TournamentService {
     }
 
     async findOneForPage(id: number): Promise<Tournament | null> {
-        return this.tournamentRepository.findOne({
-            where: { id },
-            relations: {
-                participants: {
-                    account: true,
-                    player: true,
-                },
-            },
-        });
+        return this.tournamentRepository.findOneBy({ id });
     }
 
     async findOneForUpdate(id: number): Promise<Tournament | null> {

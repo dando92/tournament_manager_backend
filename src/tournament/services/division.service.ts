@@ -123,28 +123,16 @@ export class DivisionService {
     }
 
     async findOverviewData(tournamentId: number): Promise<Division[]> {
-        return this.divisionRepository.find({
-            where: { tournament: { id: tournamentId } },
-            relations: {
-                entrants: {
-                    participants: {
-                        player: true,
-                    },
-                },
-                phases: {
-                    phaseGroups: {
-                        entrants: {
-                            entrant: {
-                                participants: {
-                                    player: true,
-                                },
-                            },
-                        },
-                        matches: true,
-                    },
-                },
-            },
-        });
+        return this.divisionRepository
+            .createQueryBuilder('division')
+            .leftJoinAndSelect('division.entrants', 'entrant')
+            .leftJoinAndSelect('entrant.participants', 'participant')
+            .leftJoinAndSelect('participant.player', 'player')
+            .leftJoinAndSelect('division.phases', 'phase')
+            .leftJoinAndSelect('phase.phaseGroups', 'phaseGroup')
+            .loadRelationCountAndMap('phaseGroup.matchCount', 'phaseGroup.matches')
+            .where('division.tournamentId = :tournamentId', { tournamentId })
+            .getMany();
     }
 
     async findOneForView(id: number): Promise<Division | null> {

@@ -164,7 +164,7 @@ export class TournamentManager {
             (count, division) =>
                 count + (division.phases ?? []).reduce(
                     (phaseCount, phase) =>
-                        phaseCount + (phase.phaseGroups ?? []).reduce((groupCount, phaseGroup) => groupCount + (phaseGroup.matches?.length ?? 0), 0),
+                        phaseCount + (phase.phaseGroups ?? []).reduce((groupCount, phaseGroup) => groupCount + this.getPhaseGroupMatchCount(phaseGroup), 0),
                     0,
                 ),
             0,
@@ -195,7 +195,7 @@ export class TournamentManager {
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
                     name: phase.name,
-                    matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + (phaseGroup.matches?.length ?? 0), 0),
+                    matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + this.getPhaseGroupMatchCount(phaseGroup), 0),
                     phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
                         id: phaseGroup.id,
                         name: phaseGroup.name,
@@ -203,10 +203,14 @@ export class TournamentManager {
                         bracketType: phaseGroup.bracketType ?? null,
                         state: phaseGroup.state,
                         entrants: [],
-                        matchCount: phaseGroup.matches?.length ?? 0,
+                        matchCount: this.getPhaseGroupMatchCount(phaseGroup),
                     })),
                 })),
             })),
         };
+    }
+
+    private getPhaseGroupMatchCount(phaseGroup: { matches?: unknown[]; matchCount?: number }): number {
+        return phaseGroup.matchCount ?? phaseGroup.matches?.length ?? 0;
     }
 }
