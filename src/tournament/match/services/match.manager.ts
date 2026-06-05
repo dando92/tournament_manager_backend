@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateRoundDto } from '@tournament/dtos';
 import { UpdateMatchDto } from '@match/dtos/match.dto';
-import { MatchAdvancementRuleInputDto } from '@tournament/dtos';
 import { Match } from '@persistence/entities';
 import { SongRoller } from '@tournament/services/song.roller';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
@@ -53,24 +52,6 @@ export class MatchManager {
     async FindMatchesForDivision(divisionId: number): Promise<MatchListDto[]> {
         const matches = await this.matchService.findByDivisionForView(divisionId);
         return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
-    }
-
-    async UpdateMatchAdvancementRules(matchId: number, rules: MatchAdvancementRuleInputDto[]): Promise<MatchListDto> {
-        const match = await this.matchService.getMatch(Number(matchId));
-        if (!match) throw new Error(`Match ${matchId} not found`);
-
-        await this.advancementRuleService.deleteBySource('match', Number(matchId));
-
-        for (const rule of rules) {
-            await this.advancementRuleService.createMatchToMatchRule(
-                Number(matchId),
-                rule.sourcePlacement,
-                rule.targetId,
-                rule.targetSlot,
-            );
-        }
-
-        return await this.GetMatchForView(Number(matchId));
     }
 
     async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {

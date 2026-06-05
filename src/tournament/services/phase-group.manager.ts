@@ -2,21 +2,17 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PhaseGroup, PhaseGroupEntrant } from '@persistence/entities';
 import {
     CreatePhaseGroupDto,
-    UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
     UpdatePhaseGroupSeedingDto,
 } from '@tournament/dtos';
 import { DivisionSummaryPhaseGroupDto } from '@tournament/dtos/division-summary.dto';
 import { PhaseGroupService } from './phase-group.service';
-import { AdvancementRuleService } from './advancement-rule.service';
 
 @Injectable()
 export class PhaseGroupManager {
     constructor(
         @Inject()
         private readonly phaseGroupService: PhaseGroupService,
-        @Inject()
-        private readonly advancementRuleService: AdvancementRuleService,
     ) {}
 
     async createForPhase(phaseId: number, dto: CreatePhaseGroupDto): Promise<DivisionSummaryPhaseGroupDto> {
@@ -52,20 +48,6 @@ export class PhaseGroupManager {
 
     async updateSeeding(phaseGroupId: number, dto: UpdatePhaseGroupSeedingDto): Promise<void> {
         await this.phaseGroupService.updateSeeding(phaseGroupId, dto.entrantIds);
-    }
-
-    async updateAdvancementRules(phaseGroupId: number, dto: UpdatePhaseGroupAdvancementRulesDto): Promise<DivisionSummaryPhaseGroupDto> {
-        await this.advancementRuleService.deleteBySource('phase_group', phaseGroupId);
-        for (const rule of dto.rules ?? []) {
-            await this.advancementRuleService.createPhaseGroupToPhaseGroupRule(
-                phaseGroupId,
-                rule.sourcePlacement,
-                rule.targetId,
-                rule.targetSlot,
-            );
-        }
-
-        return this.findOne(phaseGroupId);
     }
 
     private toDto(phaseGroup: PhaseGroup): DivisionSummaryPhaseGroupDto {

@@ -37,18 +37,3 @@ export class UpdatePhaseGroupSeedingDto {
   entrantIds: number[];
 }
 
-export class PhaseGroupAdvancementRuleInputDto {
-  @IsNumber()
-  sourcePlacement: number;
-
-  @IsNumber()
-  targetId: number;
-
-  @IsNumber()
-  targetSlot: number;
-}
-
-export class UpdatePhaseGroupAdvancementRulesDto {
-  @IsArray()
-  rules: PhaseGroupAdvancementRuleInputDto[];
-}

@@ -1,7 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
 import {
     CreatePhaseGroupDto,
-    UpdatePhaseGroupAdvancementRulesDto,
     UpdatePhaseGroupDto,
     UpdatePhaseGroupSeedingDto,
 } from '@tournament/dtos';
@@ -61,11 +60,4 @@ export class PhaseGroupsController {
         return this.phaseGroupManager.updateSeeding(Number(id), dto);
     }
 
-    @Put('phase-groups/:id/advancement-rules')
-    async updateAdvancementRules(
-        @Param('id') id: number,
-        @Body(new ValidationPipe()) dto: UpdatePhaseGroupAdvancementRulesDto,
-    ): Promise<DivisionSummaryPhaseGroupDto> {
-        return this.phaseGroupManager.updateAdvancementRules(Number(id), dto);
-    }
 }
