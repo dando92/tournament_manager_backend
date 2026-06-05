@@ -17,7 +17,7 @@ export class PhaseService {
         private readonly phaseGroupService: PhaseGroupService,
     ) {}
 
-    async create(dto: CreatePhaseDto): Promise<Phase> {
+    async create(dto: CreatePhaseDto, options: { createDefaultPhaseGroup?: boolean } = {}): Promise<Phase> {
         const division = await this.divisionRepository.findOneBy({ id: dto.divisionId });
         if (!division) throw new NotFoundException(`Division with ID ${dto.divisionId} not found`);
 
@@ -26,7 +26,9 @@ export class PhaseService {
         phase.division = division;
 
         const savedPhase = await this.phaseRepository.save(phase);
-        await this.phaseGroupService.createDefaultForPhase(savedPhase);
+        if (options.createDefaultPhaseGroup ?? true) {
+            await this.phaseGroupService.createDefaultForPhase(savedPhase);
+        }
         await this.uiUpdateGateway.emitDivisionUpdateByDivisionId(dto.divisionId);
         return savedPhase;
     }
