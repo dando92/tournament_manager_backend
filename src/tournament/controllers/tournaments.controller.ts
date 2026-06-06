@@ -8,6 +8,7 @@ import {
     UpdateTournamentDto,
     TournamentOverviewDto,
     TournamentResponseDto,
+    TournamentConfigurationDto,
 } from '../dtos';
 import { JwtAuthGuard, CreatorOrAdminGuard, TournamentAccessGuard } from '@auth/guards';
 import { AuthService } from '@auth/services/auth.service';
@@ -57,6 +58,18 @@ export class TournamentsController {
     @Get(':id/overview')
     findOverview(@Param('id') id: number): Promise<TournamentOverviewDto> {
         return this.tournamentManager.findOverview(Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Get(':id/configuration')
+    findConfiguration(@Param('id') id: number): Promise<TournamentConfigurationDto> {
+        return this.tournamentManager.findConfiguration(Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Get(':id/startgg/api-key-status')
+    getStartggApiKeyStatus(@Param('id') id: number): Promise<{ hasStartggApiKey: boolean }> {
+        return this.tournamentManager.hasStartggApiKey(Number(id));
     }
 
     @Get(':id')

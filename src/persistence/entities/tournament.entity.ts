@@ -21,6 +21,15 @@ export class Tournament {
   @Column({ default: 'ws://syncservice.groovestats.com:1337' })
   syncstartUrl: string;
 
+  @Column({ nullable: true, default: null })
+  startggApiKey: string | null;
+
+  @Column({ default: 2 })
+  availableSetupsCount: number;
+
+  @Column({ default: 'EurocupScoreCalculator' })
+  defaultScoringSystem: string;
+
   @OneToMany(() => Division, (division) => division.tournament, { cascade: true })
   divisions: Division[]
 

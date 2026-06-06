@@ -63,7 +63,7 @@ export class BracketManager {
             bracketType: dto.bracketType,
         });
         await this.phaseGroupService.replaceEntrants(phaseGroup.id, entrants);
-        await this.generateForPhaseGroup(phaseGroup.id, dto.bracketType, dto.playerPerMatch ?? division.playersPerMatch ?? 2);
+        await this.generateForPhaseGroup(phaseGroup.id, dto.bracketType, dto.playerPerMatch ?? 2);
 
         return {
             phaseId: phase.id,

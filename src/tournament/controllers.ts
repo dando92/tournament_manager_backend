@@ -9,7 +9,6 @@ import { SongsController } from './controllers/songs.controller';
 import { ScoresController } from './controllers/scores.controller';
 import { StandingsController } from './standing/standings.controller';
 import { BracketController } from '@bracket/bracket.controller';
-import { StartggController } from '../integrations/startgg/startgg.controller';
 
 export const Controllers = [
     DivisionsController,
@@ -23,5 +22,4 @@ export const Controllers = [
     ScoresController,
     StandingsController,
     BracketController,
-    StartggController,
 ];

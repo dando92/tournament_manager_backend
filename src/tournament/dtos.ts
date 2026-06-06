@@ -7,7 +7,7 @@ import { CreateScoreDto, UpdateScoreDto } from './dtos/score.dto';
 import { CreateSongDto, UpdateSongDto } from './dtos/song.dto';
 import { CreateStandingDto, UpdateStandingDto } from './standing/standing.dto';
 
-import { CreateTournamentDto, UpdateTournamentDto, TournamentStaffDto, TournamentResponseDto } from './dtos/tournament.dto';
+import { CreateTournamentDto, UpdateTournamentDto, TournamentConfigurationDto, TournamentStaffDto, TournamentResponseDto } from './dtos/tournament.dto';
 import { TournamentOverviewDto, TournamentOverviewDivisionDto, TournamentOverviewDivisionPhaseDto, TournamentOverviewDivisionPlayerDto, TournamentOverviewEntrantDto, TournamentOverviewParticipantDto } from './dtos/tournament-overview.dto';
 import { DivisionSummaryDto, DivisionSummaryPhaseDto, DivisionSummaryPlayerDto, DivisionSummaryEntrantDto, DivisionSummaryParticipantDto } from './dtos/division-summary.dto';
 import { DivisionStandingRowDto } from './dtos/division-standings.dto';
@@ -32,7 +32,7 @@ export { CreateScoreDto, UpdateScoreDto };
 export { CreateSongDto, UpdateSongDto };
 export { CreateStandingDto, UpdateStandingDto };
 
-export { CreateTournamentDto, UpdateTournamentDto, TournamentStaffDto, TournamentResponseDto };
+export { CreateTournamentDto, UpdateTournamentDto, TournamentConfigurationDto, TournamentStaffDto, TournamentResponseDto };
 export { TournamentOverviewDto, TournamentOverviewDivisionDto, TournamentOverviewDivisionPhaseDto, TournamentOverviewDivisionPlayerDto, TournamentOverviewEntrantDto, TournamentOverviewParticipantDto };
 export { DivisionSummaryDto, DivisionSummaryPhaseDto, DivisionSummaryPlayerDto, DivisionSummaryEntrantDto, DivisionSummaryParticipantDto };
 export { DivisionStandingRowDto };

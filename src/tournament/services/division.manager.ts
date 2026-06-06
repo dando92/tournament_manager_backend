@@ -20,7 +20,6 @@ export class DivisionManager {
         return {
             id: division.id,
             name: division.name,
-            playersPerMatch: division.playersPerMatch ?? null,
             entrants: (division.entrants ?? []).map((entrant) => ({
                 id: entrant.id,
                 name: entrant.name,

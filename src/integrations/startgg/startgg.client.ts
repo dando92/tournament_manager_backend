@@ -2,7 +2,6 @@ import {
     BadGatewayException,
     HttpException,
     Injectable,
-    InternalServerErrorException,
     Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -38,23 +37,22 @@ type GraphqlResponse<T> = {
 export class StartggClient {
     private readonly logger = new Logger(StartggClient.name);
     private readonly endpoint: string;
-    private readonly accessToken?: string;
     private readonly perPage: number;
     private readonly minIntervalMs: number;
     private lastRequestAt = 0;
 
     constructor(private readonly configService: ConfigService) {
         this.endpoint = this.configService.get<string>('STARTGG_API_URL') ?? 'https://api.start.gg/gql/alpha';
-        this.accessToken = this.configService.get<string>('STARTGG_ACCESS_TOKEN');
         this.perPage = Number(this.configService.get<string>('STARTGG_PER_PAGE') ?? 64);
         this.minIntervalMs = Number(this.configService.get<string>('STARTGG_MIN_INTERVAL_MS') ?? 1000);
     }
 
-    async getEventBySlug(slug: string): Promise<StartggEventNode> {
+    async getEventBySlug(slug: string, accessToken: string): Promise<StartggEventNode> {
         const response = await this.request<GetEventBySlugResponse>(
             'GetEventBySlug',
             GET_EVENT_BY_SLUG_QUERY,
             { slug },
+            accessToken,
         );
         try {
             return GetEventBySlugResponse.map(response, slug);
@@ -63,7 +61,7 @@ export class StartggClient {
         }
     }
 
-    async getEventEntrants(eventId: string): Promise<StartggEntrantNode[]> {
+    async getEventEntrants(eventId: string, accessToken: string): Promise<StartggEntrantNode[]> {
         return this.paginate<StartggEntrantNode>(
             `event:${eventId}:entrants`,
             async (page, perPage) => {
@@ -71,13 +69,14 @@ export class StartggClient {
                     'EventEntrants',
                     EVENT_ENTRANTS_QUERY,
                     { eventId, page, perPage },
+                    accessToken,
                 );
                 return EventEntrantsResponse.mapPage(response);
             },
         );
     }
 
-    async getPhaseSeeds(phaseId: string): Promise<StartggSeedNode[]> {
+    async getPhaseSeeds(phaseId: string, accessToken: string): Promise<StartggSeedNode[]> {
         return this.paginate<StartggSeedNode>(
             `phase:${phaseId}:seeds`,
             async (page, perPage) => {
@@ -85,13 +84,14 @@ export class StartggClient {
                     'PhaseSeeds',
                     PHASE_SEEDS_QUERY,
                     { phaseId, page, perPage },
+                    accessToken,
                 );
                 return PhaseSeedsResponse.mapPage(response);
             },
         );
     }
 
-    async getEventSets(eventId: string): Promise<StartggSetNode[]> {
+    async getEventSets(eventId: string, accessToken: string): Promise<StartggSetNode[]> {
         return this.paginate<StartggSetNode>(
             `event:${eventId}:sets`,
             async (page, perPage) => {
@@ -99,13 +99,14 @@ export class StartggClient {
                     'EventSets',
                     EVENT_SETS_QUERY,
                     { eventId, page, perPage },
+                    accessToken,
                 );
                 return EventSetsResponse.mapPage(response);
             },
         );
     }
 
-    async getPhaseGroups(phaseId: string): Promise<StartggPhaseGroupNode[]> {
+    async getPhaseGroups(phaseId: string, accessToken: string): Promise<StartggPhaseGroupNode[]> {
         return this.paginate<StartggPhaseGroupNode>(
             `phase:${phaseId}:phaseGroups`,
             async (page, perPage) => {
@@ -113,13 +114,14 @@ export class StartggClient {
                     'PhaseGroupsByPhase',
                     PHASE_GROUPS_BY_PHASE_QUERY,
                     { phaseId, page, perPage },
+                    accessToken,
                 );
                 return PhaseGroupsByPhaseResponse.mapPage(response, phaseId);
             },
         );
     }
 
-    async getPhaseGroupSets(phaseGroup: StartggPhaseGroupNode): Promise<StartggSetNode[]> {
+    async getPhaseGroupSets(phaseGroup: StartggPhaseGroupNode, accessToken: string): Promise<StartggSetNode[]> {
         return this.paginate<StartggSetNode>(
             `phaseGroup:${phaseGroup.id}:sets`,
             async (page, perPage) => {
@@ -127,17 +129,14 @@ export class StartggClient {
                     'PhaseGroupSets',
                     PHASE_GROUP_SETS_QUERY,
                     { phaseGroupId: phaseGroup.id, page, perPage },
+                    accessToken,
                 );
                 return PhaseGroupSetsResponse.mapPage(response, phaseGroup);
             },
         );
     }
 
-    private async request<T>(operationName: string, query: string, variables: Record<string, unknown>): Promise<T> {
-        if (!this.accessToken) {
-            throw new InternalServerErrorException('STARTGG_ACCESS_TOKEN is not configured');
-        }
-
+    private async request<T>(operationName: string, query: string, variables: Record<string, unknown>, accessToken: string): Promise<T> {
         const throttleWaitMs = await this.throttle();
 
         const maxAttempts = 4;
@@ -152,7 +151,7 @@ export class StartggClient {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${this.accessToken}`,
+                    Authorization: `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
                     query,

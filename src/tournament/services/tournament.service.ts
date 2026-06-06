@@ -60,7 +60,13 @@ export class TournamentService {
 
         const previousSyncstartUrl = existing.syncstartUrl;
 
-        this.tournamentRepository.merge(existing, { name: dto.name, syncstartUrl: dto.syncstartUrl });
+        this.tournamentRepository.merge(existing, {
+            name: dto.name,
+            syncstartUrl: dto.syncstartUrl,
+            startggApiKey: dto.startggApiKey,
+            availableSetupsCount: dto.availableSetupsCount,
+            defaultScoringSystem: dto.defaultScoringSystem,
+        });
         const tournament = await this.tournamentRepository.save(existing);
         return { tournament, previousSyncstartUrl };
     }

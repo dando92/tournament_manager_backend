@@ -55,7 +55,6 @@ export type DivisionSummaryPhaseDto = {
 export type DivisionSummaryDto = {
     id: number;
     name: string;
-    playersPerMatch: number | null;
     entrants: DivisionSummaryEntrantDto[];
     phases: DivisionSummaryPhaseDto[];
 };
