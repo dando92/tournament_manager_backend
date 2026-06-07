@@ -1,5 +1,3 @@
-import { MatchState } from '@persistence/entities';
-
 export type MatchListSongDto = {
     id: number;
     title: string;
@@ -21,7 +19,6 @@ export type MatchListEntrantDto = {
     id: number;
     name: string;
     type: string;
-    seedNum: number | null;
     status: string;
     participants: MatchListParticipantDto[];
 };
@@ -72,10 +69,10 @@ export type MatchListDto = {
     subtitle: string;
     notes: string;
     scoringSystem: string;
-    state: MatchState;
+    active: boolean;
     entrants: MatchListEntrantDto[];
     rounds: MatchListRoundDto[];
     advancementRules: MatchListAdvancementRuleDto[];
     matchResult?: MatchListResultDto | null;
-    phaseId?: number;
+    phaseGroupId: number;
 };

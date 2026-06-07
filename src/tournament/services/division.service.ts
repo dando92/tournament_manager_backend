@@ -20,7 +20,6 @@ export class DivisionService {
         if (!tournament) throw new NotFoundException(`Tournament ${dto.tournamentId} not found`);
         const division = new Division();
         division.name = dto.name;
-        division.playersPerMatch = dto.playersPerMatch ?? null;
         division.tournament = tournament;
         const savedDivision = await this.divisionRepository.save(division);
         await this.uiUpdateGateway.emitTournamentUpdate(dto.tournamentId);
@@ -50,7 +49,9 @@ export class DivisionService {
                     },
                 },
                 phases: {
-                    matches: true,
+                    phaseGroups: {
+                        matches: true,
+                    },
                 },
             },
         });
@@ -61,12 +62,21 @@ export class DivisionService {
             where: { id },
             relations: {
                 phases: {
-                    matches: {
-                        matchResult: true,
-                        rounds: {
-                            standings: {
-                                score: {
+                    phaseGroups: {
+                        entrants: {
+                            entrant: {
+                                participants: {
                                     player: true,
+                                },
+                            },
+                        },
+                        matches: {
+                            matchResult: true,
+                            rounds: {
+                                standings: {
+                                    score: {
+                                        player: true,
+                                    },
                                 },
                             },
                         },
@@ -87,19 +97,21 @@ export class DivisionService {
                     },
                 },
                 phases: {
-                    matches: {
-                        matchResult: true,
-                        entrants: {
-                            participants: {
-                                player: true,
-                            },
-                        },
-                        rounds: {
-                            song: true,
-                            standings: {
-                                score: {
+                    phaseGroups: {
+                        matches: {
+                            matchResult: true,
+                            entrants: {
+                                participants: {
                                     player: true,
-                                    song: true,
+                                },
+                            },
+                            rounds: {
+                                song: true,
+                                standings: {
+                                    score: {
+                                        player: true,
+                                        song: true,
+                                    },
                                 },
                             },
                         },
@@ -110,19 +122,16 @@ export class DivisionService {
     }
 
     async findOverviewData(tournamentId: number): Promise<Division[]> {
-        return this.divisionRepository.find({
-            where: { tournament: { id: tournamentId } },
-            relations: {
-                entrants: {
-                    participants: {
-                        player: true,
-                    },
-                },
-                phases: {
-                    matches: true,
-                },
-            },
-        });
+        return this.divisionRepository
+            .createQueryBuilder('division')
+            .leftJoinAndSelect('division.entrants', 'entrant')
+            .leftJoinAndSelect('entrant.participants', 'participant')
+            .leftJoinAndSelect('participant.player', 'player')
+            .leftJoinAndSelect('division.phases', 'phase')
+            .leftJoinAndSelect('phase.phaseGroups', 'phaseGroup')
+            .loadRelationCountAndMap('phaseGroup.matchCount', 'phaseGroup.matches')
+            .where('division.tournamentId = :tournamentId', { tournamentId })
+            .getMany();
     }
 
     async findOneForView(id: number): Promise<Division | null> {
@@ -135,18 +144,27 @@ export class DivisionService {
                     },
                 },
                 phases: {
-                    matches: {
-                        matchResult: true,
+                    phaseGroups: {
                         entrants: {
-                            participants: {
-                                player: true,
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
                             },
                         },
-                        rounds: {
-                            song: true,
-                            standings: {
-                                score: {
+                        matches: {
+                            matchResult: true,
+                            entrants: {
+                                participants: {
                                     player: true,
+                                },
+                            },
+                            rounds: {
+                                song: true,
+                                standings: {
+                                    score: {
+                                        player: true,
+                                    },
                                 },
                             },
                         },
@@ -166,14 +184,23 @@ export class DivisionService {
                     },
                 },
                 phases: {
-                    matches: {
+                    phaseGroups: {
                         entrants: {
-                            participants: {
-                                player: true,
+                            entrant: {
+                                participants: {
+                                    player: true,
+                                },
                             },
                         },
-                        rounds: {
-                            song: true,
+                        matches: {
+                            entrants: {
+                                participants: {
+                                    player: true,
+                                },
+                            },
+                            rounds: {
+                                song: true,
+                            },
                         },
                     },
                 },
@@ -247,16 +274,13 @@ export class DivisionService {
         });
         if (!division) throw new NotFoundException(`Division ${id} not found`);
 
-        const activeParticipantIds = new Set(
+        const assignedParticipantIds = new Set(
             (division.entrants ?? [])
-                .filter((entrant) => entrant.status === 'active')
                 .flatMap((entrant) => entrant.participants ?? [])
                 .map((participant) => participant.id),
         );
 
         return (division.tournament.participants ?? [])
-            .filter((participant) => participant.status !== 'withdrawn')
-            .filter((participant) => !activeParticipantIds.has(participant.id))
-            .sort((left, right) => left.player.playerName.localeCompare(right.player.playerName));
+            .filter((participant) => !assignedParticipantIds.has(participant.id));
     }
 }

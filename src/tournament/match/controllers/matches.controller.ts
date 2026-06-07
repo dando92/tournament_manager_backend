@@ -1,19 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, ValidationPipe } from '@nestjs/common';
 import { MatchListDto } from '@match/dtos/match-list.dto';
-import { AddSongToMatchDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchDto, UpdateMatchStateDto } from '@match/dtos/match.dto';
+import { AddSongToMatchDto, CommitMatchResultDto, CreateMatchDto, CreateMatchWithSongsDto, UpdateMatchActiveDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { MatchManager } from '@match/services/match.manager';
-import { MatchStateManager } from '@match/services/match-state.manager';
 import { MatchService } from '@match/services/match.service';
 import { ScoringSystemProvider } from '@tournament/services/scoring-systems/ScoringSystemProvider';
-import { UpdateMatchAdvancementRulesDto } from '@tournament/dtos';
 
 @Controller('matches')
 export class MatchesController {
     constructor(
         private readonly matchService: MatchService,
         private readonly matchManager: MatchManager,
-        private readonly matchStateManager: MatchStateManager,
         private readonly scoringSystemProvider: ScoringSystemProvider,
     ) {}
 
@@ -29,7 +26,7 @@ export class MatchesController {
             subtitle: dto.subtitle,
             notes: dto.notes,
             entrantIds: dto.entrantIds,
-            phaseId: dto.phaseId,
+            phaseGroupId: dto.phaseGroupId,
             scoringSystem: dto.scoringSystem,
         };
         const match = await this.matchService.create(createMatchDto);
@@ -48,6 +45,11 @@ export class MatchesController {
         return this.matchManager.FindMatchesForDivision(Number(divisionId));
     }
 
+    @Get('phase-group/:phaseGroupId')
+    findByPhaseGroup(@Param('phaseGroupId') phaseGroupId: number): Promise<MatchListDto[]> {
+        return this.matchManager.FindMatchesForPhaseGroup(Number(phaseGroupId));
+    }
+
     @Get(':id')
     findOne(@Param('id') id: number): Promise<MatchListDto | null> {
         return this.matchManager.GetMatchForView(Number(id));
@@ -55,7 +57,7 @@ export class MatchesController {
 
     @Patch(':id')
     update(@Param('id') id: number, @Body(new ValidationPipe()) dto: UpdateMatchDto): Promise<Match> {
-        return this.matchService.update(id, dto);
+        return this.matchManager.UpdateMatch(Number(id), dto);
     }
 
     @Delete(':id')
@@ -96,16 +98,18 @@ export class MatchesController {
         return match;
     }
 
-    @Put(':matchId/advancement-rules')
-    async updateMatchAdvancementRules(
-        @Param('matchId') matchId: number,
-        @Body(new ValidationPipe()) dto: UpdateMatchAdvancementRulesDto,
-    ): Promise<MatchListDto> {
-        return await this.matchManager.UpdateMatchAdvancementRules(Number(matchId), dto.rules);
+    @Put(':matchId/active')
+    async updateMatchActive(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: UpdateMatchActiveDto): Promise<MatchListDto | null> {
+        return await this.matchManager.UpdateMatchActive(Number(matchId), dto);
     }
 
-    @Put(':matchId/state')
-    async updateMatchState(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: UpdateMatchStateDto): Promise<Match> {
-        return await this.matchStateManager.UpdateMatchState(Number(matchId), dto);
+    @Put(':matchId/result')
+    async commitMatchResult(@Param('matchId') matchId: number, @Body(new ValidationPipe()) dto: CommitMatchResultDto): Promise<MatchListDto | null> {
+        return await this.matchManager.CommitMatchResult(Number(matchId), dto);
+    }
+
+    @Delete(':matchId/result')
+    async reopenMatchResult(@Param('matchId') matchId: number): Promise<MatchListDto | null> {
+        return await this.matchManager.ReopenMatchResult(Number(matchId));
     }
 }

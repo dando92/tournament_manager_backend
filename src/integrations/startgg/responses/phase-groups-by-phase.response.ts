@@ -10,6 +10,7 @@ export class PhaseGroupsByPhaseResponse {
             nodes?: Array<{
                 id: string | number;
                 displayIdentifier?: string | null;
+                bracketType?: string | null;
             }> | null;
         } | null;
     } | null;
@@ -27,6 +28,7 @@ export class PhaseGroupsByPhaseResponse {
                 .map((phaseGroup) => ({
                     id: String(phaseGroup.id),
                     displayIdentifier: phaseGroup.displayIdentifier ?? null,
+                    bracketType: phaseGroup.bracketType ?? null,
                     phaseId: String(phase?.id ?? fallbackPhaseId),
                     phaseName: phase?.name ?? null,
                     sets: [],

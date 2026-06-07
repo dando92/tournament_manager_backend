@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Division, Phase } from '@persistence/entities';
+import { Division, Entrant, Phase } from '@persistence/entities';
 import { CreatePhaseDto } from '../dtos';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
+import { PhaseGroupService } from './phase-group.service';
 
 @Injectable()
 export class PhaseService {
@@ -13,9 +14,10 @@ export class PhaseService {
         @InjectRepository(Division)
         private readonly divisionRepository: Repository<Division>,
         private readonly uiUpdateGateway: UiUpdateGateway,
+        private readonly phaseGroupService: PhaseGroupService,
     ) {}
 
-    async create(dto: CreatePhaseDto): Promise<Phase> {
+    async create(dto: CreatePhaseDto, options: { createDefaultPhaseGroup?: boolean } = {}): Promise<Phase> {
         const division = await this.divisionRepository.findOneBy({ id: dto.divisionId });
         if (!division) throw new NotFoundException(`Division with ID ${dto.divisionId} not found`);
 
@@ -24,6 +26,9 @@ export class PhaseService {
         phase.division = division;
 
         const savedPhase = await this.phaseRepository.save(phase);
+        if (options.createDefaultPhaseGroup ?? true) {
+            await this.phaseGroupService.createDefaultForPhase(savedPhase);
+        }
         await this.uiUpdateGateway.emitDivisionUpdateByDivisionId(dto.divisionId);
         return savedPhase;
     }
@@ -32,9 +37,36 @@ export class PhaseService {
         return this.phaseRepository.find({
             where: { division: { id: divisionId } },
             relations: {
-                matches: true,
+                phaseGroups: {
+                    entrants: {
+                        entrant: {
+                            participants: {
+                                player: true,
+                            },
+                        },
+                    },
+                    matches: true,
+                },
             },
         });
+    }
+
+    async getDivisionEntrants(id: number): Promise<Entrant[]> {
+        const phase = await this.phaseRepository.findOne({
+            where: { id },
+            relations: {
+                division: {
+                    entrants: {
+                        participants: {
+                            player: true,
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!phase) throw new NotFoundException(`Phase with ID ${id} not found`);
+        return phase.division.entrants ?? [];
     }
 
     async delete(id: number): Promise<void> {

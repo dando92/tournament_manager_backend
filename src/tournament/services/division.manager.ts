@@ -1,24 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DivisionStandingRowDto, DivisionSummaryDto } from '../dtos';
 import { DivisionService } from './division.service';
+import { AdvancementRuleService } from './advancement-rule.service';
 
 @Injectable()
 export class DivisionManager {
-    constructor(private readonly divisionService: DivisionService) {}
+    constructor(
+        private readonly divisionService: DivisionService,
+        private readonly advancementRuleService: AdvancementRuleService,
+    ) {}
 
     async findSummary(id: number): Promise<DivisionSummaryDto> {
         const division = await this.divisionService.findOneForSummary(id);
         if (!division) throw new NotFoundException(`Division ${id} not found`);
 
+        const phaseGroupIds = (division.phases ?? []).flatMap((phase) => (phase.phaseGroups ?? []).map((phaseGroup) => phaseGroup.id));
+        const phaseGroupRules = await this.advancementRuleService.findBySources('phase_group', phaseGroupIds);
+
         return {
             id: division.id,
             name: division.name,
-            playersPerMatch: division.playersPerMatch ?? null,
             entrants: (division.entrants ?? []).map((entrant) => ({
                 id: entrant.id,
                 name: entrant.name,
                 type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
                 status: entrant.status,
                 participants: (entrant.participants ?? []).map((participant) => ({
                     id: participant.id,
@@ -33,7 +38,27 @@ export class DivisionManager {
             phases: (division.phases ?? []).map((phase) => ({
                 id: phase.id,
                 name: phase.name,
-                matchCount: phase.matches?.length ?? 0,
+                matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + (phaseGroup.matches?.length ?? 0), 0),
+                phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
+                    id: phaseGroup.id,
+                    name: phaseGroup.name,
+                    displayIdentifier: phaseGroup.displayIdentifier ?? null,
+                    bracketType: phaseGroup.bracketType ?? null,
+                    state: phaseGroup.state,
+                    matchCount: phaseGroup.matches?.length ?? 0,
+                    entrants: [],
+                    advancementRules: phaseGroupRules
+                        .filter((rule) => rule.sourceKind === 'phase_group' && rule.sourceId === phaseGroup.id)
+                        .map((rule) => ({
+                            id: rule.id,
+                            sourceKind: rule.sourceKind,
+                            sourceId: rule.sourceId,
+                            sourcePlacement: rule.sourcePlacement,
+                            targetKind: rule.targetKind,
+                            targetId: rule.targetId,
+                            targetSlot: rule.targetSlot,
+                        })),
+                })),
             })),
         };
     }
@@ -45,7 +70,8 @@ export class DivisionManager {
         const playerTotals = new Map<number, DivisionStandingRowDto>();
 
         for (const phase of division.phases ?? []) {
-            for (const match of phase.matches ?? []) {
+            for (const phaseGroup of phase.phaseGroups ?? []) {
+            for (const match of phaseGroup.matches ?? []) {
                 for (const round of match.rounds ?? []) {
                     for (const standing of round.standings ?? []) {
                         const player = standing.score.player;
@@ -61,6 +87,7 @@ export class DivisionManager {
                         playerTotals.set(player.id, current);
                     }
                 }
+            }
             }
         }
 

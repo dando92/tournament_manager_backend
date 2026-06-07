@@ -7,7 +7,13 @@ export type StartggTournamentRef = {
 export type StartggSeedNode = {
     id: string;
     seedNum: number;
-    entrantId: string;
+    entrantId?: string | null;
+    groupSeedNum?: number | null;
+    phaseGroupId?: string | null;
+    progressionSource?: {
+        originPhaseGroupId?: string | null;
+        originPlacement?: number | null;
+    } | null;
 };
 
 export type StartggParticipantNode = {
@@ -51,6 +57,7 @@ export type StartggSetNode = {
 export type StartggPhaseGroupNode = {
     id: string;
     displayIdentifier?: string | null;
+    bracketType?: string | null;
     phaseId: string;
     phaseName?: string | null;
     sets: StartggSetNode[];

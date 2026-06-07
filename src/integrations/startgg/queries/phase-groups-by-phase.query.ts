@@ -11,6 +11,7 @@ query PhaseGroupsByPhase($phaseId: ID!, $page: Int!, $perPage: Int!) {
       nodes {
         id
         displayIdentifier
+        bracketType
       }
     }
   }

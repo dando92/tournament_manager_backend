@@ -10,17 +10,9 @@ import {
   JoinColumn } from 'typeorm';
 
 import { Round } from './round.entity'
-import { Phase } from './phase.entity'
 import { Entrant } from './entrant.entity'
 import { MatchResult } from './match_result.entity'
-
-export enum MatchState {
-  NotActive = 'NotActive',
-  Active = 'Active',
-  Pending = 'Pending',
-  Completed = 'Completed',
-}
-
+import { PhaseGroup } from './phase-group.entity'
 
 @Entity()
 export class Match {
@@ -39,8 +31,8 @@ export class Match {
   @Column()
   scoringSystem: string;
 
-  @Column({ type: 'varchar', default: MatchState.NotActive })
-  state: MatchState;
+  @Column({ default: false })
+  active: boolean;
 
   @ManyToMany(() => Entrant, (entrant) => entrant.matches, { nullable: true })
   @JoinTable()
@@ -57,7 +49,7 @@ export class Match {
   @JoinColumn()
   matchResult?: MatchResult | null;
 
-  @ManyToOne(() => Phase, (phase) => phase.matches, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PhaseGroup, (phaseGroup) => phaseGroup.matches, { onDelete: 'CASCADE' })
   @JoinColumn()
-  phase: Promise<Phase>;
+  phaseGroup: PhaseGroup;
 }

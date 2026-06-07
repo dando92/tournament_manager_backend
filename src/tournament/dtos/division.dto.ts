@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsArray } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Tournament } from '@persistence/entities';
@@ -16,11 +16,6 @@ export class CreateDivisionDto {
   @Type(() => Number)
   tournamentId: number;
 
-  @ApiProperty({ description: 'Max players per match for this bracket', required: false })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  playersPerMatch?: number;
 }
 
 export class UpdateDivisionDto {
@@ -36,17 +31,26 @@ export class UpdateDivisionDto {
   @Type(() => Number)
   tournamentId: number;
 
-  @ApiProperty({ description: 'Max players per match for this bracket', required: false })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  playersPerMatch?: number;
-
   tournament?: Tournament;
 }
 
-export class UpdateEntrantSeedingDto {
-  @ApiProperty({ description: 'Ordered entrant IDs for seeding', required: true })
-  @IsArray()
-  entrantIds: number[];
+export class GenerateDivisionBracketDto {
+  @ApiProperty({ description: 'The generated phase name', example: 'Bracket', required: false })
+  @IsOptional()
+  @IsString()
+  @Type(() => String)
+  phaseName?: string;
+
+  @ApiProperty({ description: 'The bracket type to generate', example: 'SingleElimination' })
+  @IsNotEmpty()
+  @IsString()
+  @Type(() => String)
+  bracketType: string;
+
+  @ApiProperty({ description: 'Players per match for this generated bracket', example: 2, required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  playerPerMatch?: number;
 }
+

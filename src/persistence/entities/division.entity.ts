@@ -19,9 +19,6 @@ export class Division {
   @Column()
   name: string;
 
-  @Column({ nullable: true, default: null })
-  playersPerMatch: number | null;
-
   @OneToMany(() => Phase, (phase) => phase.division, { cascade: true })
   phases: Phase[];
 

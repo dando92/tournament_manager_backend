@@ -15,12 +15,12 @@ export class SingleElimination extends IBracketSystem {
         return "SingleElimination";
     }
 
-    protected async createBracket(entrants: Entrant[], playerPerMatch: number, _division: Division, phase: Phase): Promise<void> {
-        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase);
+    protected async createBracket(entrants: Entrant[], playerPerMatch: number, _division: Division, phase: Phase, phaseGroupId?: number): Promise<void> {
+        const firstRound = await this.buildStructure(entrants.length, playerPerMatch, phase, phaseGroupId);
         await this.fillFirstWave(entrants, firstRound, playerPerMatch);
     }
 
-    private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase): Promise<Match[]> {
+    private async buildStructure(playerCount: number, playerPerMatch: number, phase: Phase, phaseGroupId?: number): Promise<Match[]> {
         const nextEffN = playerPerMatch * this.nextPow2(Math.ceil(playerCount / playerPerMatch));
         const byes = nextEffN - playerCount;
 
@@ -37,7 +37,7 @@ export class SingleElimination extends IBracketSystem {
 
         while (matchCount >= 1) {
             console.log("Creating matches: " + matchCount);
-            const nextMatches = await this.CreateMatchesInPhase("Round_" + roundIndex++, phase, matchCount);
+            const nextMatches = await this.CreateMatchesInPhase("Round_" + roundIndex++, phase, matchCount, phaseGroupId);
 
             if (firstRound === null) {
                 firstRound = nextMatches;
@@ -69,7 +69,7 @@ export class SingleElimination extends IBracketSystem {
 
         if (playerPerMatch > 2) {
             console.log("Creating finals");
-            const finals = await this.CreateMatchesInPhase("Finals", phase, 2);
+            const finals = await this.CreateMatchesInPhase("Finals", phase, 2, phaseGroupId);
 
             // Top half of placements go to the first final, bottom half to the second.
             const passingPlayers = Math.floor(playerPerMatch / 2);

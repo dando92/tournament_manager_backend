@@ -9,6 +9,16 @@ query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
       nodes {
         id
         seedNum
+        groupSeedNum
+        phaseGroup {
+          id
+        }
+        progressionSource {
+          originPlacement
+          originPhaseGroup {
+            id
+          }
+        }
         entrant {
           id
         }

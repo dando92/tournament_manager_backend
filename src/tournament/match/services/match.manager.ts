@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateRoundDto } from '@tournament/dtos';
-import { UpdateMatchDto } from '@match/dtos/match.dto';
-import { MatchAdvancementRuleInputDto } from '@tournament/dtos';
+import { CommitMatchResultDto, UpdateMatchActiveDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { Match } from '@persistence/entities';
 import { SongRoller } from '@tournament/services/song.roller';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
@@ -9,7 +8,7 @@ import { MatchService } from '@match/services/match.service';
 import { RoundService } from '@tournament/services/round.service';
 import { StandingService } from '@tournament/standing/standing.service';
 import { MatchListDto } from '@match/dtos/match-list.dto';
-import { MatchStateManager } from '@match/services/match-state.manager';
+import { MatchWorkflowManager } from '@match/services/match-workflow.manager';
 import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
 
 @Injectable()
@@ -26,7 +25,7 @@ export class MatchManager {
         @Inject()
         private readonly uiUpdateGateway: UiUpdateGateway,
         @Inject()
-        private readonly matchStateManager: MatchStateManager,
+        private readonly matchWorkflowManager: MatchWorkflowManager,
         @Inject()
         private readonly advancementRuleService: AdvancementRuleService,
     ) {
@@ -43,6 +42,10 @@ export class MatchManager {
     }
 
     async UpdateMatch(id: number, dto: UpdateMatchDto): Promise<Match> {
+        const match = await this.matchService.getMatch(id);
+        if (match && (dto.entrantIds !== undefined || dto.phaseGroupId !== undefined || dto.scoringSystem !== undefined)) {
+            this.matchWorkflowManager.assertEditable(match);
+        }
         return await this.matchService.update(id, dto);
     }
 
@@ -55,27 +58,15 @@ export class MatchManager {
         return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
     }
 
-    async UpdateMatchAdvancementRules(matchId: number, rules: MatchAdvancementRuleInputDto[]): Promise<MatchListDto> {
-        const match = await this.matchService.getMatch(Number(matchId));
-        if (!match) throw new Error(`Match ${matchId} not found`);
-
-        await this.advancementRuleService.deleteBySource('match', Number(matchId));
-
-        for (const rule of rules) {
-            await this.advancementRuleService.createMatchToMatchRule(
-                Number(matchId),
-                rule.sourcePlacement,
-                rule.targetId,
-                rule.targetSlot,
-            );
-        }
-
-        return await this.GetMatchForView(Number(matchId));
+    async FindMatchesForPhaseGroup(phaseGroupId: number): Promise<MatchListDto[]> {
+        const matches = await this.matchService.findByPhaseGroupForView(phaseGroupId);
+        return await Promise.all(matches.map((match) => this.toMatchListDto(match)));
     }
 
     async RemovePlayersFromMatch(matchId: number, playerIdsToRemove: number[]): Promise<void> {
         const match = await this.matchService.getMatch(matchId);
         if (!match) return;
+        this.matchWorkflowManager.assertEditable(match);
 
         for (const round of match.rounds ?? []) {
             for (const standing of round.standings ?? []) {
@@ -91,15 +82,29 @@ export class MatchManager {
         const dto = new UpdateMatchDto();
         dto.entrantIds = remainingEntrantIds;
         await this.matchService.update(matchId, dto);
-        await this.matchStateManager.SyncMatchStateFromStandingsById(matchId);
     }
 
     async AddEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
-        await this.matchStateManager.AddEntrantInMatch(matchId, entrantId);
+        await this.matchWorkflowManager.AddEntrantInMatch(matchId, entrantId);
     }
 
     async RemoveEntrantInMatch(matchId: number, entrantId: number): Promise<void> {
-        await this.matchStateManager.RemoveEntrantInMatch(matchId, entrantId);
+        await this.matchWorkflowManager.RemoveEntrantInMatch(matchId, entrantId);
+    }
+
+    async UpdateMatchActive(matchId: number, dto: UpdateMatchActiveDto): Promise<MatchListDto | null> {
+        await this.matchWorkflowManager.UpdateMatchActive(matchId, dto);
+        return await this.GetMatchForView(matchId);
+    }
+
+    async CommitMatchResult(matchId: number, dto: CommitMatchResultDto): Promise<MatchListDto | null> {
+        await this.matchWorkflowManager.CommitMatchResult(matchId, dto);
+        return await this.GetMatchForView(matchId);
+    }
+
+    async ReopenMatchResult(matchId: number): Promise<MatchListDto | null> {
+        await this.matchWorkflowManager.ReopenMatchResult(matchId);
+        return await this.GetMatchForView(matchId);
     }
 
     public async AddSongsToMatchById(matchId: number, songIds: number[]): Promise<void> {
@@ -108,6 +113,7 @@ export class MatchManager {
         if (!match) {
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         await this.AddSongsToMatch(match, songIds);
     }
@@ -118,6 +124,7 @@ export class MatchManager {
         if (!match) {
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         await this.AddRandomSongsToMatch(match, tournamentId, divisionId, group, levels);
     }
@@ -128,11 +135,13 @@ export class MatchManager {
         if (!match) {
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         await this.RemoveSongFromMatch(match, songId);
     }
 
     private async RemoveSongFromMatch(match: Match, songId: number): Promise<void> {
+        this.matchWorkflowManager.assertEditable(match);
         const round = match.rounds.find(round => round.song.id == songId);
 
         if (!round) {
@@ -146,17 +155,18 @@ export class MatchManager {
 
         await this.roundService.delete(round.id);
         match.rounds = match.rounds.filter((candidate) => candidate.id !== round.id);
-        await this.matchStateManager.SyncMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
     }
 
     public async AddRandomSongsToMatch(match: Match, tournamentId: number, divisionId: number, group: string, levels: string): Promise<Match> {
+        this.matchWorkflowManager.assertEditable(match);
         const songIds = await this.songExtractor.RollSongs(tournamentId, divisionId, group, levels);
 
         return await this.AddSongsToMatch(match, songIds);
     }
 
     public async AddSongsToMatch(match: Match, songIds: number[]): Promise<Match> {
+        this.matchWorkflowManager.assertEditable(match);
         if (!match.rounds) {
             match.rounds = [];
         }
@@ -164,7 +174,6 @@ export class MatchManager {
             await this.AddSongToMatch(match, songId);
         }
 
-        await this.matchStateManager.SyncMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
         return match;
     }
@@ -185,7 +194,6 @@ export class MatchManager {
     }
 
     private async toMatchListDto(match: Match): Promise<MatchListDto> {
-        const phase = await match.phase;
         const outgoingRules = await this.advancementRuleService.findBySource('match', match.id);
         const incomingRules = await this.advancementRuleService.findByTarget('match', match.id);
         const advancementRules = [...outgoingRules, ...incomingRules]
@@ -198,12 +206,11 @@ export class MatchManager {
             subtitle: match.subtitle,
             notes: match.notes,
             scoringSystem: match.scoringSystem,
-            state: this.matchStateManager.getEffectiveMatchState(match),
+            active: match.active ?? false,
             entrants: (match.entrants ?? []).map((entrant) => ({
                 id: entrant.id,
                 name: entrant.name,
                 type: entrant.type,
-                seedNum: entrant.seedNum ?? null,
                 status: entrant.status,
                 participants: (entrant.participants ?? []).map((participant) => ({
                     id: participant.id,
@@ -254,7 +261,7 @@ export class MatchManager {
                     playerPoints: match.matchResult.playerPoints ?? [],
                 }
                 : null,
-            phaseId: phase?.id,
+            phaseGroupId: match.phaseGroup.id,
         };
     }
 }

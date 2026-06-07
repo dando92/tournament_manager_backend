@@ -6,7 +6,7 @@ import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
 import { LobbyStatePayload } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
-import { MatchStateManager } from '@match/services/match-state.manager';
+import { MatchWorkflowManager } from '@match/services/match-workflow.manager';
 import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
 
@@ -18,7 +18,7 @@ export class StandingManager implements ILobbyStateObserver {
         @Inject()
         private readonly matchService: MatchService,
         @Inject()
-        private readonly matchStateManager: MatchStateManager,
+        private readonly matchWorkflowManager: MatchWorkflowManager,
         @Inject()
         private readonly scoreService: ScoreService,
         @Inject()
@@ -34,6 +34,7 @@ export class StandingManager implements ILobbyStateObserver {
             console.warn(`[StandingManager] No match found with id "${matchId}"`);
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         const actualScoreEntity = scoreId
             ? await this.getExistingScoreForStanding(scoreId, score.playerId, score.songId)
@@ -43,6 +44,7 @@ export class StandingManager implements ILobbyStateObserver {
     }
 
     async AddScoreToMatch(match: Match, score: Score): Promise<Match> {
+        this.matchWorkflowManager.assertEditable(match);
         const round = match.rounds.find((candidate) => candidate.song.id == score.song.id);
 
         if (!round) {
@@ -74,13 +76,13 @@ export class StandingManager implements ILobbyStateObserver {
 
         await this.recalculateRoundIfComplete(match, round);
 
-        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
     }
 
     async AddScoreToEmptyStanding(match: Match, score: Score): Promise<Match> {
+        this.matchWorkflowManager.assertEditable(match);
         const round = match.rounds.find((candidate) => candidate.song.id == score.song.id);
 
         if (!round) {
@@ -104,7 +106,6 @@ export class StandingManager implements ILobbyStateObserver {
         round.standings.push(standing);
 
         await this.recalculateRoundIfComplete(match, round);
-        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -116,6 +117,7 @@ export class StandingManager implements ILobbyStateObserver {
         if (!match) {
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         const round = match.rounds.find((candidate) => candidate.song.id == songId);
 
@@ -150,7 +152,6 @@ export class StandingManager implements ILobbyStateObserver {
             console.log(error);
         }
 
-        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -169,6 +170,7 @@ export class StandingManager implements ILobbyStateObserver {
         if (!match) {
             return;
         }
+        this.matchWorkflowManager.assertEditable(match);
 
         const round = match.rounds.find((candidate) => candidate.song.id == songId);
 
@@ -209,7 +211,6 @@ export class StandingManager implements ILobbyStateObserver {
             await this.standingService.update(currentStanding.id, dto);
         }
 
-        await this.refreshMatchStateFromStandings(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(match.id);
 
         return match;
@@ -284,10 +285,6 @@ export class StandingManager implements ILobbyStateObserver {
         if (emptyCandidate) {
             await this.AddScoreToEmptyStanding(emptyCandidate, score);
         }
-    }
-
-    private async refreshMatchStateFromStandings(match: Match): Promise<void> {
-        await this.matchStateManager.SyncMatchStateFromStandings(match);
     }
 
     private async getExistingScoreForStanding(scoreId: number, playerId: number, songId: number): Promise<Score> {

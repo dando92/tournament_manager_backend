@@ -71,13 +71,17 @@ export class UpdateAdvancementRuleDto {
   targetSlot?: number;
 }
 
-export class MatchAdvancementRuleInputDto {
+export class AdvancementRuleInputDto {
   @ApiProperty({ description: '1-based source result placement', example: 1 })
   @IsInt()
   @Min(1)
   sourcePlacement: number;
 
-  @ApiProperty({ description: 'Target match id', example: 2 })
+  @ApiProperty({ enum: competitionKinds, example: 'match' })
+  @IsIn(competitionKinds)
+  targetKind: AdvancementCompetitionKind;
+
+  @ApiProperty({ description: 'Target competition id', example: 2 })
   @IsInt()
   @Min(1)
   targetId: number;
@@ -88,10 +92,10 @@ export class MatchAdvancementRuleInputDto {
   targetSlot: number;
 }
 
-export class UpdateMatchAdvancementRulesDto {
-  @ApiProperty({ type: [MatchAdvancementRuleInputDto] })
+export class UpdateAdvancementRulesDto {
+  @ApiProperty({ type: [AdvancementRuleInputDto] })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => MatchAdvancementRuleInputDto)
-  rules: MatchAdvancementRuleInputDto[];
+  @Type(() => AdvancementRuleInputDto)
+  rules: AdvancementRuleInputDto[];
 }

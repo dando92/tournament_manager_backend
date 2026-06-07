@@ -41,15 +41,7 @@ export class TournamentService {
     }
 
     async findOneForPage(id: number): Promise<Tournament | null> {
-        return this.tournamentRepository.findOne({
-            where: { id },
-            relations: {
-                participants: {
-                    account: true,
-                    player: true,
-                },
-            },
-        });
+        return this.tournamentRepository.findOneBy({ id });
     }
 
     async findOneForUpdate(id: number): Promise<Tournament | null> {
@@ -68,7 +60,13 @@ export class TournamentService {
 
         const previousSyncstartUrl = existing.syncstartUrl;
 
-        this.tournamentRepository.merge(existing, { name: dto.name, syncstartUrl: dto.syncstartUrl });
+        this.tournamentRepository.merge(existing, {
+            name: dto.name,
+            syncstartUrl: dto.syncstartUrl,
+            startggApiKey: dto.startggApiKey,
+            availableSetupsCount: dto.availableSetupsCount,
+            defaultScoringSystem: dto.defaultScoringSystem,
+        });
         const tournament = await this.tournamentRepository.save(existing);
         return { tournament, previousSyncstartUrl };
     }

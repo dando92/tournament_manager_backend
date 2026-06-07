@@ -16,11 +16,14 @@ import { Participant } from './entities/participant.entity';
 import { Entrant } from './entities/entrant.entity';
 import { ExternalMapping } from './entities/external_mapping.entity';
 import { AdvancementRule } from './entities/advancement-rule.entity';
+import { PhaseGroup } from './entities/phase-group.entity';
+import { PhaseGroupEntrant } from './entities/phase-group-entrant.entity';
 export type { ParticipantRole, ParticipantStatus } from './entities/participant.entity';
 export type { EntrantType, EntrantStatus } from './entities/entrant.entity';
 export type { MatchResultEntry } from './entities/match_result.entity';
 export type { AdvancementCompetitionKind } from './entities/advancement-rule.entity';
-export { MatchState } from './entities/match.entity';
+export type { PhaseGroupState } from './entities/phase-group.entity';
+export type { PhaseGroupEntrantStatus } from './entities/phase-group-entrant.entity';
 export type {
     ExternalProvider,
     ExternalMappingLocalType,
@@ -45,6 +48,8 @@ export { Participant }
 export { Entrant }
 export { ExternalMapping }
 export { AdvancementRule }
+export { PhaseGroup }
+export { PhaseGroupEntrant }
 
 export const Entities = [
     Division,
@@ -65,4 +70,6 @@ export const Entities = [
     ,Entrant
     ,ExternalMapping
     ,AdvancementRule
+    ,PhaseGroup
+    ,PhaseGroupEntrant
 ];

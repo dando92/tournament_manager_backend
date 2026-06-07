@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Param, Post, ValidationPipe } from '@nestjs/common';
-import { Phase } from '@persistence/entities';
+import { Body, Controller, Delete, Get, Param, Post, ValidationPipe } from '@nestjs/common';
+import { Entrant, Phase } from '@persistence/entities';
 import { CreatePhaseDto } from '../dtos';
 import { PhaseService } from '../services/phase.service';
 
@@ -10,6 +10,11 @@ export class PhasesController {
     @Post()
     async create(@Body(new ValidationPipe()) dto: CreatePhaseDto): Promise<Phase> {
         return this.phaseService.create(dto);
+    }
+
+    @Get(':id/entrants')
+    async getDivisionEntrants(@Param('id') id: number): Promise<Entrant[]> {
+        return this.phaseService.getDivisionEntrants(Number(id));
     }
 
     @Delete(':id')

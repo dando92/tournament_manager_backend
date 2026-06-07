@@ -4,6 +4,7 @@ import {
     CreateParticipantDto,
     CreateTournamentDto,
     ImportParticipantEntryDto,
+    TournamentConfigurationDto,
     TournamentOverviewDto,
     TournamentResponseDto,
     UpdateTournamentDto,
@@ -43,12 +44,25 @@ export class TournamentManager {
             id: tournament.id,
             name: tournament.name,
             syncstartUrl: tournament.syncstartUrl,
+            availableSetupsCount: tournament.availableSetupsCount,
+            defaultScoringSystem: tournament.defaultScoringSystem,
             staff: (tournament.participants ?? [])
                 .filter((participant) => participant.roles?.includes('staff') && participant.account)
                 .map((participant) => ({
                     id: participant.account.id,
                     username: participant.account.username,
                 })),
+        };
+    }
+
+    private toConfigurationDto(tournament: Tournament): TournamentConfigurationDto {
+        return {
+            id: tournament.id,
+            name: tournament.name,
+            syncstartUrl: tournament.syncstartUrl,
+            startggApiKey: tournament.startggApiKey,
+            availableSetupsCount: tournament.availableSetupsCount,
+            defaultScoringSystem: tournament.defaultScoringSystem,
         };
     }
 
@@ -64,6 +78,18 @@ export class TournamentManager {
     async findOne(tournamentId: number): Promise<TournamentResponseDto | null> {
         const tournament = await this.tournamentService.findOne(tournamentId);
         return tournament ? this.toResponseDto(tournament) : null;
+    }
+
+    async findConfiguration(tournamentId: number): Promise<TournamentConfigurationDto> {
+        const tournament = await this.tournamentService.findOne(tournamentId);
+        if (!tournament) throw new NotFoundException(`Tournament with id ${tournamentId} not found`);
+        return this.toConfigurationDto(tournament);
+    }
+
+    async hasStartggApiKey(tournamentId: number): Promise<{ hasStartggApiKey: boolean }> {
+        const tournament = await this.tournamentService.findOne(tournamentId);
+        if (!tournament) throw new NotFoundException(`Tournament with id ${tournamentId} not found`);
+        return { hasStartggApiKey: Boolean(tournament.startggApiKey?.trim()) };
     }
 
     async update(tournamentId: number, dto: UpdateTournamentDto): Promise<{ tournament: TournamentResponseDto; previousSyncstartUrl: string | undefined }> {
@@ -162,7 +188,11 @@ export class TournamentManager {
         );
         const matchCount = divisions.reduce(
             (count, division) =>
-                count + (division.phases ?? []).reduce((phaseCount, phase) => phaseCount + (phase.matches?.length ?? 0), 0),
+                count + (division.phases ?? []).reduce(
+                    (phaseCount, phase) =>
+                        phaseCount + (phase.phaseGroups ?? []).reduce((groupCount, phaseGroup) => groupCount + this.getPhaseGroupMatchCount(phaseGroup), 0),
+                    0,
+                ),
             0,
         );
 
@@ -177,7 +207,6 @@ export class TournamentManager {
                     id: entrant.id,
                     name: entrant.name,
                     type: entrant.type,
-                    seedNum: entrant.seedNum ?? null,
                     status: entrant.status,
                     participants: (entrant.participants ?? []).map((participant) => ({
                         id: participant.id,
@@ -192,9 +221,22 @@ export class TournamentManager {
                 phases: (division.phases ?? []).map((phase) => ({
                     id: phase.id,
                     name: phase.name,
-                    matchCount: phase.matches?.length ?? 0,
+                    matchCount: (phase.phaseGroups ?? []).reduce((count, phaseGroup) => count + this.getPhaseGroupMatchCount(phaseGroup), 0),
+                    phaseGroups: (phase.phaseGroups ?? []).map((phaseGroup) => ({
+                        id: phaseGroup.id,
+                        name: phaseGroup.name,
+                        displayIdentifier: phaseGroup.displayIdentifier ?? null,
+                        bracketType: phaseGroup.bracketType ?? null,
+                        state: phaseGroup.state,
+                        entrants: [],
+                        matchCount: this.getPhaseGroupMatchCount(phaseGroup),
+                    })),
                 })),
             })),
         };
+    }
+
+    private getPhaseGroupMatchCount(phaseGroup: { matches?: unknown[]; matchCount?: number }): number {
+        return phaseGroup.matchCount ?? phaseGroup.matches?.length ?? 0;
     }
 }

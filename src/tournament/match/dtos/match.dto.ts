@@ -5,10 +5,8 @@ import {
   IsOptional,
   IsString,
   IsBoolean,
-  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { MatchState } from '@persistence/entities';
 
 export class CreateMatchDto {
   @ApiProperty({ description: 'The name of the match', example: 'Match 1' })
@@ -31,10 +29,10 @@ export class CreateMatchDto {
   @IsArray()
   entrantIds?: number[];
 
-  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
+  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1 })
   @IsNotEmpty()
   @IsNumber()
-  phaseId: number;
+  phaseGroupId: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsNotEmpty()
@@ -64,10 +62,10 @@ export class UpdateMatchDto {
   @IsArray()
   entrantIds?: number[];
 
-  @ApiProperty({ description: 'The id of the phase the match belongs to', example: 1 })
+  @ApiProperty({ description: 'The id of the phase group the match belongs to', example: 1, required: false })
   @IsOptional()
   @IsNumber()
-  phaseId?: number;
+  phaseGroupId?: number;
 
   @ApiProperty({ description: 'Which scoring system shall be used', example: 'Eurocup2025' })
   @IsOptional()
@@ -95,7 +93,7 @@ export class CreateMatchWithSongsDto {
 
   @IsNotEmpty()
   @IsNumber()
-  phaseId: number;
+  phaseGroupId: number;
 
   @IsNotEmpty()
   @IsString()
@@ -125,7 +123,7 @@ export class CreateMatchWithSongsDto {
         const createDto = new CreateMatchDto();
         createDto.name = this.name;
         createDto.notes = this.notes;
-        createDto.phaseId = this.phaseId;
+        createDto.phaseGroupId = this.phaseGroupId;
         createDto.entrantIds = this.entrantIds;
         createDto.subtitle = this.subtitle;
         createDto.scoringSystem = this.scoringSystem;
@@ -155,10 +153,25 @@ export class AddSongToMatchDto {
   level?: string;
 }
 
-export class UpdateMatchStateDto {
-  @ApiProperty({ enum: MatchState, description: 'The lifecycle state of the match' })
-  @IsEnum(MatchState)
-  state: MatchState;
+export class UpdateMatchActiveDto {
+  @ApiProperty({ description: 'Whether the match is active for live score intake' })
+  @IsBoolean()
+  active: boolean;
+}
+
+export class MatchPlayerPointsDto {
+  @IsNumber()
+  playerId: number;
+
+  @IsNumber()
+  points: number;
+}
+
+export class CommitMatchResultDto {
+  @ApiProperty({ description: 'Manual player points for matches without songs', required: false })
+  @IsOptional()
+  @IsArray()
+  playerPoints?: MatchPlayerPointsDto[];
 }
 
 export class AddStandingToMatchDto {
