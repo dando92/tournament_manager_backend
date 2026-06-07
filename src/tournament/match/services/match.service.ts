@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Entrant, Match, MatchState, PhaseGroup } from '@persistence/entities';
+import { Entrant, Match, PhaseGroup } from '@persistence/entities';
 import { CreateMatchDto, UpdateMatchDto } from '@match/dtos/match.dto';
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { AdvancementRuleService } from '@tournament/services/advancement-rule.service';
@@ -43,7 +43,7 @@ export class MatchService {
         }
 
         match.scoringSystem = dto.scoringSystem;
-        match.state = MatchState.NotActive;
+        match.active = false;
         match.name = dto.name;
         if (dto.notes) {
             match.notes = dto.notes;
@@ -63,7 +63,7 @@ export class MatchService {
     async findActiveByTournamentForLobbyLookup(tournamentId: number): Promise<Match[]> {
         return await this.matchRepository.find({
             where: {
-                state: MatchState.Active,
+                active: true,
                 phaseGroup: {
                     phase: {
                     division: {
@@ -199,11 +199,11 @@ export class MatchService {
         return updatedMatch;
     }
 
-    async updateState(id: number, state: MatchState): Promise<Match> {
+    async updateActive(id: number, active: boolean): Promise<Match> {
         const match = await this.findOneBasic(id);
         if (!match) throw new Error(`Match with ID ${id} not found`);
 
-        match.state = state;
+        match.active = active;
         const updatedMatch = await this.matchRepository.save(match);
         await this.uiUpdateGateway.emitMatchUpdateByMatchId(updatedMatch.id);
         return updatedMatch;

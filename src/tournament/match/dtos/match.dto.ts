@@ -5,10 +5,8 @@ import {
   IsOptional,
   IsString,
   IsBoolean,
-  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { MatchState } from '@persistence/entities';
 
 export class CreateMatchDto {
   @ApiProperty({ description: 'The name of the match', example: 'Match 1' })
@@ -155,10 +153,25 @@ export class AddSongToMatchDto {
   level?: string;
 }
 
-export class UpdateMatchStateDto {
-  @ApiProperty({ enum: MatchState, description: 'The lifecycle state of the match' })
-  @IsEnum(MatchState)
-  state: MatchState;
+export class UpdateMatchActiveDto {
+  @ApiProperty({ description: 'Whether the match is active for live score intake' })
+  @IsBoolean()
+  active: boolean;
+}
+
+export class MatchPlayerPointsDto {
+  @IsNumber()
+  playerId: number;
+
+  @IsNumber()
+  points: number;
+}
+
+export class CommitMatchResultDto {
+  @ApiProperty({ description: 'Manual player points for matches without songs', required: false })
+  @IsOptional()
+  @IsArray()
+  playerPoints?: MatchPlayerPointsDto[];
 }
 
 export class AddStandingToMatchDto {

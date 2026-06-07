@@ -1,6 +1,6 @@
 import { MatchManager } from "@match/services/match.manager";
 import { AdvancementManager } from "@match/services/advancement.manager";
-import { MatchStateManager } from "@match/services/match-state.manager";
+import { MatchWorkflowManager } from "@match/services/match-workflow.manager";
 import { MatchService } from "@match/services/match.service";
 import { MatchResultService } from "@match/services/match-result.service";
 import { SongRoller } from "./services/song.roller";
@@ -31,7 +31,7 @@ import { AdvancementRuleManager } from './services/advancement-rule.manager';
 
 export { MatchManager };
 export { AdvancementManager };
-export { MatchStateManager };
+export { MatchWorkflowManager };
 export { MatchService };
 export { MatchResultService };
 export { SongRoller };
@@ -66,7 +66,7 @@ export const Services = [
     MatchResultService,
     MatchManager,
     AdvancementManager,
-    MatchStateManager,
+    MatchWorkflowManager,
     SongRoller,
     StandingManager,
     StandingService,
