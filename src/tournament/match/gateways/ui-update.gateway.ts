@@ -22,10 +22,18 @@ type PhaseUpdatePayload = {
   phaseId: number;
 };
 
+type PhaseGroupUpdatePayload = {
+  tournamentId: number;
+  divisionId: number;
+  phaseId: number;
+  phaseGroupId: number;
+};
+
 type MatchUpdatePayload = {
   tournamentId: number;
   divisionId: number;
   phaseId: number;
+  phaseGroupId: number;
   matchId: number;
 };
 
@@ -88,6 +96,15 @@ export class UiUpdateGateway implements OnGatewayConnection, OnGatewayDisconnect
     if (!payload) return;
 
     this.broadcast('PhaseUpdate', payload);
+  }
+
+  async emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId: number | null | undefined) {
+    if (!phaseGroupId) return;
+
+    const payload = await this.uiUpdateContextService.getPhaseGroupUpdatePayload(phaseGroupId);
+    if (!payload) return;
+
+    this.broadcast('PhaseGroupUpdate', payload);
   }
 
   async emitMatchUpdateByMatchId(matchId: number | null | undefined) {

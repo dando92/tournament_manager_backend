@@ -52,6 +52,7 @@ type StartggMappingCache = {
 type ImportedMatchSyncResult = {
     matchesBySetId: Map<string, Match>;
     touchedPhaseIds: Set<number>;
+    touchedPhaseGroupIds: Set<number>;
 };
 
 @Injectable()
@@ -408,7 +409,7 @@ export class StartggService {
             }
         });
 
-        const { matchesBySetId: localMatches, touchedPhaseIds } = await this.timeOperation(
+        const { matchesBySetId: localMatches, touchedPhaseIds, touchedPhaseGroupIds } = await this.timeOperation(
             `importEvent.syncMatches count=${snapshotSets.length}`,
             () => this.syncImportedMatches(
                 snapshotSets,
@@ -429,6 +430,15 @@ export class StartggService {
         await this.timeOperation(
             `importEvent.emitPhaseUpdates count=${touchedPhaseIds.size}`,
             () => Promise.all(Array.from(touchedPhaseIds).map((phaseId) => this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId))),
+        );
+
+        await this.timeOperation(
+            `importEvent.emitPhaseGroupUpdates count=${touchedPhaseGroupIds.size}`,
+            () => Promise.all(
+                Array.from(touchedPhaseGroupIds).map((phaseGroupId) =>
+                    this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId),
+                ),
+            ),
         );
 
         const result = {
@@ -829,6 +839,7 @@ export class StartggService {
         const existingMatchesById = new Map<number, Match>(existingMatches.map((match) => [match.id, match]));
         const matchesBySetId = new Map<string, Match>();
         const touchedPhaseIds = new Set<number>();
+        const touchedPhaseGroupIds = new Set<number>();
 
         const stagedMatches = await Promise.all(sets.map(async (set) => {
             const existingMapping = this.findMappingInCache(mappingCache, 'match', 'set', set.id);
@@ -848,6 +859,7 @@ export class StartggService {
                 .map((entrant) => entrantByExternalId.get(entrant.id))
                 .filter((entrant): entrant is Entrant => Boolean(entrant));
             touchedPhaseIds.add(targetPhaseGroup.phase.id);
+            touchedPhaseGroupIds.add(targetPhaseGroup.id);
             matchesBySetId.set(set.id, match);
             return match;
         }));
@@ -952,6 +964,7 @@ export class StartggService {
         return {
             matchesBySetId,
             touchedPhaseIds,
+            touchedPhaseGroupIds,
         };
     }
 

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Entrant, Phase, PhaseGroup, PhaseGroupEntrant } from '@persistence/entities';
 import { CreatePhaseGroupDto, UpdatePhaseGroupDto } from '@tournament/dtos';
+import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 
 @Injectable()
 export class PhaseGroupService {
@@ -15,6 +16,7 @@ export class PhaseGroupService {
         private readonly phaseRepository: Repository<Phase>,
         @InjectRepository(Entrant)
         private readonly entrantRepository: Repository<Entrant>,
+        private readonly uiUpdateGateway: UiUpdateGateway,
     ) {}
 
     async createDefaultForPhase(phase: Phase, bracketType?: string | null): Promise<PhaseGroup> {
@@ -28,7 +30,10 @@ export class PhaseGroupService {
         phaseGroup.state = 'pending';
         phaseGroup.phase = phase;
         phaseGroup.entrants = [];
-        return this.phaseGroupRepository.save(phaseGroup);
+        const savedPhaseGroup = await this.phaseGroupRepository.save(phaseGroup);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phase.id);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(savedPhaseGroup.id);
+        return savedPhaseGroup;
     }
 
     async createForPhase(phaseId: number, dto: CreatePhaseGroupDto): Promise<PhaseGroup> {
@@ -42,7 +47,10 @@ export class PhaseGroupService {
         phaseGroup.state = 'pending';
         phaseGroup.phase = phase;
         phaseGroup.entrants = [];
-        return this.phaseGroupRepository.save(phaseGroup);
+        const savedPhaseGroup = await this.phaseGroupRepository.save(phaseGroup);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phase.id);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(savedPhaseGroup.id);
+        return savedPhaseGroup;
     }
 
     async findByPhase(phaseId: number): Promise<PhaseGroup[]> {
@@ -109,11 +117,19 @@ export class PhaseGroupService {
             phaseGroup.state = dto.state as PhaseGroup['state'];
         }
 
-        return this.phaseGroupRepository.save(phaseGroup);
+        const savedPhaseGroup = await this.phaseGroupRepository.save(phaseGroup);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(savedPhaseGroup.phase?.id);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(savedPhaseGroup.id);
+        return savedPhaseGroup;
     }
 
     async delete(id: number): Promise<void> {
+        const phaseGroup = await this.phaseGroupRepository.findOne({
+            where: { id },
+            relations: { phase: true },
+        });
         await this.phaseGroupRepository.delete(id);
+        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseGroup?.phase?.id);
     }
 
     async findOrCreateDefaultForPhaseId(phaseId: number, bracketType?: string | null): Promise<PhaseGroup> {
@@ -143,6 +159,7 @@ export class PhaseGroupService {
             phaseGroupEntrant.status = 'active';
             await this.phaseGroupEntrantRepository.save(phaseGroupEntrant);
         }
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 
     async updateSeeding(phaseGroupId: number, entrantIds: number[]): Promise<void> {
@@ -171,6 +188,7 @@ export class PhaseGroupService {
             phaseGroupEntrant.slot = index + 1;
             await this.phaseGroupEntrantRepository.save(phaseGroupEntrant);
         }
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 
     async addEntrant(phaseGroupId: number, entrantId: number, slot?: number | null, sourceAdvancementRuleId?: number | null): Promise<void> {
@@ -198,6 +216,7 @@ export class PhaseGroupService {
             phaseGroupEntrant.sourceAdvancementRule = { id: sourceAdvancementRuleId } as any;
         }
         await this.phaseGroupEntrantRepository.save(phaseGroupEntrant);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 
     async removeEntrant(phaseGroupId: number, entrantId: number): Promise<void> {
@@ -205,6 +224,7 @@ export class PhaseGroupService {
             phaseGroup: { id: phaseGroupId },
             entrant: { id: entrantId },
         });
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 
     async markEntrantsAdvanced(phaseGroupId: number, entrantIds: number[]): Promise<void> {
@@ -217,6 +237,7 @@ export class PhaseGroupService {
             entry.status = advancedIds.has(entry.entrant.id) ? 'advanced' : entry.status === 'advanced' ? 'active' : entry.status;
             await this.phaseGroupEntrantRepository.save(entry);
         }
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 
     async getEntrantsForBracket(phaseGroupId: number): Promise<Entrant[]> {

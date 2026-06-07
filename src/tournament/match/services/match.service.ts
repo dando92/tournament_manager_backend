@@ -51,7 +51,7 @@ export class MatchService {
         match.subtitle = dto.subtitle;
 
         const savedMatch = await this.matchRepository.save(match);
-        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseGroup.phase.id);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroup.id);
 
         return savedMatch;
     }
@@ -216,11 +216,11 @@ export class MatchService {
             where: { id },
             relations: { phaseGroup: { phase: true } },
         });
-        const phaseId = loaded?.phaseGroup?.phase?.id;
+        const phaseGroupId = loaded?.phaseGroup?.id;
 
         await this.advancementRuleService.deleteInvolvingMatch(id);
 
         await this.matchRepository.remove(match);
-        await this.uiUpdateGateway.emitPhaseUpdateByPhaseId(phaseId);
+        await this.uiUpdateGateway.emitPhaseGroupUpdateByPhaseGroupId(phaseGroupId);
     }
 }
