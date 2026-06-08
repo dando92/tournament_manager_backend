@@ -27,6 +27,18 @@ export class ParticipantService {
         return participants.sort((left, right) => left.player.playerName.localeCompare(right.player.playerName));
     }
 
+    async findForTournamentByPlayerNameNormalized(tournamentId: number, playerName: string): Promise<Participant | null> {
+        const normalized = playerName.trim().toLowerCase();
+
+        return this.participantRepository
+            .createQueryBuilder('participant')
+            .leftJoinAndSelect('participant.player', 'player')
+            .leftJoinAndSelect('participant.account', 'account')
+            .where('participant.tournamentId = :tournamentId', { tournamentId })
+            .andWhere('LOWER(TRIM(player.playerName)) = :normalized', { normalized })
+            .getOne();
+    }
+
     async ensureForPlayer(tournamentId: number, playerId: number, roles: ParticipantRole[] = ['competitor']): Promise<Participant> {
         const participant = await this.participantRepository.findOne({
             where: { tournament: { id: tournamentId }, player: { id: playerId } },

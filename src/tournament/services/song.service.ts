@@ -33,4 +33,15 @@ export class SongService {
     async delete(id: number): Promise<void> {
         await this.songRepository.delete(id);
     }
+
+    async findByTitleAndTournament(title: string, tournamentId: number): Promise<Song | null> {
+        return this.songRepository.findOne({
+            where: {
+                title,
+                tournament: {
+                    id: tournamentId,
+                },
+            },
+        });
+    }
 }

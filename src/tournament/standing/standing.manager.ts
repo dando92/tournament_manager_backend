@@ -6,7 +6,9 @@ import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
 import { ILobbyObserver, LobbySongCompletedDto } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
 import { MatchWorkflowManager } from '@match/services/match-workflow.manager';
+import { ParticipantService } from '../services/participant.service';
 import { ScoreService } from '../services/score.service';
+import { SongService } from '../services/song.service';
 import { StandingService } from './standing.service';
 
 @Injectable()
@@ -20,6 +22,10 @@ export class StandingManager implements ILobbyObserver {
         private readonly matchWorkflowManager: MatchWorkflowManager,
         @Inject()
         private readonly scoreService: ScoreService,
+        @Inject()
+        private readonly participantService: ParticipantService,
+        @Inject()
+        private readonly songService: SongService,
         @Inject()
         private readonly scoringSystemProvider: ScoringSystemProvider,
         @Inject()
@@ -242,31 +248,47 @@ export class StandingManager implements ILobbyObserver {
         percentage: number,
         isFailed: boolean,
     ): Promise<void> {
-        const matches = await this.matchService.findActiveByTournamentForLobbyLookup(tournamentId);
-        const candidates = matches.filter(
-            (candidate) =>
-                candidate.rounds?.some((round) => round.song?.title === songPath) &&
-                this.getSinglesPlayers(candidate).some((player) => player.playerName === playerName),
-        );
+        const participant = await this.participantService.findForTournamentByPlayerNameNormalized(tournamentId, playerName);
+        const song = await this.songService.findByTitleAndTournament(songPath, tournamentId);
 
-        if (candidates.length === 0) {
+        if (!participant?.player || !song) {
             this.uiUpdateGateway.emitWarning(
                 tournamentId,
-                `No active match found for ${playerName} on "${songPath}". Score was not saved.`,
+                `No database player-song found for ${playerName} on "${songPath}". Score was not saved.`,
             );
             return;
         }
 
+        const player = participant.player;
+
+        const score = await this.scoreService.create({
+            playerId: player.id,
+            songId: song.id,
+            percentage,
+            isFailed,
+        });
+
+        const matches = await this.matchService.findActiveByTournamentForLobbyLookup(tournamentId);
+        const candidates = matches.filter(
+            (candidate) =>
+                candidate.rounds?.some((round) => round.song?.id === song.id) &&
+                this.getSinglesPlayers(candidate).some((candidatePlayer) => candidatePlayer.id === player.id),
+        );
+
+        if (candidates.length === 0) {
+            return;
+        }
+
         const emptyCandidate = candidates.find((candidate) => {
-            const matchPlayer = this.getSinglesPlayers(candidate).find((player) => player.playerName === playerName);
-            const round = candidate.rounds.find((currentRound) => currentRound.song.title === songPath);
+            const matchPlayer = this.getSinglesPlayers(candidate).find((candidatePlayer) => candidatePlayer.id === player.id);
+            const round = candidate.rounds.find((currentRound) => currentRound.song.id === song.id);
             return matchPlayer && round && !(round.standings ?? []).some(
                 (standing) => standing.score.player.id === matchPlayer.id && standing.score.song.id === round.song.id,
             );
         });
         const targetCandidate = emptyCandidate ?? candidates[0];
-        const matchPlayer = this.getSinglesPlayers(targetCandidate).find((candidate) => candidate.playerName === playerName);
-        const matchRound = targetCandidate.rounds.find((candidate) => candidate.song.title === songPath);
+        const matchPlayer = this.getSinglesPlayers(targetCandidate).find((candidatePlayer) => candidatePlayer.id === player.id);
+        const matchRound = targetCandidate.rounds.find((candidateRound) => candidateRound.song.id === song.id);
 
         if (!matchPlayer || !matchRound) {
             this.uiUpdateGateway.emitWarning(
@@ -279,13 +301,6 @@ export class StandingManager implements ILobbyObserver {
         if (!emptyCandidate) {
             return;
         }
-
-        const score = await this.scoreService.create({
-            playerId: matchPlayer.id,
-            songId: matchRound.song.id,
-            percentage,
-            isFailed,
-        });
 
         await this.AddScoreToEmptyStanding(emptyCandidate, score);
     }

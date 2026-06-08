@@ -23,6 +23,12 @@ export class PlayerService {
         return this.playerRepo.findOneBy({ playerName });
     }
 
+    async findByNameNormalized(playerName: string): Promise<Player | null> {
+        const normalized = playerName.trim().toLowerCase();
+        const players = await this.playerRepo.find();
+        return players.find((candidate) => candidate.playerName.trim().toLowerCase() === normalized) ?? null;
+    }
+
     async create(playerName: string): Promise<Player> {
         const player = new Player();
         player.playerName = playerName;
