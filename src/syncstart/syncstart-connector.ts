@@ -54,7 +54,7 @@ type LobbySession = {
   pendingConnect: PendingLobbyConnection | null;
   currentSocketConnectedNotified: boolean;
   previousSongKey: string | null;
-  readyByPlayerId: Map<string, boolean>;
+  readyByPlayerKey: Map<string, boolean>;
   screenByPlayerKey: Map<string, SyncStartLobbyPlayer['screenName']>;
   lastCompletedSignature: string | null;
 };
@@ -240,7 +240,7 @@ export class SyncStartConnector {
       pendingConnect: null,
       currentSocketConnectedNotified: false,
       previousSongKey: null,
-      readyByPlayerId: new Map<string, boolean>(),
+      readyByPlayerKey: new Map<string, boolean>(),
       screenByPlayerKey: new Map<string, SyncStartLobbyPlayer['screenName']>(),
       lastCompletedSignature: null,
     };
@@ -455,13 +455,30 @@ export class SyncStartConnector {
       }
     }
 
+    for (const { player, playerKey } of playerTransitions) {
+      const knownPlayer =
+        session.readyByPlayerKey.has(playerKey) || session.screenByPlayerKey.has(playerKey);
+      if (knownPlayer) {
+        continue;
+      }
+
+      session.readyByPlayerKey.set(playerKey, false);
+      await this.dispatcher.OnPlayerReady({
+        ...identity,
+        playerId: player.playerId,
+        playerName: this.normalizePlayerName(player.profileName),
+        ready: false,
+      });
+    }
+
     const gameplayPlayers = lobbyState.players.filter(
       (player) => player.screenName === 'ScreenGameplay',
     );
     for (const player of gameplayPlayers) {
-      const previousReady = session.readyByPlayerId.get(player.playerId);
+      const playerKey = this.playerStateKey(player);
+      const previousReady = session.readyByPlayerKey.get(playerKey);
       if (previousReady !== player.ready) {
-        session.readyByPlayerId.set(player.playerId, player.ready);
+        session.readyByPlayerKey.set(playerKey, player.ready);
         await this.dispatcher.OnPlayerReady({
           ...identity,
           playerId: player.playerId,
