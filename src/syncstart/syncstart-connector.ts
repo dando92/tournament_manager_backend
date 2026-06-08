@@ -1,326 +1,608 @@
-import { WebSocket } from 'ws';
-import { LobbyStatePayload } from './itg-online.types';
+import {
+  ILobbyObserver,
+  LobbyCompletedScoreDto,
+  LobbyIdentityDto,
+  LobbyJudgmentsDto,
+  LobbyLivePlayerDto,
+  LobbySongDto,
+} from './lobby-observer.interface';
+import { LobbyEventDispatcher } from './lobby-event.dispatcher';
+import { LobbyConnection, LobbyConnectionCloseEvent } from './lobby-connection';
+import {
+  CreateLobbyRequestDto,
+  LobbyConnectionResultDto,
+  SpectateLobbyRequestDto,
+  SyncStartLobbySummaryDto,
+} from './syncstart-connector.types';
+import {
+  SyncStartLobbyPlayer,
+  SyncStartLobbyStatePayload,
+} from './syncstart-protocol.types';
 
-type ConnectMode =
-  | { type: 'spectate'; lobbyCode: string }
-  | { type: 'create' };
+type SyncStartMessage<T = unknown> = {
+  event: string;
+  data?: T;
+};
 
-class LobbyConnection {
-  private connectionStarted = false;
-  private connected = false;
-  private hasConnectedOnce = false;
-  private ws: WebSocket | null = null;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private password = '';
-  private currentLobbyCode: string | null;
+type SearchLobbyResponse = {
+  lobbies?: SyncStartLobbySummaryDto[];
+};
 
-  constructor(
-    private readonly syncstartUrl: string,
-    private readonly mode: ConnectMode,
-    private readonly onLobbyState: (
-      lobbyCode: string,
-      payload: LobbyStatePayload,
-    ) => Promise<void>,
-    private readonly onForcedDisconnect: (lobbyCode: string) => void,
-  ) {
-    this.currentLobbyCode =
-      mode.type === 'spectate' ? mode.lobbyCode.toUpperCase() : null;
-  }
+type LobbySessionMode =
+  | { type: 'create' }
+  | { type: 'spectate'; lobbyCode: string };
 
-  async Connect(
-    password: string,
-  ): Promise<{ lobbyCode: string; initialState: LobbyStatePayload }> {
-    this.password = password;
-    this.connectionStarted = true;
-    console.log(
-      `[LobbyConnection] Connecting mode=${this.mode.type} url=${this.syncstartUrl}`,
-    );
-    this._closeCurrentConnection();
-    return this._connect();
-  }
+type PendingLobbyConnection = {
+  resolve: (result: LobbyConnectionResultDto) => void;
+  reject: (error: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
+};
 
-  Disconnect(): void {
-    this.connectionStarted = false;
-    this.connected = false;
-    this._clearReconnectTimer();
-    this._closeCurrentConnection();
-  }
+type PendingLobbySearch = {
+  resolve: (lobbies: SyncStartLobbySummaryDto[]) => void;
+  reject: (error: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
+};
 
-  IsActive(): boolean {
-    return this.connectionStarted;
-  }
-
-  IsConnected(): boolean {
-    return this.connected;
-  }
-
-  private _closeCurrentConnection(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-  }
-
-  private _clearReconnectTimer(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-  }
-
-  private _connect(): Promise<{
-    lobbyCode: string;
-    initialState: LobbyStatePayload;
-  }> {
-    const url = this.syncstartUrl;
-    console.log(
-      `[LobbyConnection] Opening WebSocket to ${url} (mode=${this.mode.type})`,
-    );
-
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(url);
-      let settled = false;
-
-      const timeout = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          console.warn(
-            `[LobbyConnection] Connection timed out after 10s (mode=${this.mode.type} url=${url})`,
-          );
-          ws.close();
-          reject(new Error('Connection timeout'));
-        }
-      }, 10000);
-
-      ws.on('open', () => {
-        if (this.mode.type === 'create') {
-          console.log('[LobbyConnection] WebSocket open, sending createLobby');
-          ws.send(
-            JSON.stringify({
-              event: 'createLobby',
-              data: {
-                machine: {},
-                password: this.password,
-              },
-            }),
-          );
-          return;
-        }
-
-        console.log(
-          `[LobbyConnection] WebSocket open, sending spectateLobby (lobbyCode=${this.mode.lobbyCode})`,
-        );
-        ws.send(
-          JSON.stringify({
-            event: 'spectateLobby',
-            data: {
-              code: this.mode.lobbyCode,
-              password: this.password,
-              spectator: { profileName: 'TournamentManager' },
-            },
-          }),
-        );
-      });
-
-      ws.on('message', async (data: Buffer) => {
-        let payload: { event: string; data: unknown };
-        try {
-          payload = JSON.parse(data.toString());
-        } catch {
-          console.warn(
-            `[LobbyConnection] Unparseable message: ${data
-              .toString()
-              .slice(0, 200)}`,
-          );
-          return;
-        }
-
-        console.log(`[LobbyConnection] Received event="${payload.event}"`);
-
-        if (payload.event === 'lobbyState') {
-          const lobbyState = payload.data as LobbyStatePayload;
-          this.currentLobbyCode = lobbyState.code.toUpperCase();
-
-          if (!settled) {
-            settled = true;
-            clearTimeout(timeout);
-            console.log(
-              `[LobbyConnection] Connected and receiving lobbyState (lobbyCode=${this.currentLobbyCode})`,
-            );
-            this.ws = ws;
-            this.connected = true;
-            this.hasConnectedOnce = true;
-            resolve({
-              lobbyCode: this.currentLobbyCode,
-              initialState: {
-                ...lobbyState,
-                code: this.currentLobbyCode,
-              },
-            });
-            return;
-          }
-
-          await this.onLobbyState(this.currentLobbyCode, {
-            ...lobbyState,
-            code: this.currentLobbyCode,
-          });
-          return;
-        }
-
-        if (payload.event === 'clientDisconnected' && this.connectionStarted) {
-          const reason =
-            (payload.data as { reason?: string })?.reason ?? '(no reason)';
-          console.warn(
-            `[LobbyConnection] clientDisconnected, reason="${reason}" (lobbyCode=${this.currentLobbyCode ?? 'unknown'})`,
-          );
-          this.connectionStarted = false;
-          this.connected = false;
-          this._clearReconnectTimer();
-          this._closeCurrentConnection();
-          if (this.currentLobbyCode) {
-            this.onForcedDisconnect(this.currentLobbyCode);
-          }
-        }
-      });
-
-      ws.on('close', (code, reason) => {
-        const reasonStr = reason?.toString() || '(no reason)';
-        this.connected = false;
-
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeout);
-          console.error(
-            `[LobbyConnection] Closed before lobbyState received, code=${code} reason=${reasonStr}`,
-          );
-          reject(new Error(`Connection refused, code=${code} reason=${reasonStr}`));
-          return;
-        }
-
-        console.warn(
-          `[LobbyConnection] Connection closed, code=${code} reason=${reasonStr} (lobbyCode=${this.currentLobbyCode ?? 'unknown'})`,
-        );
-
-        if (
-          this.connectionStarted &&
-          this.hasConnectedOnce &&
-          this.mode.type === 'spectate'
-        ) {
-          const lobbyCode = this.currentLobbyCode ?? this.mode.lobbyCode;
-          console.log(
-            `[LobbyConnection] Scheduling reconnect in 5s (lobbyCode=${lobbyCode})`,
-          );
-          this.ws = null;
-          this._clearReconnectTimer();
-          this.reconnectTimer = setTimeout(() => {
-            this._connect().catch((err) =>
-              console.error(
-                `[LobbyConnection] Reconnect failed (lobbyCode=${lobbyCode}): ${err?.message ?? err}`,
-              ),
-            );
-          }, 5000);
-          return;
-        }
-
-        if (
-          this.connectionStarted &&
-          this.hasConnectedOnce &&
-          this.mode.type === 'create'
-        ) {
-          this.connectionStarted = false;
-          if (this.currentLobbyCode) {
-            this.onForcedDisconnect(this.currentLobbyCode);
-          }
-        }
-      });
-
-      ws.on('error', (err) => {
-        console.error(
-          `[LobbyConnection] WebSocket error (lobbyCode=${this.currentLobbyCode ?? 'unknown'} url=${url}): ${err?.message ?? err}`,
-        );
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeout);
-          reject(err);
-        }
-      });
-    });
-  }
-}
+type LobbySession = {
+  mode: LobbySessionMode;
+  connection: LobbyConnection;
+  tournamentId: number;
+  lobbyName?: string;
+  password: string;
+  currentLobbyCode: string | null;
+  pendingConnect: PendingLobbyConnection | null;
+  currentSocketConnectedNotified: boolean;
+  previousSongKey: string | null;
+  readyByPlayerId: Map<string, boolean>;
+  screenByPlayerKey: Map<string, SyncStartLobbyPlayer['screenName']>;
+  lastCompletedSignature: string | null;
+};
 
 export class SyncStartConnector {
-  private connections = new Map<string, LobbyConnection>();
+  private readonly dispatcher: LobbyEventDispatcher;
+  private serverConnection: LobbyConnection | null = null;
+  private serverTournamentId: number | null = null;
+  private pendingLobbySearch: PendingLobbySearch | null = null;
+  private connections = new Map<string, LobbySession>();
 
   constructor(
     private readonly syncstartUrl: string,
-    private readonly onLobbyState: (
-      lobbyCode: string,
-      payload: LobbyStatePayload,
-    ) => Promise<void>,
-    private readonly onForcedDisconnect: (lobbyCode: string) => void,
-  ) {}
+    observers: ILobbyObserver[],
+  ) {
+    this.dispatcher = new LobbyEventDispatcher(observers);
+  }
 
-  async CreateLobby(
-    password: string,
-  ): Promise<{ lobbyCode: string; initialState: LobbyStatePayload }> {
-    const connection = new LobbyConnection(
-      this.syncstartUrl,
+  async CreateLobby(request: CreateLobbyRequestDto): Promise<LobbyConnectionResultDto> {
+    const session = this.createLobbySession(
       { type: 'create' },
-      this.onLobbyState,
-      this.onForcedDisconnect,
+      request.tournamentId,
+      request.lobbyName,
+      request.password ?? '',
     );
-    const result = await connection.Connect(password);
-    this.connections.set(result.lobbyCode, connection);
+    const result = await this.connectLobbySession(session);
+    this.connections.set(result.lobbyCode, session);
     return result;
   }
 
-  async ConnectLobby(
-    lobbyCode: string,
-    password: string,
-  ): Promise<{ lobbyCode: string; initialState: LobbyStatePayload }> {
-    const normalizedLobbyCode = lobbyCode.toUpperCase();
+  async SpectateLobby(request: SpectateLobbyRequestDto): Promise<LobbyConnectionResultDto> {
+    const normalizedLobbyCode = request.lobbyCode.toUpperCase();
     if (this.connections.has(normalizedLobbyCode)) {
       throw new Error(`Lobby ${normalizedLobbyCode} is already connected`);
     }
 
-    const connection = new LobbyConnection(
-      this.syncstartUrl,
+    const session = this.createLobbySession(
       { type: 'spectate', lobbyCode: normalizedLobbyCode },
-      this.onLobbyState,
-      this.onForcedDisconnect,
+      request.tournamentId,
+      request.lobbyName,
+      request.password ?? '',
     );
-    const result = await connection.Connect(password);
-    this.connections.set(result.lobbyCode, connection);
-    return result;
+    this.connections.set(normalizedLobbyCode, session);
+
+    try {
+      const result = await this.connectLobbySession(session);
+      if (result.lobbyCode !== normalizedLobbyCode) {
+        this.connections.delete(normalizedLobbyCode);
+        this.connections.set(result.lobbyCode, session);
+      }
+      return result;
+    } catch (error) {
+      this.connections.delete(normalizedLobbyCode);
+      throw error;
+    }
   }
 
-  DisconnectLobby(lobbyCode: string): void {
+  async ChangeSong(): Promise<void> {
+    throw new Error('ChangeSong is not implemented');
+  }
+
+  async ConnectToServer(tournamentId: number): Promise<{ isActive: boolean; isConnected: boolean }> {
+    this.serverTournamentId = tournamentId;
+    if (!this.serverConnection) {
+      this.serverConnection = new LobbyConnection(this.syncstartUrl, {
+        label: `server tournament=${tournamentId}`,
+        onOpen: () => this.dispatchServerStatus(),
+        onMessage: (message) => this.handleServerMessage(message),
+        onClose: () => {
+          this.rejectPendingLobbySearch(new Error('SyncStart server connection closed'));
+          return this.dispatchServerStatus();
+        },
+        onError: (error) => {
+          this.rejectPendingLobbySearch(error);
+        },
+      });
+    }
+
+    if (this.serverConnection.IsConnected()) return this.serverStatus();
+
+    const connectPromise = this.serverConnection.Connect();
+    await this.dispatchServerStatus();
+    try {
+      await connectPromise;
+    } catch (error) {
+      await this.dispatchServerStatus();
+      throw error;
+    }
+    return this.serverStatus();
+  }
+
+  DisconnectFromServer(): { isActive: boolean; isConnected: boolean } {
+    this.rejectPendingLobbySearch(new Error('SyncStart server disconnected'));
+    this.serverConnection?.Disconnect();
+    this.serverConnection = null;
+    return this.serverStatus();
+  }
+
+  SearchLobbies(): Promise<SyncStartLobbySummaryDto[]> {
+    if (!this.serverConnection?.IsConnected()) {
+      return Promise.reject(new Error('SyncStart server is not connected'));
+    }
+
+    if (this.pendingLobbySearch) {
+      return Promise.reject(new Error('Lobby search is already in progress'));
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingLobbySearch = null;
+        reject(new Error('Lobby search timeout'));
+      }, 10000);
+
+      this.pendingLobbySearch = { resolve, reject, timeout };
+      try {
+        this.serverConnection?.Send(
+          JSON.stringify({
+            event: 'searchLobby',
+            data: { temporary: false },
+          }),
+        );
+      } catch (error) {
+        this.pendingLobbySearch = null;
+        clearTimeout(timeout);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+  }
+
+  IsActive(): boolean {
+    return this.serverConnection?.IsActive() ?? false;
+  }
+
+  IsConnected(): boolean {
+    return this.serverConnection?.IsConnected() ?? false;
+  }
+
+  LeaveLobby(lobbyCode: string): void {
     const normalizedLobbyCode = lobbyCode.toUpperCase();
-    const connection = this.connections.get(normalizedLobbyCode);
-    if (!connection) return;
-    connection.Disconnect();
+    const session = this.connections.get(normalizedLobbyCode);
+    if (!session) return;
+    session.connection.Disconnect();
     this.connections.delete(normalizedLobbyCode);
   }
 
   DisconnectAll(): void {
-    for (const [lobbyCode, connection] of this.connections) {
-      connection.Disconnect();
+    this.DisconnectFromServer();
+
+    for (const [lobbyCode, session] of this.connections) {
+      session.connection.Disconnect();
       this.connections.delete(lobbyCode);
     }
   }
 
-  GetLobbyStatus(
-    lobbyCode: string,
-  ): { isActive: boolean; isConnected: boolean } | undefined {
-    const connection = this.connections.get(lobbyCode.toUpperCase());
-    if (!connection) return undefined;
+  private createLobbySession(
+    mode: LobbySessionMode,
+    tournamentId: number,
+    lobbyName: string | undefined,
+    password: string,
+  ): LobbySession {
+    let session: LobbySession;
+    const connection = new LobbyConnection(this.syncstartUrl, {
+      label: `lobby mode=${mode.type}`,
+      autoReconnect: mode.type === 'spectate',
+      onOpen: async () => {
+        session.currentSocketConnectedNotified = false;
+        await this.onLobbySocketOpen(session);
+      },
+      onMessage: (message) => this.handleLobbyMessage(session, message),
+      onClose: (event) => this.handleLobbyClose(session, event),
+      onError: (error) => {
+        this.rejectPendingLobbyConnect(session, error);
+      },
+    });
+
+    session = {
+      mode,
+      connection,
+      tournamentId,
+      lobbyName,
+      password,
+      currentLobbyCode: mode.type === 'spectate' ? mode.lobbyCode : null,
+      pendingConnect: null,
+      currentSocketConnectedNotified: false,
+      previousSongKey: null,
+      readyByPlayerId: new Map<string, boolean>(),
+      screenByPlayerKey: new Map<string, SyncStartLobbyPlayer['screenName']>(),
+      lastCompletedSignature: null,
+    };
+    return session;
+  }
+
+  private async connectLobbySession(session: LobbySession): Promise<LobbyConnectionResultDto> {
+    const pendingResult = this.waitForInitialLobbyState(session);
+    const connectPromise = session.connection.Connect();
+    await this.dispatchLobbyActive(session);
+
+    try {
+      await connectPromise;
+      return await pendingResult;
+    } catch (error) {
+      this.rejectPendingLobbyConnect(
+        session,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      throw error;
+    }
+  }
+
+  private async dispatchLobbyActive(session: LobbySession): Promise<void> {
+    const identity = this.currentIdentity(session);
+    if (!identity) return;
+    await this.dispatcher.OnConnectionActive({
+      ...identity,
+      isActive: session.connection.IsActive(),
+      isConnected: session.connection.IsConnected(),
+    });
+  }
+
+  private waitForInitialLobbyState(session: LobbySession): Promise<LobbyConnectionResultDto> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        session.pendingConnect = null;
+        session.connection.Disconnect();
+        reject(new Error('SyncStart lobby state timeout'));
+      }, 10000);
+
+      session.pendingConnect = { resolve, reject, timeout };
+    });
+  }
+
+  private async onLobbySocketOpen(session: LobbySession): Promise<void> {
+    if (session.mode.type === 'create') {
+      session.connection.Send(
+        JSON.stringify({
+          event: 'createLobby',
+          data: {
+            machine: {},
+            password: session.password,
+          },
+        }),
+      );
+      return;
+    }
+
+    await this.notifyConnected(session, session.mode.lobbyCode);
+    session.connection.Send(
+      JSON.stringify({
+        event: 'spectateLobby',
+        data: {
+          code: session.mode.lobbyCode,
+          password: session.password,
+          spectator: { profileName: 'TournamentManager' },
+        },
+      }),
+    );
+  }
+
+  private async handleLobbyMessage(session: LobbySession, message: string): Promise<void> {
+    const payload = this.parseMessage(message);
+    if (!payload) return;
+
+    if (payload.event === 'lobbyState') {
+      await this.handleLobbyState(session, payload.data as SyncStartLobbyStatePayload);
+      return;
+    }
+
+    if (payload.event === 'clientDisconnected' && session.connection.IsActive()) {
+      const reason = (payload.data as { reason?: string })?.reason ?? '(no reason)';
+      console.warn(
+        `[SyncStartConnector] clientDisconnected, reason="${reason}" (lobbyCode=${session.currentLobbyCode ?? 'unknown'})`,
+      );
+      session.connection.Disconnect();
+    }
+  }
+
+  private async handleLobbyState(
+    session: LobbySession,
+    lobbyState: SyncStartLobbyStatePayload,
+  ): Promise<void> {
+    const lobbyCode = lobbyState.code.toUpperCase();
+    const previousLobbyCode = session.currentLobbyCode;
+    session.currentLobbyCode = lobbyCode;
+
+    if (previousLobbyCode && previousLobbyCode !== lobbyCode) {
+      this.connections.delete(previousLobbyCode);
+      this.connections.set(lobbyCode, session);
+    }
+
+    if (session.pendingConnect) {
+      const pending = session.pendingConnect;
+      session.pendingConnect = null;
+      clearTimeout(pending.timeout);
+      await this.notifyConnected(session, lobbyCode);
+      await this.dispatchLobbyState(session, lobbyState);
+      pending.resolve({ lobbyId: lobbyCode, lobbyCode });
+      return;
+    }
+
+    await this.dispatchLobbyState(session, lobbyState);
+  }
+
+  private async handleLobbyClose(
+    session: LobbySession,
+    event: LobbyConnectionCloseEvent,
+  ): Promise<void> {
+    const lobbyCode = session.currentLobbyCode;
+    this.rejectPendingLobbyConnect(
+      session,
+      new Error(`Connection closed, code=${event.code ?? 'unknown'} reason=${event.reason ?? '(no reason)'}`),
+    );
+
+    if (!lobbyCode) return;
+
+    await this.dispatcher.OnDisconnection({
+      ...this.identity(session, lobbyCode),
+      isActive: event.isActive,
+      isConnected: event.isConnected,
+    });
+
+    if (!event.isActive) {
+      this.connections.delete(lobbyCode);
+    }
+  }
+
+  private async handleServerMessage(message: string): Promise<void> {
+    const response = this.parseMessage<SearchLobbyResponse>(message);
+    if (!response || response.event !== 'lobbySearched' || !this.pendingLobbySearch) return;
+
+    const pending = this.pendingLobbySearch;
+    this.pendingLobbySearch = null;
+    clearTimeout(pending.timeout);
+    pending.resolve(response.data?.lobbies ?? []);
+  }
+
+  private parseMessage<T = unknown>(message: string): SyncStartMessage<T> | null {
+    try {
+      return JSON.parse(message) as SyncStartMessage<T>;
+    } catch {
+      console.warn(`[SyncStartConnector] Unparseable message: ${message.slice(0, 200)}`);
+      return null;
+    }
+  }
+
+  private async dispatchServerStatus(): Promise<void> {
+    if (this.serverTournamentId === null) return;
+    await this.dispatcher.OnSyncStartConnectionStatus({
+      tournamentId: this.serverTournamentId,
+      ...this.serverStatus(),
+    });
+  }
+
+  private serverStatus(): { isActive: boolean; isConnected: boolean } {
     return {
-      isActive: connection.IsActive(),
-      isConnected: connection.IsConnected(),
+      isActive: this.IsActive(),
+      isConnected: this.IsConnected(),
     };
   }
 
-  GetAllLobbyCodes(): string[] {
-    return Array.from(this.connections.keys());
+  private rejectPendingLobbySearch(error: Error): void {
+    if (!this.pendingLobbySearch) return;
+    const pending = this.pendingLobbySearch;
+    this.pendingLobbySearch = null;
+    clearTimeout(pending.timeout);
+    pending.reject(error);
+  }
+
+  private rejectPendingLobbyConnect(session: LobbySession, error: Error): void {
+    if (!session.pendingConnect) return;
+    const pending = session.pendingConnect;
+    session.pendingConnect = null;
+    clearTimeout(pending.timeout);
+    pending.reject(error);
+  }
+
+  private async dispatchLobbyState(
+    session: LobbySession,
+    lobbyState: SyncStartLobbyStatePayload,
+  ): Promise<void> {
+    const lobbyCode = lobbyState.code.toUpperCase();
+    const identity = this.identity(session, lobbyCode);
+    const song = this.toSongDto(lobbyState);
+    const playerTransitions = lobbyState.players.map((player) => {
+      const playerKey = this.playerStateKey(player);
+      return {
+        player,
+        playerKey,
+        previousScreen: session.screenByPlayerKey.get(playerKey),
+      };
+    });
+
+    if (song) {
+      const songKey = `${song.songPath}|${song.title}`;
+      if (songKey !== session.previousSongKey) {
+        session.previousSongKey = songKey;
+        session.lastCompletedSignature = null;
+        await this.dispatcher.OnSongSelected({ ...identity, song });
+      }
+    }
+
+    const gameplayPlayers = lobbyState.players.filter(
+      (player) => player.screenName === 'ScreenGameplay',
+    );
+    for (const player of gameplayPlayers) {
+      const previousReady = session.readyByPlayerId.get(player.playerId);
+      if (previousReady !== player.ready) {
+        session.readyByPlayerId.set(player.playerId, player.ready);
+        await this.dispatcher.OnPlayerReady({
+          ...identity,
+          playerId: player.playerId,
+          playerName: this.normalizePlayerName(player.profileName),
+          ready: player.ready,
+        });
+      }
+    }
+
+    if (gameplayPlayers.length > 0) {
+      await this.dispatcher.OnGoingMatchUpdate({
+        ...identity,
+        song,
+        players: gameplayPlayers.map((player) => this.toLivePlayerDto(player)),
+      });
+    }
+
+    const playerMovedToEvaluation = playerTransitions.some(
+      ({ player, previousScreen }) =>
+        previousScreen === 'ScreenGameplay' && this.isEvaluationScreen(player.screenName),
+    );
+    if (song && playerMovedToEvaluation) {
+      const scores = lobbyState.players.map((player) => this.toCompletedScoreDto(player));
+      const signature = this.completedSignature(song, scores);
+      if (signature !== session.lastCompletedSignature) {
+        session.lastCompletedSignature = signature;
+        await this.dispatcher.OnSongCompleted({
+          ...identity,
+          song,
+          scores,
+        });
+      }
+    }
+
+    for (const { player, playerKey } of playerTransitions) {
+      session.screenByPlayerKey.set(playerKey, player.screenName);
+    }
+  }
+
+  private async notifyConnected(session: LobbySession, lobbyCode: string): Promise<void> {
+    if (session.currentSocketConnectedNotified) return;
+    session.currentSocketConnectedNotified = true;
+    await this.dispatcher.OnConnected({
+      ...this.identity(session, lobbyCode.toUpperCase()),
+      isActive: true,
+      isConnected: true,
+    });
+  }
+
+  private identity(session: LobbySession, lobbyCode: string): LobbyIdentityDto {
+    return {
+      tournamentId: session.tournamentId,
+      lobbyId: lobbyCode,
+      lobbyCode,
+      lobbyName: session.lobbyName || lobbyCode,
+    };
+  }
+
+  private currentIdentity(session: LobbySession): LobbyIdentityDto | null {
+    return session.currentLobbyCode ? this.identity(session, session.currentLobbyCode) : null;
+  }
+
+  private toSongDto(lobby: SyncStartLobbyStatePayload): LobbySongDto | undefined {
+    if (!lobby.songInfo) return undefined;
+    return {
+      songPath: lobby.songInfo.songPath,
+      title: lobby.songInfo.title,
+      artist: lobby.songInfo.artist,
+      songLength: lobby.songInfo.songLength,
+    };
+  }
+
+  private toLivePlayerDto(player: SyncStartLobbyPlayer): LobbyLivePlayerDto {
+    return {
+      playerId: player.playerId,
+      playerName: this.normalizePlayerName(player.profileName),
+      score: player.score ?? 0,
+      exScore: player.exScore,
+      isFailed: player.isFailed ?? false,
+      songProgression: player.songProgression,
+      judgments: this.toJudgmentsDto(player),
+    };
+  }
+
+  private toCompletedScoreDto(player: SyncStartLobbyPlayer): LobbyCompletedScoreDto {
+    return {
+      playerId: player.playerId,
+      playerName: this.normalizePlayerName(player.profileName),
+      score: player.score ?? 0,
+      exScore: player.exScore,
+      isFailed: player.isFailed ?? false,
+    };
+  }
+
+  private toJudgmentsDto(player: SyncStartLobbyPlayer): LobbyJudgmentsDto | undefined {
+    if (!player.judgments) return undefined;
+    return {
+      fantasticPlus: player.judgments.fantasticPlus,
+      fantastics: player.judgments.fantastics,
+      excellents: player.judgments.excellents,
+      greats: player.judgments.greats,
+      decents: player.judgments.decents ?? 0,
+      wayOffs: player.judgments.wayOffs ?? 0,
+      misses: player.judgments.misses,
+      minesHit: player.judgments.minesHit,
+      holdsHeld: player.judgments.holdsHeld,
+      totalHolds: player.judgments.totalHolds,
+    };
+  }
+
+  private normalizePlayerName(playerName: string): string {
+    return playerName.replace(/\[DS\]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  private playerStateKey(player: SyncStartLobbyPlayer): string {
+    return `${player.playerId}|${this.normalizePlayerName(player.profileName)}`;
+  }
+
+  private isEvaluationScreen(screenName: SyncStartLobbyPlayer['screenName']): boolean {
+    return screenName === 'ScreenEvaluation' || screenName === 'ScreenEvaluationStage';
+  }
+
+  private completedSignature(song: LobbySongDto, scores: LobbyCompletedScoreDto[]): string {
+    return JSON.stringify({
+      songPath: song.songPath,
+      scores: scores
+        .map((score) => ({
+          playerId: score.playerId,
+          playerName: score.playerName,
+          score: score.score,
+          exScore: score.exScore,
+          isFailed: score.isFailed,
+        }))
+        .sort((a, b) => a.playerId.localeCompare(b.playerId)),
+    });
   }
 }
+
+export type {
+  CreateLobbyRequestDto,
+  LobbyConnectionResultDto,
+  SpectateLobbyRequestDto,
+  SyncStartLobbySummaryDto,
+} from './syncstart-connector.types';

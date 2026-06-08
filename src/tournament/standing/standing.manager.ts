@@ -3,15 +3,14 @@ import { CreateScoreDto, CreateStandingDto, UpdateStandingDto } from '../dtos';
 import { Match, Player, Score } from '@persistence/entities';
 import { ScoringSystemProvider } from "../services/scoring-systems/ScoringSystemProvider";
 import { UiUpdateGateway } from '@match/gateways/ui-update.gateway';
-import { ILobbyStateObserver } from '../interfaces/lobby-state-observer.interface';
-import { LobbyStatePayload } from '@syncstart/index';
+import { ILobbyObserver, LobbySongCompletedDto } from '@syncstart/index';
 import { MatchService } from '@match/services/match.service';
 import { MatchWorkflowManager } from '@match/services/match-workflow.manager';
 import { ScoreService } from '../services/score.service';
 import { StandingService } from './standing.service';
 
 @Injectable()
-export class StandingManager implements ILobbyStateObserver {
+export class StandingManager implements ILobbyObserver {
     constructor(
         @Inject()
         private readonly standingService: StandingService,
@@ -216,21 +215,23 @@ export class StandingManager implements ILobbyStateObserver {
         return match;
     }
 
-    async OnLobbyStateChanged(tournamentId: number, lobbyState: LobbyStatePayload, _lobbyCode: string, _lobbyName: string): Promise<void> {
-        const songPath = lobbyState.songInfo?.songPath ?? null;
-
-        if (!songPath) return;
-
-        for (const player of lobbyState.players) {
-            if (player.screenName === "ScreenEvaluationStage") {
-                await this.registerLobbyScore(
-                    tournamentId,
-                    songPath,
-                    player.profileName,
-                    player.score,
-                    player.isFailed ?? false,
+    async OnSongCompleted(event: LobbySongCompletedDto): Promise<void> {
+        for (const score of event.scores) {
+            if (score.exScore == null) {
+                this.uiUpdateGateway.emitWarning(
+                    event.tournamentId,
+                    `No EX score found for ${score.playerName} on "${event.song.songPath}". Score was not saved.`,
                 );
+                continue;
             }
+
+            await this.registerLobbyScore(
+                event.tournamentId,
+                event.song.songPath,
+                score.playerName,
+                score.exScore,
+                score.isFailed,
+            );
         }
     }
 
@@ -275,6 +276,10 @@ export class StandingManager implements ILobbyStateObserver {
             return;
         }
 
+        if (!emptyCandidate) {
+            return;
+        }
+
         const score = await this.scoreService.create({
             playerId: matchPlayer.id,
             songId: matchRound.song.id,
@@ -282,9 +287,7 @@ export class StandingManager implements ILobbyStateObserver {
             isFailed,
         });
 
-        if (emptyCandidate) {
-            await this.AddScoreToEmptyStanding(emptyCandidate, score);
-        }
+        await this.AddScoreToEmptyStanding(emptyCandidate, score);
     }
 
     private async getExistingScoreForStanding(scoreId: number, playerId: number, songId: number): Promise<Score> {

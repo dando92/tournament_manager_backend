@@ -175,13 +175,25 @@ export class TournamentsController {
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
     @Get(':id/lobbies')
-    getLobbies(@Param('id') id: number) {
+    async getLobbies(@Param('id') id: number) {
         return this.lobbyManager.GetLobbies(Number(id));
     }
 
     @Get(':id/lobbies/status')
-    getLobbiesStatus(@Param('id') id: number) {
+    async getLobbiesStatus(@Param('id') id: number) {
         return this.lobbyManager.GetLobbies(Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Post(':id/lobbies/server/connect')
+    async connectSyncStartServer(@Param('id') id: number) {
+        return this.lobbyManager.ConnectSyncStartServer(Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard, TournamentAccessGuard)
+    @Delete(':id/lobbies/server/disconnect')
+    disconnectSyncStartServer(@Param('id') id: number) {
+        return this.lobbyManager.DisconnectSyncStartServer(Number(id));
     }
 
     @UseGuards(JwtAuthGuard, TournamentAccessGuard)
