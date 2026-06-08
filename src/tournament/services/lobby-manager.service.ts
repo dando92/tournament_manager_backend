@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { Tournament } from '@persistence/entities';
 import { ILobbyObserver, LobbyConnectionDto, SyncStartConnector } from '@syncstart/index';
 import { StandingManager } from '../standing/standing.manager';
-import { ItgOnlineProxyGateway } from '../gateways/itg-online-proxy.gateway';
+import { LiveMatchGateway } from '../gateways/live-match.gateway';
+import { LobbyGateway } from '../gateways/lobby.gateway';
 
 interface LobbyMeta {
     tournamentId: number;
@@ -43,7 +44,8 @@ export class LobbyManager implements OnModuleInit, ILobbyObserver {
         @InjectRepository(Tournament)
         private readonly tournamentRepository: Repository<Tournament>,
         private readonly standingManager: StandingManager,
-        private readonly gateway: ItgOnlineProxyGateway,
+        private readonly lobbyGateway: LobbyGateway,
+        private readonly liveMatchGateway: LiveMatchGateway,
     ) {}
 
     async onModuleInit(): Promise<void> {
@@ -85,7 +87,7 @@ export class LobbyManager implements OnModuleInit, ILobbyObserver {
             return lobbyId;
         } catch (err) {
             this.lobbyCodeMeta.delete(normalizedLobbyCode);
-            this.gateway.OnDisconnection({
+            this.lobbyGateway.OnDisconnection({
                 tournamentId,
                 lobbyId: normalizedLobbyCode,
                 lobbyName: name || normalizedLobbyCode,
@@ -202,7 +204,7 @@ export class LobbyManager implements OnModuleInit, ILobbyObserver {
     private _createConnector(tournamentId: number, syncstartUrl: string): void {
         const connector = new SyncStartConnector(
             syncstartUrl,
-            [this, this.standingManager, this.gateway],
+            [this, this.standingManager, this.lobbyGateway, this.liveMatchGateway],
         );
         this.connectors.set(tournamentId, connector);
     }
